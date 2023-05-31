@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "WifiControl"
-include ':app'
+include(":app")
