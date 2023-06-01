@@ -8,7 +8,9 @@ composeMaterial = "1.4.3"
 composeUi = "1.4.3"
 coreKtx = "1.10.1"
 junit = "4.13.2"
+koTest = "5.6.2"
 lifecycleRuntimeKtx = "2.6.1"
+mockk = "1.13.5"
 testEspresso = "3.5.1"
 testJUnit = "1.1.5"
 
@@ -30,3 +32,6 @@ androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecyc
 androidx-test-espresso = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "testEspresso" }
 androidx-test-junit = { group = "androidx.test.ext", name = "junit", version.ref = "testJUnit" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+kotest-assertions = { group = "io.kotest", name = "kotest-assertions-core", version.ref = "koTest" }
+kotest-runner-junit = { group = "io.kotest", name = "kotest-runner-junit5", version.ref = "koTest" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
