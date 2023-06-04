@@ -62,6 +62,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material)
 
+    testImplementation(libs.coroutines.test)
     testImplementation(libs.kotest.assertions)
     testImplementation(libs.kotest.runner.junit)
     testImplementation(libs.mockk)
