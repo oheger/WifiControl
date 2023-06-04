@@ -45,12 +45,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 
-@OptIn(DelicateCoroutinesApi::class, ExperimentalCoroutinesApi::class)
+@OptIn(DelicateCoroutinesApi::class, ExperimentalCoroutinesApi::class, ExperimentalStdlibApi::class)
 class ServerFinderTest : StringSpec() {
     private lateinit var testDispatcher: ExecutorCoroutineDispatcher
 
@@ -140,6 +141,37 @@ class ServerFinderTest : StringSpec() {
                 connManager.unregisterNetworkCallback(callback)
             }
             result.await()
+        }
+
+        "The WiFiUnavailable state should ignore the network timeout" {
+            val activity = mockk<Activity>()
+            activity.mockConnectivityManager()
+            mockNetworkRequest()
+
+            val finder = ServerFinder(finderConfig, WiFiUnavailable)
+            val deferredResult = findServerStepAsync(finder, activity)
+
+            delay(finderConfig.networkTimeout * 2)
+
+            deferredResult.isCompleted shouldBe false
+            deferredResult.isCancelled shouldBe false
+            deferredResult.cancel()
+        }
+
+        "The WiFiUnavailable state should switch to SearchingInWiFi if Wi-Fi becomes available" {
+            val config = finderConfig.copy(networkTimeout = TIMEOUT_MS.milliseconds)
+            val activity = mockk<Activity>()
+            val connManager = activity.mockConnectivityManager()
+            val request = mockNetworkRequest()
+
+            val deferredResult = findServerStepAsync(ServerFinder(config, WiFiUnavailable), activity)
+
+            val callback = connManager.getNetworkCallback(request)
+            callback.onAvailable(mockk())
+
+            val result = withTimeout(TIMEOUT_MS) { deferredResult.await() }
+            result.config shouldBe config
+            result.state shouldBe SearchingInWiFi
         }
     }
 }

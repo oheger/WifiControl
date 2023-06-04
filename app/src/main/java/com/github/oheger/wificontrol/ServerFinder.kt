@@ -25,6 +25,7 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -88,37 +89,39 @@ class ServerFinder(
     suspend fun findServerStep(activity: Activity): ServerFinder =
         when (state) {
             is ServerFound -> this
-            else -> withState(findWiFi(activity))
+            is WiFiUnavailable -> withState(findWiFi(activity, 1.days))
+            else -> withState(findWiFi(activity, config.networkTimeout))
         }
 
     /**
      * Execute the step to find the Wi-Fi network. This function is called for the states [NetworkStatusUnknown] and
      * [WiFiUnavailable]. The difference is that in the latter state the function waits longer for the network to
-     * become available. The [ConnectivityManager] needed to check the network status is obtained from the given
-     * [activity].
+     * become available; the [timeout] is expected as parameter. The [ConnectivityManager] needed to check the
+     * network status is obtained from the given [activity].
      */
-    private suspend fun findWiFi(activity: Activity): ServerLookupState = withContext(Dispatchers.Main) {
-        val channel = Channel<ServerLookupState>()
-        val callback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                runBlocking { channel.send(SearchingInWiFi) }
+    private suspend fun findWiFi(activity: Activity, timeout: Duration): ServerLookupState =
+        withContext(Dispatchers.Main) {
+            val channel = Channel<ServerLookupState>()
+            val callback = object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    runBlocking { channel.send(SearchingInWiFi) }
+                }
+            }
+
+            val connManager = activity.getSystemService(ConnectivityManager::class.java)
+            try {
+                val request = NetworkRequest.Builder()
+                    .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                    .build()
+                launch { connManager.registerNetworkCallback(request, callback) }
+
+                withTimeoutOrNull(timeout) {
+                    channel.receive()
+                } ?: WiFiUnavailable
+            } finally {
+                connManager.unregisterNetworkCallback(callback)
             }
         }
-
-        val connManager = activity.getSystemService(ConnectivityManager::class.java)
-        try {
-            val request = NetworkRequest.Builder()
-                .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
-                .build()
-            launch { connManager.registerNetworkCallback(request, callback) }
-
-            withTimeoutOrNull(config.networkTimeout) {
-                channel.receive()
-            } ?: WiFiUnavailable
-        } finally {
-            connManager.unregisterNetworkCallback(callback)
-        }
-    }
 
     /**
      * Return a [ServerFinder] instance with the same configuration, but the given [nextState].
