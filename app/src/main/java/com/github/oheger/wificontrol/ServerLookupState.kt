@@ -45,6 +45,12 @@ object WiFiUnavailable : ServerLookupState
 object SearchingInWiFi : ServerLookupState
 
 /**
+ * An object representing the state that the server looked for could not be found by a multicast UDP request. This is
+ * mainly an intermediate state that can be reflected in the UI. Another UDP request will be sent after a delay.
+ */
+object ServerNotFound : ServerLookupState
+
+/**
  * A data class representing the state that the server could be located on the network. Its URL is now available, so
  * interaction with it is now possible.
  */
