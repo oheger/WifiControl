@@ -1,13 +1,13 @@
 <resources>
     <string name="app_name">WifiControl</string>
-    <string name="state_wifi_unknown">Checking status of Wi-Fi</string>
-    <string name="state_wifi_unavailable">Wi-Fi unavailable</string>
+    <string name="state_wifi_unknown">Checking status of Wi-Fi…</string>
+    <string name="state_wifi_unavailable">Wi-Fi unavailable.</string>
     <string name="state_wifi_unavailable_hint">Please make sure that Wi-Fi is available and connected to the correct
         network.
     </string>
     <string name="state_searching">Looking up server.</string>
     <string name="state_server_not_found">Server not found in network.</string>
-    <string name="state_wifi_available">Wi-Fi connected</string>
+    <string name="state_wifi_available">Wi-Fi connected.</string>
     <string name="state_server_not_found_hint">The test request will be retried after a while.</string>
     <string name="state_searching_hint">" Sending a test request…"</string>
 </resources>
