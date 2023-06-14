@@ -65,8 +65,20 @@ internal fun textTag(tag: String): String = "${tag}_text"
  */
 internal fun iconTag(tag: String): String = "${tag}_icon"
 
+/**
+ * Generate the whole UI of this application based on the given [model]. This is the top-level composable function;
+ * the entrypoint into the UI.
+ */
 @Composable
-fun ControlUi(lookupState: ServerLookupState, modifier: Modifier = Modifier) {
+fun ControlUi(model: ControlViewModel, modifier: Modifier = Modifier) {
+    ControlView(model.lookupState, modifier)
+}
+
+/**
+ * Generate the UI of this application based on the given [lookupState].
+ */
+@Composable
+fun ControlView(lookupState: ServerLookupState, modifier: Modifier) {
     when (lookupState) {
         is ServerFound -> Text("Server found.")
 
@@ -186,8 +198,9 @@ fun ControlUiPreview(
     @PreviewParameter(LookupStatePreviewProvider::class)
     lookupState: ServerLookupState
 ) {
+    val model = PreviewControlViewModel(lookupState)
     WifiControlTheme {
-        ControlUi(lookupState)
+        ControlUi(model)
     }
 }
 

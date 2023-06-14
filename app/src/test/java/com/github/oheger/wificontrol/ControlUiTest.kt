@@ -94,7 +94,8 @@ class ControlUiTest {
         ) + tagPrefixes.flatMap { prefix -> listOf(iconTag(prefix), textTag(prefix)) }
         val expectedTagsSet = expectedTags.toSet()
 
-        composeTestRule.activity.setContent { ControlUi(state) }
+        val model = ControlViewModelImpl().apply { updateLookupState(state) }
+        composeTestRule.activity.setContent { ControlUi(model) }
 
         allTags.filter { it in expectedTagsSet }.forAll { tag ->
             composeTestRule.onNodeWithTag(tag).assertIsDisplayed()
