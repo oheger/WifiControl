@@ -16,6 +16,7 @@ mockk = "1.13.5"
 robolectric = "4.10.3"
 testEspresso = "3.5.1"
 testJUnit = "1.1.5"
+webView = "0.31.3-beta"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidApplicationPlugin" }
@@ -23,6 +24,7 @@ android-library = { id = "com.android.library", version.ref = "androidLibraryPlu
 kotlin-android = { id= "org.jetbrains.kotlin.android", version.ref = "kotlinAndroidPlugin" }
 
 [libraries]
+accompanist-webview = { group = "com.google.accompanist", name = "accompanist-webview", version.ref = "webView" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-compose-material = { group = "androidx.compose.material", name = "material", version.ref = "composeMaterial" }
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "composeUi" }

@@ -120,6 +120,11 @@ class ControlUiTest {
         )
     }
 
+    @Test
+    fun `The ServerFound state is displayed correctly`() {
+        checkNotificationsForState(ServerFound("http://www.example.org"), TAG_SERVER_AVAILABLE)
+    }
+
     /**
      * Check whether for the given [state] the elements with the given [expectedTags] (and only those) are visible.
      */
@@ -135,7 +140,8 @@ class ControlUiTest {
             TAG_SEARCHING_HINT,
             TAG_SEARCHING_INDICATOR,
             TAG_WIFI_UNAVAILABLE_HINT,
-            TAG_SERVER_NOT_FOUND_HINT
+            TAG_SERVER_NOT_FOUND_HINT,
+            TAG_SERVER_AVAILABLE
         ) + tagPrefixes.flatMap { prefix -> listOf(iconTag(prefix), textTag(prefix)) }
         val expectedTagsSet = expectedTags.toSet()
 

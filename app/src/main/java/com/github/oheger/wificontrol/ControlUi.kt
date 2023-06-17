@@ -43,11 +43,16 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
+
+import com.google.accompanist.web.WebView
+import com.google.accompanist.web.rememberWebViewState
 
 internal const val TAG_SEARCHING_FOR_SERVER = "tag_searching_for_server"
 internal const val TAG_SEARCHING_HINT = "tag_searching_for_server_hint"
 internal const val TAG_SEARCHING_INDICATOR = "tag_searching_indicator"
+internal const val TAG_SERVER_AVAILABLE = "tag_server_available"
 internal const val TAG_SERVER_NOT_FOUND = "tag_server_not_found"
 internal const val TAG_SERVER_NOT_FOUND_HINT = "tag_server_not_found_hint"
 internal const val TAG_WIFI_AVAILABLE = "tag_wifi_available"
@@ -80,7 +85,7 @@ fun ControlUi(model: ControlViewModel, modifier: Modifier = Modifier) {
 @Composable
 fun ControlView(lookupState: ServerLookupState, modifier: Modifier) {
     when (lookupState) {
-        is ServerFound -> Text("Server found.")
+        is ServerFound -> ShowWebView(lookupState.uri, modifier)
 
         is NetworkStatusUnknown -> Notification(R.drawable.ic_unknown, TAG_WIFI_UNKNOWN, modifier) {
             NotificationText(R.string.state_wifi_unknown, TAG_WIFI_UNKNOWN, modifier)
@@ -189,6 +194,18 @@ fun ProgressIndicator(modifier: Modifier = Modifier) {
         modifier = modifier
             .size(16.dp)
             .testTag(TAG_SEARCHING_INDICATOR)
+    )
+}
+
+/**
+ * Display a web view to display the UI of the server after it was found. The web view loads the specified [uri].
+ */
+@Composable
+fun ShowWebView(uri: String, modifier: Modifier) {
+    val state = rememberWebViewState(uri)
+    WebView(
+        state = state,
+        modifier = modifier.testTag(TAG_SERVER_AVAILABLE)
     )
 }
 
