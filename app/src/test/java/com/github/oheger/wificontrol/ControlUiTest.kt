@@ -18,7 +18,6 @@
  */
 package com.github.oheger.wificontrol
 
-import androidx.activity.compose.setContent
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -26,14 +25,60 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 
 import io.kotest.inspectors.forAll
 
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.runs
+import io.mockk.slot
+import io.mockk.unmockkAll
+import io.mockk.verify
+
+import org.junit.AfterClass
+import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class ControlUiTest {
+    companion object {
+        /** Mock for the lookup controller that is used by the activity. */
+        private val lookupController = mockk<ServerLookupController>()
+
+        /**
+         * Initialize the mocking of objects and static methods. Prepare the mock for the [ServerLookupController].
+         * By mocking the [ServerLookupController.create] function, this mock is injected into the activity.
+         */
+        @BeforeClass
+        @JvmStatic
+        fun initMocking() {
+            mockkObject(ServerLookupController)
+            every { ServerLookupController.create(any(), any(), any()) } returns lookupController
+            every { lookupController.startLookup() } just runs
+        }
+
+        /**
+         * Clean up all static or object mocking.
+         */
+        @AfterClass
+        @JvmStatic
+        fun cleanUpMocking() {
+            unmockkAll()
+        }
+    }
+
     @get:Rule
     val composeTestRule = createAndroidComposeRule<MainActivity>()
+
+    @Test
+    fun `The lookup controller is started`() {
+        composeTestRule.onNodeWithTag(textTag(TAG_WIFI_UNKNOWN)).assertExists()
+
+        verify {
+            lookupController.startLookup()
+        }
+    }
 
     @Test
     fun `The NetworkStatusUnknown state is displayed correctly`() {
@@ -94,8 +139,13 @@ class ControlUiTest {
         ) + tagPrefixes.flatMap { prefix -> listOf(iconTag(prefix), textTag(prefix)) }
         val expectedTagsSet = expectedTags.toSet()
 
-        val model = ControlViewModelImpl().apply { updateLookupState(state) }
-        composeTestRule.activity.setContent { ControlUi(model) }
+        val slotModel = slot<ControlViewModel>()
+        verify {
+            ServerLookupController.create(capture(slotModel), composeTestRule.activity, any())
+        }
+
+        val model = slotModel.captured
+        model.updateLookupState(state)
 
         allTags.filter { it in expectedTagsSet }.forAll { tag ->
             composeTestRule.onNodeWithTag(tag).assertIsDisplayed()
