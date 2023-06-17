@@ -173,6 +173,16 @@ class ServerFinderTest : StringSpec() {
             result.config shouldBe config
             result.state shouldBe SearchingInWiFi
         }
+
+        "The SearchingInWifi state transits to ServerFound" {
+            // TODO: This is only temporary until the search in the network has been implemented; so that something
+            // meaningful can be displayed on the UI.
+            val finder = ServerFinder(finderConfig, SearchingInWiFi)
+
+            val nextFinder = finder.findServerStep(mockk())
+
+            nextFinder.state shouldBe ServerFound("http://www.example.org")
+        }
     }
 }
 

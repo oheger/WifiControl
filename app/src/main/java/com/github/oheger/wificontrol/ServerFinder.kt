@@ -90,6 +90,7 @@ class ServerFinder(
         when (state) {
             is ServerFound -> this
             is WiFiUnavailable -> withState(findWiFi(activity, 1.days))
+            is SearchingInWiFi -> withState(ServerFound("http://www.example.org"))
             else -> withState(findWiFi(activity, config.networkTimeout))
         }
 
