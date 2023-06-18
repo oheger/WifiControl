@@ -23,6 +23,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.util.Log
 
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
@@ -81,18 +82,26 @@ class ServerFinder(
     /** The current [ServerLookupState]. */
     val state: ServerLookupState = NetworkStatusUnknown
 ) {
+    companion object {
+        /** The tag to e used for logging. */
+        private const val TAG = "ServerFinder"
+    }
+
     /**
      * Execute the next step to locate the server in the network and return an updated [ServerFinder] instance.
      * Interact with the given [activity] if necessary. From the [state] of the resulting instance, the caller can
      * figure out whether the server could be successfully be located or if further steps are necessary.
      */
-    suspend fun findServerStep(activity: Activity): ServerFinder =
-        when (state) {
+    suspend fun findServerStep(activity: Activity): ServerFinder {
+        Log.i(TAG, "Invoking in state '$state'.")
+
+        return when (state) {
             is ServerFound -> this
             is WiFiUnavailable -> withState(findWiFi(activity, 1.days))
             is SearchingInWiFi -> withState(ServerFound("http://www.example.org"))
             else -> withState(findWiFi(activity, config.networkTimeout))
         }
+    }
 
     /**
      * Execute the step to find the Wi-Fi network. This function is called for the states [NetworkStatusUnknown] and
@@ -127,5 +136,8 @@ class ServerFinder(
     /**
      * Return a [ServerFinder] instance with the same configuration, but the given [nextState].
      */
-    private fun withState(nextState: ServerLookupState): ServerFinder = ServerFinder(config, nextState)
+    private fun withState(nextState: ServerLookupState): ServerFinder =
+        ServerFinder(config, nextState).also {
+            Log.i(TAG, "Switching to new state '$nextState'.")
+        }
 }
