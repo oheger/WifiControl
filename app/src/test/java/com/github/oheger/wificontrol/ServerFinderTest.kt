@@ -23,6 +23,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 
+import io.kotest.assertions.timing.eventually
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 
@@ -35,6 +36,11 @@ import io.mockk.slot
 import io.mockk.unmockkAll
 import io.mockk.verify
 
+import java.net.DatagramPacket
+import java.net.DatagramSocket
+import java.net.MulticastSocket
+import java.net.ServerSocket
+
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -46,6 +52,7 @@ import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -174,14 +181,35 @@ class ServerFinderTest : StringSpec() {
             result.state shouldBe SearchingInWiFi
         }
 
-        "The SearchingInWifi state transits to ServerFound" {
-            // TODO: This is only temporary until the search in the network has been implemented; so that something
-            // meaningful can be displayed on the UI.
+        "The SearchingInWiFi state should switch to ServerNotFound if not answer is received in the timeout" {
             val finder = ServerFinder(finderConfig, SearchingInWiFi)
 
             val nextFinder = finder.findServerStep(mockk())
 
-            nextFinder.state shouldBe ServerFound("http://www.example.org")
+            nextFinder.state shouldBe ServerNotFound
+        }
+
+        "The SearchingInWiFi state should switch to ServerFound if the server replies" {
+            val serverUri = "http://www.example.org/found"
+            startServer(serverUri)
+
+            eventually(duration = 3.seconds) {
+                val finder = ServerFinder(finderConfig, SearchingInWiFi)
+
+                val nextFinder = finder.findServerStep(mockk())
+
+                nextFinder.state shouldBe ServerFound(serverUri)
+            }
+        }
+
+        "The SearchingInWiFi state should switch to ServerNotFound if an invalid URL is received from the server" {
+            startServer("?!This is not a valid URL!?")
+
+            val finder = ServerFinder(finderConfig, SearchingInWiFi)
+
+            val nextFinder = finder.findServerStep(mockk())
+
+            nextFinder.state shouldBe ServerNotFound
         }
     }
 }
@@ -195,11 +223,16 @@ private const val TIMEOUT_MS = 3000L
 /** The default configuration used by tests. */
 private val finderConfig = ServerFinderConfig(
     multicastAddress = "231.10.1.2",
-    port = 2213,
+    port = findUnusedPort(),
     requestCode = "testServer",
     networkTimeout = 100.milliseconds,
     retryDelay = 1.seconds
 )
+
+/**
+ * Find a free port that can be used to start the test server.
+ */
+private fun findUnusedPort(): Int = ServerSocket(0).use { it.localPort }
 
 /**
  * Create a mock [ConnectivityManager] and prepare it to expect a callback registration. Prepare this mock
@@ -254,3 +287,31 @@ private fun CoroutineScope.findServerStepAsync(finder: ServerFinder, activity: A
     async(Dispatchers.Default) {
         finder.findServerStep(activity)
     }
+
+/**
+ * Launch code in background that simulates a test server and answers an UDP request with the given [answer].
+ */
+private fun CoroutineScope.startServer(answer: String) {
+    launch(Dispatchers.IO) { handleUpdRequest(answer) }
+}
+
+/**
+ * Open a [DatagramSocket] and expect a request for lookup the test server. If the expected request is received,
+ * send a response with the given [answer].
+ */
+private fun handleUpdRequest(answer: String) {
+    MulticastSocket(finderConfig.port).use { socket ->
+        socket.joinGroup(finderConfig.multicastInetAddress)
+        val buffer = ByteArray(256)
+        val packet = DatagramPacket(buffer, buffer.size)
+        socket.receive(packet)
+
+        val request = String(packet.data, 0, packet.length)
+        if (request == finderConfig.requestCode) {
+            val packetAnswer = DatagramPacket(answer.toByteArray(), answer.length, packet.address, packet.port)
+            socket.send(packetAnswer)
+        }
+
+        socket.leaveGroup(finderConfig.multicastInetAddress)
+    }
+}

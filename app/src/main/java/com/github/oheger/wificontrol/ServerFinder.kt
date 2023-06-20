@@ -25,6 +25,11 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.util.Log
 
+import java.net.DatagramPacket
+import java.net.DatagramSocket
+import java.net.InetAddress
+import java.net.URI
+
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 
@@ -61,7 +66,10 @@ data class ServerFinderConfig(
      * A delay after which another attempt is made to contact the server after a failure.
      */
     val retryDelay: Duration
-)
+) {
+    /** The multicast address to which UDP requests need to be sent as an [InetAddress]. */
+    val multicastInetAddress: InetAddress by lazy { InetAddress.getByName(multicastAddress) }
+}
 
 /**
  * A class responsible for locating a specific HTTP server in the Wi-Fi network.
@@ -85,6 +93,16 @@ class ServerFinder(
     companion object {
         /** The tag to e used for logging. */
         private const val TAG = "ServerFinder"
+
+        /** The size of the packet for receiving UDP data. */
+        private const val DATAGRAM_PACKET_SIZE = 256
+
+        /**
+         * Return a [ServerFound] object for the URL represented by this String if it is valid. Otherwise, return
+         * *null*.
+         */
+        private fun String.toServerFound(): ServerFound? =
+            takeIf { runCatching { URI(this) }.isSuccess }?.let(::ServerFound)
     }
 
     /**
@@ -98,7 +116,7 @@ class ServerFinder(
         return when (state) {
             is ServerFound -> this
             is WiFiUnavailable -> withState(findWiFi(activity, 1.days))
-            is SearchingInWiFi -> withState(ServerFound("http://www.example.org"))
+            is SearchingInWiFi -> withState(searchInWiFi())
             else -> withState(findWiFi(activity, config.networkTimeout))
         }
     }
@@ -130,6 +148,47 @@ class ServerFinder(
                 } ?: WiFiUnavailable
             } finally {
                 connManager.unregisterNetworkCallback(callback)
+            }
+        }
+
+    /**
+     * Try to discover the server in the network by sending a multicast UDP request using the configured parameters.
+     * If a response is received with a valid URL, the server lookup was successful. If an error or a timeout
+     * occurs, the lookup needs to be repeated after a while.
+     */
+    private suspend fun searchInWiFi(): ServerLookupState = withContext(Dispatchers.IO) {
+        DatagramSocket().use { socket ->
+            val channel = Channel<String>()
+            launch { udpCommunication(socket, channel) }
+
+            withTimeoutOrNull(config.networkTimeout) {
+                channel.receive()
+            }?.toServerFound() ?: ServerNotFound
+        }
+    }
+
+    /**
+     * Wait for the response of the server after sending out a multicast request at the given [socket]. If a response
+     * is received, propagate it via [channel].
+     */
+    private suspend fun udpCommunication(socket: DatagramSocket, channel: Channel<String>) =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val packetSend = DatagramPacket(
+                    config.requestCode.toByteArray(),
+                    config.requestCode.length,
+                    config.multicastInetAddress,
+                    config.port
+                )
+                socket.send(packetSend)
+
+                val packetReceive = DatagramPacket(ByteArray(DATAGRAM_PACKET_SIZE), DATAGRAM_PACKET_SIZE)
+                socket.receive(packetReceive)
+
+                val data = String(packetReceive.data, 0, packetReceive.length)
+                Log.i(TAG, "Received response from server: '$data'.")
+
+                channel.send(data)
             }
         }
 
