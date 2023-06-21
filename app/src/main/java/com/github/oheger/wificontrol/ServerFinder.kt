@@ -35,6 +35,7 @@ import kotlin.time.Duration.Companion.days
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -115,9 +116,10 @@ class ServerFinder(
 
         return when (state) {
             is ServerFound -> this
+            is NetworkStatusUnknown -> withState(findWiFi(activity, config.networkTimeout))
             is WiFiUnavailable -> withState(findWiFi(activity, 1.days))
             is SearchingInWiFi -> withState(searchInWiFi())
-            else -> withState(findWiFi(activity, config.networkTimeout))
+            is ServerNotFound -> withState(waitForNextUdpRequest())
         }
     }
 
@@ -191,6 +193,14 @@ class ServerFinder(
                 channel.send(data)
             }
         }
+
+    /**
+     * Wait for the configured retry delay before switching again to the [SearchingInWiFi] state.
+     */
+    private suspend fun waitForNextUdpRequest(): ServerLookupState {
+        delay(config.retryDelay)
+        return SearchingInWiFi
+    }
 
     /**
      * Return a [ServerFinder] instance with the same configuration, but the given [nextState].

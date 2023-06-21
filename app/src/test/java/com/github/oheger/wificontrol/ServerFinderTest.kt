@@ -211,6 +211,27 @@ class ServerFinderTest : StringSpec() {
 
             nextFinder.state shouldBe ServerNotFound
         }
+
+        "The ServerNotFound state should switch to SearchingInWiFi" {
+            val config = finderConfig.copy(retryDelay = 10.milliseconds)
+            val finder = ServerFinder(config, ServerNotFound)
+
+            val nextFinder = finder.findServerStep(mockk())
+
+            nextFinder.state shouldBe SearchingInWiFi
+        }
+
+        "The ServerNotFound state should not switch to a new state before the configured delay" {
+            val config = finderConfig.copy(retryDelay = 60.seconds)
+            val finder = ServerFinder(config, ServerNotFound)
+
+            val nextFinder = findServerStepAsync(finder, mockk())
+
+            delay(100.milliseconds)
+
+            nextFinder.isCompleted shouldBe false
+            nextFinder.cancel()
+        }
     }
 }
 
