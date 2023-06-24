@@ -40,6 +40,7 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.MulticastSocket
 import java.net.ServerSocket
+import java.util.concurrent.atomic.AtomicBoolean
 
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -54,6 +55,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
@@ -310,21 +312,32 @@ private fun CoroutineScope.findServerStepAsync(finder: ServerFinder, activity: A
     }
 
 /**
- * Launch code in background that simulates a test server and answers an UDP request with the given [answer].
+ * Launch code in background that simulates a test server and answers a UDP request with the given [answer]. Make sure
+ * to return only after the server is listening.
  */
 private fun CoroutineScope.startServer(answer: String) {
-    launch(Dispatchers.IO) { handleUpdRequest(answer) }
+    val flagActive = AtomicBoolean()
+
+    launch(Dispatchers.IO) { handleUpdRequest(answer, flagActive) }
+
+    runBlocking {
+        eventually(3.seconds) {
+            flagActive.get() shouldBe true
+        }
+    }
 }
 
 /**
- * Open a [DatagramSocket] and expect a request for lookup the test server. If the expected request is received,
- * send a response with the given [answer].
+ * Open a [DatagramSocket] and expect a request for lookup the test server. Set the given [flag] to *true* when the
+ * server is ready. When the expected request is received, send a response with the given [answer].
  */
-private fun handleUpdRequest(answer: String) {
+private fun handleUpdRequest(answer: String, flag: AtomicBoolean) {
     MulticastSocket(finderConfig.port).use { socket ->
         socket.joinGroup(finderConfig.multicastInetAddress)
         val buffer = ByteArray(256)
         val packet = DatagramPacket(buffer, buffer.size)
+
+        flag.set(true)
         socket.receive(packet)
 
         val request = String(packet.data, 0, packet.length)
