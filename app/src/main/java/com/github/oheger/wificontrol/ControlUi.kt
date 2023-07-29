@@ -18,6 +18,7 @@
  */
 package com.github.oheger.wificontrol
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -200,11 +201,13 @@ fun ProgressIndicator(modifier: Modifier = Modifier) {
 /**
  * Display a web view to display the UI of the server after it was found. The web view loads the specified [uri].
  */
+@SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun ShowWebView(uri: String, modifier: Modifier) {
     val state = rememberWebViewState(uri)
     WebView(
         state = state,
+        onCreated = { it.settings.javaScriptEnabled = true },
         modifier = modifier.testTag(TAG_SERVER_AVAILABLE)
     )
 }
