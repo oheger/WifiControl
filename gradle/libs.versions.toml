@@ -1,6 +1,6 @@
 [versions]
-androidApplicationPlugin = "7.4.1"
-androidLibraryPlugin = "7.4.1"
+androidApplicationPlugin = "8.1.0"
+androidLibraryPlugin = "8.1.0"
 kotlinAndroidPlugin = "1.8.21"
 
 activityCompose = "1.7.2"
