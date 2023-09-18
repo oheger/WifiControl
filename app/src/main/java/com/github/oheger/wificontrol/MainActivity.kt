@@ -41,8 +41,8 @@ class MainActivity : ComponentActivity() {
             multicastAddress = "231.10.0.0",
             port = 4321,
             requestCode = "playerServer?",
-            networkTimeout = 30.seconds,
-            retryDelay = 60.seconds
+            networkTimeout = 5.seconds,
+            retryDelay = 10.seconds
         )
     }
 
