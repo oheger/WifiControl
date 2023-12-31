@@ -1,0 +1,7 @@
+# Unix shell scripts.
+gradlew	text eol=lf
+*.sh	text eol=lf
+
+# Windows batch scripts.
+*.bat	text eol=crlf
+*.cmd	text eol=crlf
