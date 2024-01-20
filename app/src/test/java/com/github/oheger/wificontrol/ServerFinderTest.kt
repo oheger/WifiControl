@@ -25,6 +25,7 @@ import android.net.NetworkRequest
 
 import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.shouldBe
 
 import io.mockk.every
@@ -40,7 +41,7 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.MulticastSocket
 import java.net.ServerSocket
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -52,6 +53,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
@@ -60,7 +62,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 
-@OptIn(DelicateCoroutinesApi::class, ExperimentalCoroutinesApi::class, ExperimentalStdlibApi::class)
+@OptIn(DelicateCoroutinesApi::class, ExperimentalCoroutinesApi::class)
 class ServerFinderTest : StringSpec() {
     private lateinit var testDispatcher: ExecutorCoroutineDispatcher
 
@@ -183,7 +185,7 @@ class ServerFinderTest : StringSpec() {
             result.state shouldBe SearchingInWiFi
         }
 
-        "The SearchingInWiFi state should switch to ServerNotFound if not answer is received in the timeout" {
+        "The SearchingInWiFi state should switch to ServerNotFound if no answer is received in the timeout" {
             val finder = ServerFinder(finderConfig, SearchingInWiFi)
 
             val nextFinder = finder.findServerStep(mockk())
@@ -193,25 +195,65 @@ class ServerFinderTest : StringSpec() {
 
         "The SearchingInWiFi state should switch to ServerFound if the server replies" {
             val serverUri = "http://www.example.org/found"
-            startServer(serverUri)
+            withTestServer(answerRequestFunc(serverUri)) {
+                eventually(duration = 3.seconds) {
+                    val finder = ServerFinder(finderConfig, SearchingInWiFi)
 
-            eventually(duration = 3.seconds) {
-                val finder = ServerFinder(finderConfig, SearchingInWiFi)
+                    val nextFinder = finder.findServerStep(mockk())
 
-                val nextFinder = finder.findServerStep(mockk())
+                    nextFinder.state shouldBe ServerFound(serverUri)
+                }
+            }
+        }
 
-                nextFinder.state shouldBe ServerFound(serverUri)
+        "Multiple requests should be sent to the server during a check" {
+            val config = finderConfig.copy(sendRequestInterval = 2.milliseconds)
+            val scope = CoroutineScope(Dispatchers.IO)
+
+            try {
+                scope.withTestServer(answerIth(3)) {
+                    val finder = ServerFinder(config, SearchingInWiFi)
+
+                    val nextFinder = finder.findServerStep(mockk())
+
+                    nextFinder.state shouldBe ServerFound(SERVER_URI)
+                }
+            } finally {
+                scope.cancel()
+            }
+        }
+
+        "The send request interval should be taken into account" {
+            val config = finderConfig.copy(networkTimeout = 50.milliseconds, sendRequestInterval = 20.milliseconds)
+            val scope = CoroutineScope(Dispatchers.IO)
+
+            try {
+                scope.withTestServer(answerIth(4)) {
+                    val activity = mockk<Activity>()
+                    val finder = ServerFinder(config, SearchingInWiFi)
+
+                    val nextFinder = finder.findServerStep(activity)
+
+                    // Terminate the test server.
+                    val config2 = finderConfig.copy(sendRequestInterval = 1.milliseconds)
+                    val finder2 = ServerFinder(config2, SearchingInWiFi)
+                    finder2.findServerStep(activity)
+
+                    nextFinder.state shouldBe ServerNotFound
+                }
+            } finally {
+                scope.cancel()
             }
         }
 
         "The SearchingInWiFi state should switch to ServerNotFound if an invalid URL is received from the server" {
-            startServer("?!This is not a valid URL!?")
+            withTestServer(answerRequestFunc("?!This is not a valid URL!?")) {
+                val finder = ServerFinder(finderConfig, SearchingInWiFi)
 
-            val finder = ServerFinder(finderConfig, SearchingInWiFi)
+                val nextFinder = finder.findServerStep(mockk())
 
-            val nextFinder = finder.findServerStep(mockk())
-
-            nextFinder.state shouldBe ServerNotFound
+                nextFinder.state shouldBe ServerNotFound
+            }
         }
 
         "The ServerNotFound state should switch to SearchingInWiFi" {
@@ -249,7 +291,8 @@ private val finderConfig = ServerFinderConfig(
     port = findUnusedPort(),
     requestCode = "testServer",
     networkTimeout = 100.milliseconds,
-    retryDelay = 1.seconds
+    retryDelay = 1.seconds,
+    sendRequestInterval = 1.seconds
 )
 
 /**
@@ -312,40 +355,106 @@ private fun CoroutineScope.findServerStepAsync(finder: ServerFinder, activity: A
     }
 
 /**
- * Launch code in background that simulates a test server and answers a UDP request with the given [answer]. Make sure
- * to return only after the server is listening.
+ * A data class that defines the return value of the UDP handler function. Based on this result, the mock UDP server
+ * decides which data to be sent to the caller and whether to terminate the server.
  */
-private fun CoroutineScope.startServer(answer: String) {
-    val flagActive = AtomicBoolean()
+private data class HandlerResult(
+    /** An optional response string. *Null* means that no response should be sent. */
+    val response: String?,
 
-    launch(Dispatchers.IO) { handleUpdRequest(answer, flagActive) }
+    /** Flag whether the server should stop itself. */
+    val terminate: Boolean
+)
 
+/**
+ * Definition of a function to handle a request to the UDP server. The function expects the request string received
+ * from the client and returns a [HandlerResult] object defining the response of the server.
+ */
+private typealias HandlerFunc = (String) -> HandlerResult
+
+/**
+ * Launch a test UDP server that answers requests using the given [handlerFunc]. Then execute [block], and finally
+ * wait for the termination of the test server.
+ */
+private fun CoroutineScope.withTestServer(handlerFunc: HandlerFunc, block: suspend () -> Unit) {
+    val stateCtr = AtomicInteger()
+
+    startServer(stateCtr, handlerFunc)
+
+    try {
+        runBlocking { block() }
+    } finally {
+        stateCtr.waitFor(2)
+    }
+}
+
+/**
+ * Launch code in background that simulates a test server and answers a UDP request with the given [handlerFunc].
+ * Make sure to return only after the server is listening.
+ */
+private fun CoroutineScope.startServer(stateCtr: AtomicInteger, handlerFunc: HandlerFunc) {
+    launch(Dispatchers.IO) { handleUdpRequest(stateCtr, handlerFunc) }
+
+    stateCtr.waitFor(1)
+}
+
+/**
+ * Open a [DatagramSocket] and expect requests for looking ip the test server. Use the given [stateCtr] to report the
+ * current server state: A value of 1 means that the server is ready; a value of 2 means that it is terminated.
+ * Handle incoming requests using the given [handlerFunc] that also determines when to stop the server.
+ */
+private fun handleUdpRequest(stateCtr: AtomicInteger, handlerFunc: HandlerFunc) {
+    MulticastSocket(finderConfig.port).use { socket ->
+        socket.joinGroup(finderConfig.multicastInetAddress)
+        val buffer = ByteArray(256)
+        val packet = DatagramPacket(buffer, buffer.size)
+        var exit: Boolean
+        stateCtr.incrementAndGet()
+
+        do {
+            socket.receive(packet)
+            val request = String(packet.data, 0, packet.length)
+            val port = request.substringAfterLast(':').toInt()
+            val result = handlerFunc(request.substringBeforeLast(':'))
+            result.response?.let { answer ->
+                val packetAnswer = DatagramPacket(answer.toByteArray(), answer.length, packet.address, port)
+                socket.send(packetAnswer)
+            }
+            exit = result.terminate
+        } while (!exit)
+
+        socket.leaveGroup(finderConfig.multicastInetAddress)
+        stateCtr.incrementAndGet()
+    }
+}
+
+/**
+ * Wait for a while until this [AtomicInteger] has the provided [value].
+ */
+private fun AtomicInteger.waitFor(value: Int) {
     runBlocking {
         eventually(3.seconds) {
-            flagActive.get() shouldBe true
+            get() shouldBeGreaterThanOrEqual value
         }
     }
 }
 
 /**
- * Open a [DatagramSocket] and expect a request for lookup the test server. Set the given [flag] to *true* when the
- * server is ready. When the expected request is received, send a response with the given [answer].
+ * Return a [HandlerFunc] that answer a correct request with the specified [answer].
  */
-private fun handleUpdRequest(answer: String, flag: AtomicBoolean) {
-    MulticastSocket(finderConfig.port).use { socket ->
-        socket.joinGroup(finderConfig.multicastInetAddress)
-        val buffer = ByteArray(256)
-        val packet = DatagramPacket(buffer, buffer.size)
+private fun answerRequestFunc(answer: String): HandlerFunc = { request ->
+    HandlerResult(response = answer.takeIf { request == finderConfig.requestCode }, terminate = true)
+}
 
-        flag.set(true)
-        socket.receive(packet)
+/**
+ * Return a [HandlerFunc] that skips a given number of requests before it sends a standard response.
+ */
+private fun answerIth(count: Int): HandlerFunc {
+    val requestCount = AtomicInteger()
+    val resultContinue = HandlerResult(null, terminate = false)
 
-        val request = String(packet.data, 0, packet.length)
-        if (request == finderConfig.requestCode) {
-            val packetAnswer = DatagramPacket(answer.toByteArray(), answer.length, packet.address, packet.port)
-            socket.send(packetAnswer)
-        }
-
-        socket.leaveGroup(finderConfig.multicastInetAddress)
+    return { _ ->
+        if (requestCount.incrementAndGet() >= count) HandlerResult(SERVER_URI, terminate = true)
+        else resultContinue
     }
 }

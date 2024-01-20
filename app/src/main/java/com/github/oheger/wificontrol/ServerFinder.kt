@@ -66,7 +66,15 @@ data class ServerFinderConfig(
     /**
      * A delay after which another attempt is made to contact the server after a failure.
      */
-    val retryDelay: Duration
+    val retryDelay: Duration,
+
+    /**
+     * The interval in which requests are sent to the UDP server. Since packets can get lost, or there could be race
+     * conditions with setting up the receiver connection, [ServerFinder] sends requests to the UDP server periodically
+     * until either a response is received or the timeout is reached. This property defines the delay between two
+     * requests that are sent.
+     */
+    val sendRequestInterval: Duration
 ) {
     /** The multicast address to which UDP requests need to be sent as an [InetAddress]. */
     val multicastInetAddress: InetAddress by lazy { InetAddress.getByName(multicastAddress) }
@@ -159,33 +167,52 @@ class ServerFinder(
      * occurs, the lookup needs to be repeated after a while.
      */
     private suspend fun searchInWiFi(): ServerLookupState = withContext(Dispatchers.IO) {
-        DatagramSocket().use { socket ->
-            val channel = Channel<String>()
-            launch { udpCommunication(socket, channel) }
+        DatagramSocket().use { sendSocket ->
+            DatagramSocket().use { receiveSocket ->
+                val channel = Channel<String>()
+                launch { udpCommunication(sendSocket, receiveSocket, channel) }
 
-            withTimeoutOrNull(config.networkTimeout) {
-                channel.receive()
-            }?.toServerFound() ?: ServerNotFound
+                withTimeoutOrNull(config.networkTimeout) {
+                    channel.receive()
+                }?.toServerFound() ?: ServerNotFound
+            }
         }
     }
 
     /**
-     * Wait for the response of the server after sending out a multicast request at the given [socket]. If a response
-     * is received, propagate it via [channel].
+     * Try to communicate with the server via a UDP multicast request. Use the given [sendSocket] to send the request,
+     * and the given [receiveSocket] to receive the response. Due to race conditions, it could happen that a
+     * response from the server already arrives before the listener for responses is installed. To deal with this,
+     * requests are sent periodically with a configurable delay until either a response is received or the timeout is
+     * reached. If a response is received, propagate it via [channel].
      */
-    private suspend fun udpCommunication(socket: DatagramSocket, channel: Channel<String>) =
+    private suspend fun udpCommunication(
+        sendSocket: DatagramSocket,
+        receiveSocket: DatagramSocket,
+        channel: Channel<String>
+    ) =
         withContext(Dispatchers.IO) {
-            runCatching {
-                val packetSend = DatagramPacket(
-                    config.requestCode.toByteArray(),
-                    config.requestCode.length,
-                    config.multicastInetAddress,
-                    config.port
-                )
-                socket.send(packetSend)
+            val query = "${config.requestCode}:${receiveSocket.localPort}"
+            val packetSend = DatagramPacket(
+                query.toByteArray(),
+                query.length,
+                config.multicastInetAddress,
+                config.port
+            )
+            val packetReceive = DatagramPacket(ByteArray(DATAGRAM_PACKET_SIZE), DATAGRAM_PACKET_SIZE)
 
-                val packetReceive = DatagramPacket(ByteArray(DATAGRAM_PACKET_SIZE), DATAGRAM_PACKET_SIZE)
-                socket.receive(packetReceive)
+            launch {
+                runCatching {
+                    while (true) {
+                        Log.i(TAG, "Sending request to server.")
+                        sendSocket.send(packetSend)
+                        delay(config.sendRequestInterval)
+                    }
+                }
+            }
+
+            runCatching {
+                receiveSocket.receive(packetReceive)
 
                 val data = String(packetReceive.data, 0, packetReceive.length)
                 Log.i(TAG, "Received response from server: '$data'.")

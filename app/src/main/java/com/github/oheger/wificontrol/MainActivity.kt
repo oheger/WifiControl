@@ -28,6 +28,7 @@ import androidx.compose.material.Surface
 import androidx.compose.ui.Modifier
 
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
+import kotlin.time.Duration.Companion.milliseconds
 
 import kotlin.time.Duration.Companion.seconds
 
@@ -42,7 +43,8 @@ class MainActivity : ComponentActivity() {
             port = 4321,
             requestCode = "playerServer?",
             networkTimeout = 5.seconds,
-            retryDelay = 10.seconds
+            retryDelay = 10.seconds,
+            sendRequestInterval = 100.milliseconds
         )
     }
 
