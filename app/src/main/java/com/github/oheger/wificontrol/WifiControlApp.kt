@@ -16,25 +16,14 @@
  * SPDX-License-Identifier: Apache-2.0
  * License-Filename: LICENSE
  */
-pluginManagement {
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
+package com.github.oheger.wificontrol
 
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
+import android.app.Application
 
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
-}
+import dagger.hilt.android.HiltAndroidApp
 
-rootProject.name = "WifiControl"
-include(":app")
+/**
+ * The main [Application] class. It is needed to enable dependency injection via Hilt.
+ */
+@HiltAndroidApp
+class WifiControlApp : Application()

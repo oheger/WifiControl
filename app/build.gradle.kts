@@ -17,7 +17,10 @@
  * License-Filename: LICENSE
  */
 plugins {
+    kotlin("kapt")
+
     alias(libs.plugins.android.application)
+    alias(libs.plugins.hilt.dagger)
     alias(libs.plugins.kotlin.android)
 }
 
@@ -84,6 +87,9 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material)
+    implementation(libs.hilt.android)
+
+    kapt(libs.hilt.compiler)
 
     testImplementation(libs.androidx.test.junit)
     testImplementation(libs.androidx.test.espresso)
@@ -97,4 +103,22 @@ dependencies {
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+kapt {
+    correctErrorTypes = true
+}
+
+kotlin {
+    // This is needed to avoid an error due to incompatible Java target versions between the
+    // 'compileReleaseJavaWithJavac' and 'kaptGenerateStubsReleaseKotlin' tasks; the latter uses as target the
+    // local JDK used to execute the Gradle build.
+    jvmToolchain(8)
+}
+
+// Java 17 is required for Robolectric tests.
+tasks.withType<Test>().configureEach {
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
 }
