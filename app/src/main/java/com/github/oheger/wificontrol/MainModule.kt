@@ -18,12 +18,17 @@
  */
 package com.github.oheger.wificontrol
 
+import dagger.Binds
+import dagger.Module
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+
 /**
- * A stub implementation of [ControlViewModel] that expects the lookup state to represent as constructor parameter and
- * is not mutable.
+ * A hilt module defining the dependencies used by the application.
  */
-internal class PreviewControlViewModel(
-    override val lookupState: ServerLookupState
-) : ControlViewModel() {
-    override fun updateLookupState(state: ServerLookupState) {}
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class MainModule {
+    @Binds
+    abstract fun controlViewModel(viewModelImpl: ControlViewModelImpl): ControlViewModel
 }

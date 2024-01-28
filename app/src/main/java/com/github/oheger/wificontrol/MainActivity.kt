@@ -28,10 +28,15 @@ import androidx.compose.material.Surface
 import androidx.compose.ui.Modifier
 
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
-import kotlin.time.Duration.Companion.milliseconds
 
+import dagger.hilt.android.AndroidEntryPoint
+
+import javax.inject.Inject
+
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     companion object {
         /**
@@ -48,18 +53,20 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    /** The view model of the application. */
+    @Inject internal lateinit var viewModel: ControlViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val model = ControlViewModelImpl()
-        val controller = ServerLookupController.create(model, this, serverFinderConfig)
+        val controller = ServerLookupController.create(viewModel, this, serverFinderConfig)
         controller.startLookup()
 
         setContent {
             WifiControlTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {
-                    ControlUi(model)
+                    ControlUi(viewModel)
                 }
             }
         }
