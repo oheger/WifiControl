@@ -19,25 +19,28 @@
 package com.github.oheger.wificontrol
 
 import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.ViewModel
+
+import javax.inject.Inject
 
 /**
- * An interface for the view model used by the UI of this application.
+ * An abstract base class for the view model used by the UI of this application.
  * 
  * Actually, the model is rather limited. It consists of the current lookup state, so that the UI can provide some
  * feedback about what is currently going on. When the server has been located in the network it presents its own UI
  * in a web view.
  */
-interface ControlViewModel {
+abstract class ControlViewModel : ViewModel() {
     /**
      * The current [ServerLookupState].
      */
-    val lookupState: ServerLookupState
+    abstract val lookupState: ServerLookupState
 
     /**
      * Set the current [ServerLookupState] to the given [state]. This function is invoked while performing the single
      * lookup steps. The UI can then keep track with the progress that is made.
      */
-    fun updateLookupState(state: ServerLookupState)
+    abstract fun updateLookupState(state: ServerLookupState)
 }
 
 /**
@@ -46,7 +49,7 @@ interface ControlViewModel {
  * This class internally stores the current [ServerLookupState] and allows it to be updated. Note that all interaction
  * with an instance must be done on the main thread.
  */
-class ControlViewModelImpl : ControlViewModel {
+class ControlViewModelImpl @Inject constructor() : ControlViewModel() {
     /** The field storing the current lookup state. */
     private val lookupStateField = mutableStateOf<ServerLookupState>(NetworkStatusUnknown)
 
