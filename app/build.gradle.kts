@@ -24,14 +24,21 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
+val defaultCompileSdk: String by project
+val defaultMinSdk: String by project
+val defaultTargetSdk: String by project
+val defaultJvmTarget: String by project
+val javaCompileVersion: String by project
+val composeCompilerVersion: String by project
+
 android {
     namespace = "com.github.oheger.wificontrol"
-    compileSdk = 34
+    compileSdk = defaultCompileSdk.toInt()
 
     defaultConfig {
         applicationId = "com.github.oheger.wificontrol"
-        minSdk = 23
-        targetSdk = 34
+        minSdk = defaultMinSdk.toInt()
+        targetSdk = defaultTargetSdk.toInt()
         versionCode = 1
         versionName = "1.0"
 
@@ -51,17 +58,17 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.toVersion(javaCompileVersion)
+        targetCompatibility = JavaVersion.toVersion(javaCompileVersion)
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = defaultJvmTarget
     }
     buildFeatures {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.4.7"
+        kotlinCompilerExtensionVersion = composeCompilerVersion
     }
     packaging {
         resources {
