@@ -23,6 +23,10 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 
+import com.github.oheger.wificontrol.domain.model.LookupConfig
+import com.github.oheger.wificontrol.domain.model.LookupService
+import com.github.oheger.wificontrol.domain.model.ServiceDefinition
+
 import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
@@ -87,11 +91,12 @@ class ServerFinderTest : StringSpec() {
 
         "The final state should be returned directly" {
             val state = ServerFound(SERVER_URI)
-            val finder = ServerFinder(finderConfig, state)
+            val lookupService = finderConfig()
+            val finder = ServerFinder(lookupService, state)
 
             val nextFinder = finder.findServerStep(mockk())
 
-            nextFinder.config shouldBe finderConfig
+            nextFinder.lookupService shouldBe lookupService
             nextFinder.state shouldBe state
         }
 
@@ -100,11 +105,12 @@ class ServerFinderTest : StringSpec() {
             activity.mockConnectivityManager()
             mockNetworkRequest()
 
-            val finder = ServerFinder(finderConfig)
+            val lookupService = finderConfig()
+            val finder = ServerFinder(lookupService)
 
             val nextFinder = finder.findServerStep(activity)
 
-            nextFinder.config shouldBe finderConfig
+            nextFinder.lookupService shouldBe lookupService
             nextFinder.state shouldBe WiFiUnavailable
         }
 
@@ -113,7 +119,7 @@ class ServerFinderTest : StringSpec() {
             val connManager = activity.mockConnectivityManager()
             val request = mockNetworkRequest()
 
-            ServerFinder(finderConfig).findServerStep(activity)
+            ServerFinder(finderConfig()).findServerStep(activity)
 
             val callback = connManager.getNetworkCallback(request)
             verify(timeout = TIMEOUT_MS) {
@@ -122,28 +128,29 @@ class ServerFinderTest : StringSpec() {
         }
 
         "The SearchingInWiFi state should be returned if the network is available" {
-            val config = finderConfig.copy(networkTimeout = TIMEOUT_MS.milliseconds)
+            val config = defaultLookupConfig.copy(networkTimeout = TIMEOUT_MS.milliseconds)
             val activity = mockk<Activity>()
             val connManager = activity.mockConnectivityManager()
             val request = mockNetworkRequest()
 
-            val deferredResult = findServerStepAsync(ServerFinder(config), activity)
+            val lookupService = finderConfig(lookupConfig = config)
+            val deferredResult = findServerStepAsync(ServerFinder(lookupService), activity)
 
             val callback = connManager.getNetworkCallback(request)
             callback.onAvailable(mockk())
 
             val result = withTimeout(TIMEOUT_MS) { deferredResult.await() }
-            result.config shouldBe config
+            result.lookupService shouldBe lookupService
             result.state shouldBe SearchingInWiFi
         }
 
         "The network callback should be removed if the network is available" {
-            val config = finderConfig.copy(networkTimeout = TIMEOUT_MS.milliseconds)
+            val config = defaultLookupConfig.copy(networkTimeout = TIMEOUT_MS.milliseconds)
             val activity = mockk<Activity>()
             val connManager = activity.mockConnectivityManager()
             val request = mockNetworkRequest()
 
-            val result = findServerStepAsync(ServerFinder(config), activity)
+            val result = findServerStepAsync(ServerFinder(finderConfig(lookupConfig = config)), activity)
 
             val callback = connManager.getNetworkCallback(request)
             callback.onAvailable(mockk())
@@ -159,10 +166,10 @@ class ServerFinderTest : StringSpec() {
             activity.mockConnectivityManager()
             mockNetworkRequest()
 
-            val finder = ServerFinder(finderConfig, WiFiUnavailable)
+            val finder = ServerFinder(finderConfig(), WiFiUnavailable)
             val deferredResult = findServerStepAsync(finder, activity)
 
-            delay(finderConfig.networkTimeout * 2)
+            delay(defaultLookupConfig.networkTimeout * 2)
 
             deferredResult.isCompleted shouldBe false
             deferredResult.isCancelled shouldBe false
@@ -170,23 +177,24 @@ class ServerFinderTest : StringSpec() {
         }
 
         "The WiFiUnavailable state should switch to SearchingInWiFi if Wi-Fi becomes available" {
-            val config = finderConfig.copy(networkTimeout = TIMEOUT_MS.milliseconds)
+            val lookupConfig = defaultLookupConfig.copy(networkTimeout = TIMEOUT_MS.milliseconds)
+            val finderConfig = finderConfig(lookupConfig = lookupConfig)
             val activity = mockk<Activity>()
             val connManager = activity.mockConnectivityManager()
             val request = mockNetworkRequest()
 
-            val deferredResult = findServerStepAsync(ServerFinder(config, WiFiUnavailable), activity)
+            val deferredResult = findServerStepAsync(ServerFinder(finderConfig, WiFiUnavailable), activity)
 
             val callback = connManager.getNetworkCallback(request)
             callback.onAvailable(mockk())
 
             val result = withTimeout(TIMEOUT_MS) { deferredResult.await() }
-            result.config shouldBe config
+            result.lookupService shouldBe finderConfig
             result.state shouldBe SearchingInWiFi
         }
 
         "The SearchingInWiFi state should switch to ServerNotFound if no answer is received in the timeout" {
-            val finder = ServerFinder(finderConfig, SearchingInWiFi)
+            val finder = ServerFinder(finderConfig(), SearchingInWiFi)
 
             val nextFinder = finder.findServerStep(mockk())
 
@@ -197,7 +205,7 @@ class ServerFinderTest : StringSpec() {
             val serverUri = "http://www.example.org/found"
             withTestServer(answerRequestFunc(serverUri)) {
                 eventually(duration = 3.seconds) {
-                    val finder = ServerFinder(finderConfig, SearchingInWiFi)
+                    val finder = ServerFinder(finderConfig(), SearchingInWiFi)
 
                     val nextFinder = finder.findServerStep(mockk())
 
@@ -207,12 +215,12 @@ class ServerFinderTest : StringSpec() {
         }
 
         "Multiple requests should be sent to the server during a check" {
-            val config = finderConfig.copy(sendRequestInterval = 2.milliseconds)
+            val config = defaultLookupConfig.copy(sendRequestInterval = 2.milliseconds)
             val scope = CoroutineScope(Dispatchers.IO)
 
             try {
                 scope.withTestServer(answerIth(3)) {
-                    val finder = ServerFinder(config, SearchingInWiFi)
+                    val finder = ServerFinder(finderConfig(lookupConfig = config), SearchingInWiFi)
 
                     val nextFinder = finder.findServerStep(mockk())
 
@@ -224,19 +232,20 @@ class ServerFinderTest : StringSpec() {
         }
 
         "The send request interval should be taken into account" {
-            val config = finderConfig.copy(networkTimeout = 50.milliseconds, sendRequestInterval = 20.milliseconds)
+            val config =
+                defaultLookupConfig.copy(networkTimeout = 50.milliseconds, sendRequestInterval = 20.milliseconds)
             val scope = CoroutineScope(Dispatchers.IO)
 
             try {
                 scope.withTestServer(answerIth(4)) {
                     val activity = mockk<Activity>()
-                    val finder = ServerFinder(config, SearchingInWiFi)
+                    val finder = ServerFinder(finderConfig(lookupConfig = config), SearchingInWiFi)
 
                     val nextFinder = finder.findServerStep(activity)
 
                     // Terminate the test server.
-                    val config2 = finderConfig.copy(sendRequestInterval = 1.milliseconds)
-                    val finder2 = ServerFinder(config2, SearchingInWiFi)
+                    val config2 = defaultLookupConfig.copy(sendRequestInterval = 1.milliseconds)
+                    val finder2 = ServerFinder(finderConfig(lookupConfig = config2), SearchingInWiFi)
                     finder2.findServerStep(activity)
 
                     nextFinder.state shouldBe ServerNotFound
@@ -248,7 +257,7 @@ class ServerFinderTest : StringSpec() {
 
         "The SearchingInWiFi state should switch to ServerNotFound if an invalid URL is received from the server" {
             withTestServer(answerRequestFunc("?!This is not a valid URL!?")) {
-                val finder = ServerFinder(finderConfig, SearchingInWiFi)
+                val finder = ServerFinder(finderConfig(), SearchingInWiFi)
 
                 val nextFinder = finder.findServerStep(mockk())
 
@@ -257,8 +266,8 @@ class ServerFinderTest : StringSpec() {
         }
 
         "The ServerNotFound state should switch to SearchingInWiFi" {
-            val config = finderConfig.copy(retryDelay = 10.milliseconds)
-            val finder = ServerFinder(config, ServerNotFound)
+            val config = defaultLookupConfig.copy(retryDelay = 10.milliseconds)
+            val finder = ServerFinder(finderConfig(lookupConfig = config), ServerNotFound)
 
             val nextFinder = finder.findServerStep(mockk())
 
@@ -266,8 +275,8 @@ class ServerFinderTest : StringSpec() {
         }
 
         "The ServerNotFound state should not switch to a new state before the configured delay" {
-            val config = finderConfig.copy(retryDelay = 60.seconds)
-            val finder = ServerFinder(config, ServerNotFound)
+            val config = defaultLookupConfig.copy(retryDelay = 60.seconds)
+            val finder = ServerFinder(finderConfig(lookupConfig = config), ServerNotFound)
 
             val nextFinder = findServerStepAsync(finder, mockk())
 
@@ -285,15 +294,30 @@ private const val SERVER_URI = "http://192.168.0.1:8765"
 /** A timeout for verifying asynchronous operations. */
 private const val TIMEOUT_MS = 3000L
 
-/** The default configuration used by tests. */
-private val finderConfig = ServerFinderConfig(
+/** The service definition used by tests. */
+private val serviceDefinition = ServiceDefinition(
+    name = "testServiceDefinition",
     multicastAddress = "231.10.1.2",
     port = findUnusedPort(),
-    requestCode = "testServer",
+    requestCode = "testServer"
+)
+
+/** The default lookup configuration used by tests. */
+private val defaultLookupConfig = LookupConfig(
     networkTimeout = 100.milliseconds,
     retryDelay = 1.seconds,
     sendRequestInterval = 1.seconds
 )
+
+/**
+ * Return a [LookupService] object to be used as configuration for the [ServerFinder] based on the given
+ * [service] and [lookupConfig].
+ */
+private fun finderConfig(
+    service: ServiceDefinition = serviceDefinition,
+    lookupConfig: LookupConfig = defaultLookupConfig
+): LookupService =
+    LookupService(service, lookupConfig)
 
 /**
  * Find a free port that can be used to start the test server.
@@ -404,8 +428,8 @@ private fun CoroutineScope.startServer(stateCtr: AtomicInteger, handlerFunc: Han
  * Handle incoming requests using the given [handlerFunc] that also determines when to stop the server.
  */
 private fun handleUdpRequest(stateCtr: AtomicInteger, handlerFunc: HandlerFunc) {
-    MulticastSocket(finderConfig.port).use { socket ->
-        socket.joinGroup(finderConfig.multicastInetAddress)
+    MulticastSocket(serviceDefinition.port).use { socket ->
+        socket.joinGroup(serviceDefinition.multicastInetAddress)
         val buffer = ByteArray(256)
         val packet = DatagramPacket(buffer, buffer.size)
         var exit: Boolean
@@ -423,7 +447,7 @@ private fun handleUdpRequest(stateCtr: AtomicInteger, handlerFunc: HandlerFunc) 
             exit = result.terminate
         } while (!exit)
 
-        socket.leaveGroup(finderConfig.multicastInetAddress)
+        socket.leaveGroup(serviceDefinition.multicastInetAddress)
         stateCtr.incrementAndGet()
     }
 }
@@ -443,7 +467,7 @@ private fun AtomicInteger.waitFor(value: Int) {
  * Return a [HandlerFunc] that answer a correct request with the specified [answer].
  */
 private fun answerRequestFunc(answer: String): HandlerFunc = { request ->
-    HandlerResult(response = answer.takeIf { request == finderConfig.requestCode }, terminate = true)
+    HandlerResult(response = answer.takeIf { request == serviceDefinition.requestCode }, terminate = true)
 }
 
 /**

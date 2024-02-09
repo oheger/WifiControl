@@ -20,6 +20,8 @@ package com.github.oheger.wificontrol
 
 import android.app.Activity
 
+import com.github.oheger.wificontrol.domain.model.LookupService
+
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.nulls.beNull
 import io.kotest.matchers.should
@@ -66,12 +68,12 @@ class ServerLookupControllerTest : WordSpec() {
         "create" should {
             "correctly initialize the new instance" {
                 val model = mockk<ControlViewModel>()
-                val config = mockk<ServerFinderConfig>()
+                val config = mockk<LookupService>()
 
                 val controller = ServerLookupController.create(model, activity, config)
 
                 controller.activity shouldBe activity
-                controller.serverFinder.config shouldBe config
+                controller.serverFinder.lookupService shouldBe config
                 controller.serverFinder.state shouldBe NetworkStatusUnknown
                 controller.coroutineContext shouldBe Dispatchers.Main
             }
