@@ -27,6 +27,9 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.ui.Modifier
 
+import com.github.oheger.wificontrol.domain.model.LookupConfig
+import com.github.oheger.wificontrol.domain.model.LookupService
+import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
 import dagger.hilt.android.AndroidEntryPoint
@@ -43,13 +46,18 @@ class MainActivity : ComponentActivity() {
          * The configuration for searching the server in the network. This is currently hard-coded (which will change
          * later).
          */
-        private val serverFinderConfig = ServerFinderConfig(
-            multicastAddress = "231.10.0.0",
-            port = 4321,
-            requestCode = "playerServer?",
-            networkTimeout = 5.seconds,
-            retryDelay = 10.seconds,
-            sendRequestInterval = 100.milliseconds
+        private val serviceDefinition = LookupService(
+            service = ServiceDefinition(
+                name = "demoService",
+                multicastAddress = "231.10.0.0",
+                port = 4321,
+                requestCode = "playerServer?"
+            ),
+            lookupConfig = LookupConfig(
+                networkTimeout = 5.seconds,
+                retryDelay = 10.seconds,
+                sendRequestInterval = 100.milliseconds
+            )
         )
     }
 
@@ -59,7 +67,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val controller = ServerLookupController.create(viewModel, this, serverFinderConfig)
+        val controller = ServerLookupController.create(viewModel, this, serviceDefinition)
         controller.startLookup()
 
         setContent {

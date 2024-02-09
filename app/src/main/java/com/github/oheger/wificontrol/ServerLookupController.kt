@@ -20,6 +20,8 @@ package com.github.oheger.wificontrol
 
 import android.app.Activity
 
+import com.github.oheger.wificontrol.domain.model.LookupService
+
 import kotlin.coroutines.CoroutineContext
 
 import kotlinx.coroutines.CoroutineScope
@@ -49,12 +51,16 @@ class ServerLookupController(
 ) : CoroutineScope {
     companion object {
         /**
-         * Create a new [ServerLookupController] instance with a [ServerFinder] that uses the provided [config].
-         * Update [model] when there are changes of the [ServerLookupState]. Pass the given [activity] to the
-         * [ServerFinder].
+         * Create a new [ServerLookupController] instance with a [ServerFinder] that uses the provided
+         * [lookupService]. Update [model] when there are changes of the [ServerLookupState]. Pass the given
+         * [activity] to the [ServerFinder].
          */
-        fun create(model: ControlViewModel, activity: Activity, config: ServerFinderConfig): ServerLookupController =
-            ServerLookupController(model, activity, ServerFinder(config), Dispatchers.Main)
+        fun create(
+            model: ControlViewModel,
+            activity: Activity,
+            lookupService: LookupService
+        ): ServerLookupController =
+            ServerLookupController(model, activity, ServerFinder(lookupService), Dispatchers.Main)
     }
 
     /**

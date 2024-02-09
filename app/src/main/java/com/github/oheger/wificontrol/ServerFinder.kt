@@ -24,10 +24,10 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.util.Log
+import com.github.oheger.wificontrol.domain.model.LookupService
 
 import java.net.DatagramPacket
 import java.net.DatagramSocket
-import java.net.InetAddress
 import java.net.URI
 
 import kotlin.time.Duration
@@ -42,45 +42,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * A data class storing the configuration for [ServerFinder].
- */
-data class ServerFinderConfig(
-    /** The multicast address to which UDP requests need to be sent. */
-    val multicastAddress: String,
-
-    /** The port to send UDP multicast requests to. */
-    val port: Int,
-
-    /**
-     * A code that becomes the payload of UDP requests. It is evaluated by the server. Only if the code matches, the
-     * server sends a response.
-     */
-    val requestCode: String,
-
-    /**
-     * A timeout after which a test is considered a failure. It applies to multiple checks that wait for some kind of
-     * response.
-     */
-    val networkTimeout: Duration,
-
-    /**
-     * A delay after which another attempt is made to contact the server after a failure.
-     */
-    val retryDelay: Duration,
-
-    /**
-     * The interval in which requests are sent to the UDP server. Since packets can get lost, or there could be race
-     * conditions with setting up the receiver connection, [ServerFinder] sends requests to the UDP server periodically
-     * until either a response is received or the timeout is reached. This property defines the delay between two
-     * requests that are sent.
-     */
-    val sendRequestInterval: Duration
-) {
-    /** The multicast address to which UDP requests need to be sent as an [InetAddress]. */
-    val multicastInetAddress: InetAddress by lazy { InetAddress.getByName(multicastAddress) }
-}
-
-/**
  * A class responsible for locating a specific HTTP server in the Wi-Fi network.
  *
  * The class checks several conditions and performs specific steps in order to locate the server in the network:
@@ -93,8 +54,8 @@ data class ServerFinderConfig(
  * [ServerLookupState]. When the state changes to [ServerFound] the find process is complete.
  */
 class ServerFinder(
-    /** The configuration for this instance. */
-    val config: ServerFinderConfig,
+    /** The service to be looked up by this instance. */
+    val lookupService: LookupService,
 
     /** The current [ServerLookupState]. */
     val state: ServerLookupState = NetworkStatusUnknown
@@ -124,7 +85,7 @@ class ServerFinder(
 
         return when (state) {
             is ServerFound -> this
-            is NetworkStatusUnknown -> withState(findWiFi(activity, config.networkTimeout))
+            is NetworkStatusUnknown -> withState(findWiFi(activity, lookupService.lookupConfig.networkTimeout))
             is WiFiUnavailable -> withState(findWiFi(activity, 1.days))
             is SearchingInWiFi -> withState(searchInWiFi())
             is ServerNotFound -> withState(waitForNextUdpRequest())
@@ -172,7 +133,7 @@ class ServerFinder(
                 val channel = Channel<String>()
                 launch { udpCommunication(sendSocket, receiveSocket, channel) }
 
-                withTimeoutOrNull(config.networkTimeout) {
+                withTimeoutOrNull(lookupService.lookupConfig.networkTimeout) {
                     channel.receive()
                 }?.toServerFound() ?: ServerNotFound
             }
@@ -192,12 +153,12 @@ class ServerFinder(
         channel: Channel<String>
     ) =
         withContext(Dispatchers.IO) {
-            val query = "${config.requestCode}:${receiveSocket.localPort}"
+            val query = "${lookupService.service.requestCode}:${receiveSocket.localPort}"
             val packetSend = DatagramPacket(
                 query.toByteArray(),
                 query.length,
-                config.multicastInetAddress,
-                config.port
+                lookupService.service.multicastInetAddress,
+                lookupService.service.port
             )
             val packetReceive = DatagramPacket(ByteArray(DATAGRAM_PACKET_SIZE), DATAGRAM_PACKET_SIZE)
 
@@ -206,7 +167,7 @@ class ServerFinder(
                     while (true) {
                         Log.i(TAG, "Sending request to server.")
                         sendSocket.send(packetSend)
-                        delay(config.sendRequestInterval)
+                        delay(lookupService.lookupConfig.sendRequestInterval)
                     }
                 }
             }
@@ -225,7 +186,7 @@ class ServerFinder(
      * Wait for the configured retry delay before switching again to the [SearchingInWiFi] state.
      */
     private suspend fun waitForNextUdpRequest(): ServerLookupState {
-        delay(config.retryDelay)
+        delay(lookupService.lookupConfig.retryDelay)
         return SearchingInWiFi
     }
 
@@ -233,7 +194,7 @@ class ServerFinder(
      * Return a [ServerFinder] instance with the same configuration, but the given [nextState].
      */
     private fun withState(nextState: ServerLookupState): ServerFinder =
-        ServerFinder(config, nextState).also {
+        ServerFinder(lookupService, nextState).also {
             Log.i(TAG, "Switching to new state '$nextState'.")
         }
 }
