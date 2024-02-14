@@ -39,3 +39,4 @@ plugins {
 rootProject.name = "WifiControl"
 include(":app")
 include(":domain")
+include(":repository")
