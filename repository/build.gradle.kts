@@ -52,6 +52,7 @@ android {
     }
     kotlinOptions {
         jvmTarget = defaultJvmTarget
+        freeCompilerArgs += "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
     }
     testOptions {
         unitTests.all {
