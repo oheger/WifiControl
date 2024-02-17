@@ -22,6 +22,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.hilt.dagger)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.protobuf)
 }
 
 val defaultCompileSdk: String by project
@@ -29,6 +30,7 @@ val defaultMinSdk: String by project
 val defaultJvmTarget: String by project
 val javaCompileVersion: String by project
 val jvmToolChainVersion: String by project
+val protocVersion: String by project
 
 android {
     namespace = "com.github.oheger.wificontrol.persistence"
@@ -72,12 +74,29 @@ kotlin {
     jvmToolchain(jvmToolChainVersion.toInt())
 }
 
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:$protocVersion"
+    }
+    generateProtoTasks {
+        all().forEach { task ->
+            task.plugins {
+                create("java") {
+                    option("lite")
+                }
+            }
+        }
+    }
+}
+
 dependencies {
     implementation(project(":domain"))
     implementation(project(":repository"))
 
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.datastore)
     implementation(libs.hilt.android)
+    implementation(libs.protobufJavaLite)
 
     kapt(libs.hilt.compiler)
 
