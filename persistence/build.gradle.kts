@@ -28,6 +28,7 @@ val defaultCompileSdk: String by project
 val defaultMinSdk: String by project
 val defaultJvmTarget: String by project
 val javaCompileVersion: String by project
+val jvmToolChainVersion: String by project
 
 android {
     namespace = "com.github.oheger.wificontrol.persistence"
@@ -68,7 +69,7 @@ kotlin {
     // This is needed to avoid an error due to incompatible Java target versions between the
     // 'compileReleaseJavaWithJavac' and 'kaptGenerateStubsReleaseKotlin' tasks; the latter uses as target the
     // local JDK used to execute the Gradle build.
-    jvmToolchain(8)
+    jvmToolchain(jvmToolChainVersion.toInt())
 }
 
 dependencies {
