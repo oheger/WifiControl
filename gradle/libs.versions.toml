@@ -2,6 +2,7 @@
 activityCompose = "1.8.2"
 androidApplicationPlugin = "8.2.2"
 androidLibraryPlugin = "8.2.2"
+androidXDataStore = "1.0.0"
 catalogUpdatePlugin = "0.8.4"
 composeMaterial = "1.6.1"
 composeUi = "1.6.1"
@@ -13,6 +14,8 @@ koTest = "5.8.0"
 kotlinAndroidPlugin = "1.9.22"
 lifecycleRuntimeKtx = "2.7.0"
 mockk = "1.13.9"
+protobufJavaLite = "3.25.3"
+protobufPlugin = "0.9.4"
 robolectric = "4.11.1"
 testEspresso = "3.5.1"
 testJUnit = "1.1.5"
@@ -25,6 +28,7 @@ android-library = { id = "com.android.library", version.ref = "androidLibraryPlu
 catalog-update = { id = "nl.littlerobots.version-catalog-update", version.ref = "catalogUpdatePlugin" }
 hilt-dagger = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinAndroidPlugin" }
+protobuf = { id = "com.google.protobuf", version.ref = "protobufPlugin" }
 versions = { id = "com.github.ben-manes.versions", version.ref = "versionsPlugin" }
 
 [libraries]
@@ -37,6 +41,7 @@ androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-mani
 androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "composeUi" }
 androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "composeUi" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "androidXDataStore" }
 androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-test-espresso = { module = "androidx.test.espresso:espresso-core", version.ref = "testEspresso" }
 androidx-test-junit = { module = "androidx.test.ext:junit", version.ref = "testJUnit" }
@@ -47,4 +52,5 @@ junitVintage = { module = "org.junit.vintage:junit-vintage-engine", version.ref 
 kotest-assertions = { module = "io.kotest:kotest-assertions-core", version.ref = "koTest" }
 kotest-runner-junit = { module = "io.kotest:kotest-runner-junit5", version.ref = "koTest" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+protobufJavaLite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobufJavaLite" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
