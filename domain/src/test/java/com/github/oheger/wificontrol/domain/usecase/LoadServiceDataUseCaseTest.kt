@@ -47,19 +47,19 @@ class LoadServiceDataUseCaseTest : StringSpec({
         }
 
         val useCase = LoadServiceDataUseCase(useCaseConfig, repository)
-        val result = useCase.execute().first()
+        val result = useCase.execute(LoadServiceDataUseCase.Input).first()
 
-        result.shouldBeSuccess(serviceData)
+        result.shouldBeSuccess(LoadServiceDataUseCase.Output(serviceData))
     }
 
-    "Error thrown by the repository should be handled" {
+    "Errors thrown by the repository should be handled" {
         val exception = IllegalStateException("Test exception from repository.")
         val repository = mockk<ServiceDataRepository> {
             every { getServiceData() } returns flow { throw exception }
         }
 
         val useCase = LoadServiceDataUseCase(useCaseConfig, repository)
-        val result = useCase.execute().first()
+        val result = useCase.execute(LoadServiceDataUseCase.Input).first()
 
         result.shouldBeFailure { actualException ->
             actualException.shouldBeInstanceOf<IllegalStateException>()
@@ -79,7 +79,7 @@ class LoadServiceDataUseCaseTest : StringSpec({
         }
 
         val useCase = LoadServiceDataUseCase(config, repository)
-        useCase.execute().first()
+        useCase.execute(LoadServiceDataUseCase.Input).first()
 
         scheduledTaskCount.get() shouldBe 1
     }
