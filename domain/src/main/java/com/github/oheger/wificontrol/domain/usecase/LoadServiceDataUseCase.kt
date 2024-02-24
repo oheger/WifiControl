@@ -24,8 +24,6 @@ import com.github.oheger.wificontrol.domain.repo.ServiceDataRepository
 import javax.inject.Inject
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 
 /**
@@ -33,20 +31,24 @@ import kotlinx.coroutines.flow.map
  */
 class LoadServiceDataUseCase @Inject constructor(
     /** The configuration of this use case. */
-    private val config: UseCaseConfig,
+    config: UseCaseConfig,
 
     /** The repository to manage the current [ServiceData] object. */
     private val serviceDataRepository: ServiceDataRepository
-) {
+) : BaseUseCase<LoadServiceDataUseCase.Input, LoadServiceDataUseCase.Output>(config) {
+    override fun process(input: Input): Flow<Output> =
+        serviceDataRepository.getServiceData().map(::Output)
+
     /**
-     * Execute this use case and return a [Flow] with the current [ServiceData] object wrapped in a [Result] to
-     * handle failures.
+     * The input type of this use case. Actually, no input is required.
      */
-    fun execute(): Flow<Result<ServiceData>> =
-        serviceDataRepository.getServiceData()
-            .map { Result.success(it) }
-            .flowOn(config.dispatcher)
-            .catch {
-                emit(Result.failure(it))
-            }
+    object Input : BaseUseCase.Input
+
+    /**
+     * The output type of this use case. This is a data class contained the [ServiceData] that has been retrieved.
+     */
+    data class Output(
+        /** The [ServiceData] instance retrieved by this use case. */
+        val data: ServiceData
+    ): BaseUseCase.Output
 }
