@@ -132,3 +132,11 @@ tasks.withType<Test>().configureEach {
         languageVersion = JavaLanguageVersion.of(17)
     }
 }
+
+tasks.whenTaskAdded {
+    if (name == "testReleaseUnitTest") {
+        // Disable the execution of UI tests for the release flavor. Those typically fail due to missing entries for
+        // test activities in the manifest.
+        (this as Test).exclude("**/*UiTest.class")
+    }
+}
