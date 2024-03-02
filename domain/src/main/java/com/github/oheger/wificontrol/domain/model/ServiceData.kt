@@ -82,13 +82,21 @@ data class ServiceData(
 
     /**
      * Return a new [ServiceData] instance that contains the given [service] as replacement of a service with the
-     * same name. Store this service at the same index as it is located now. Throw an [IllegalArgumentException] if
-     * no service with this name exists.
+     * given [originalServiceName]. Store this service at the same index as it is located now. Throw an
+     * [IllegalArgumentException] if no service with this name exists. The [originalServiceName] must be specified in
+     * case the service has been renamed. In this case, an [IllegalArgumentException] is thrown as well if the new
+     * name is already used by another service.
      */
-    fun updateService(service: PersistentService): ServiceData {
-        val newServices = services.toMutableList()
-        val pos = indexOfOrThrow(service.serviceDefinition.name)
+    fun updateService(originalServiceName: String, service: PersistentService): ServiceData {
+        val pos = indexOfOrThrow(originalServiceName)
+        if (service.serviceDefinition.name != originalServiceName) {
+            require(indexOf(service.serviceDefinition.name) < 0) {
+                "Service cannot be renamed. " +
+                        "There is already a service with the name '${service.serviceDefinition.name}'."
+            }
+        }
 
+        val newServices = services.toMutableList()
         newServices[pos] = service
         return copy(services = newServices)
     }

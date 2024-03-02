@@ -163,21 +163,45 @@ class ServiceDataTest : WordSpec({
             )
             val data = createServiceData()
 
-            val newData = data.updateService(updatedService)
+            val newData = data.updateService(updatedService.serviceDefinition.name, updatedService)
 
             newData.services shouldContainExactly listOf(updatedService, persistentService2)
         }
 
         "throw an exception if no service with this name exists" {
+            val unknownService = "nonExistingService"
             val updatedService = persistentService1.copy(
-                serviceDefinition = service1.copy(name = "nonExistingService")
+                serviceDefinition = service1.copy(port = 65432)
             )
             val data = createServiceData()
 
             val exception = shouldThrow<IllegalArgumentException> {
-                data.updateService(updatedService)
+                data.updateService(unknownService, updatedService)
             }
-            exception.message shouldContain updatedService.serviceDefinition.name
+            exception.message shouldContain unknownService
+        }
+
+        "allow renaming a service" {
+            val newServiceName = "renamedTestService"
+            val updatedService = persistentService1.copy(
+                serviceDefinition = service1.copy(name = newServiceName)
+            )
+            val data = createServiceData()
+
+            val newData = data.updateService(service1.name, updatedService)
+            newData.services shouldContainExactly listOf(updatedService, persistentService2)
+        }
+
+        "throw an exception if the new name of a service is already in use" {
+            val updatedService = persistentService1.copy(
+                serviceDefinition = service1.copy(name = service2.name, port = 65432)
+            )
+            val data = createServiceData()
+
+            val exception = shouldThrow<IllegalArgumentException> {
+                data.updateService(service1.name, updatedService)
+            }
+            exception.message shouldContain service2.name
         }
     }
 
