@@ -1,7 +1,7 @@
 [versions]
 activityCompose = "1.8.2"
-androidApplicationPlugin = "8.2.2"
-androidLibraryPlugin = "8.2.2"
+androidApplicationPlugin = "8.3.0"
+androidLibraryPlugin = "8.3.0"
 androidXDataStore = "1.0.0"
 catalogUpdatePlugin = "0.8.4"
 composeMaterial = "1.6.1"
