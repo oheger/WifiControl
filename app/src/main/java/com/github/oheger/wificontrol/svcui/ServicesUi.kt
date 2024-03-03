@@ -27,6 +27,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
@@ -39,6 +40,7 @@ import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
 internal const val TAG_SERVICE_NAME = "svcName"
 internal const val TAG_ACTION_DOWN = "actDown"
+internal const val TAG_ACTION_UP = "actUp"
 
 /**
  * Generate the tag for an UI element related to the service with the given [serviceName]. The element is identified
@@ -71,7 +73,13 @@ fun ServicesList(viewModel: ServicesViewModel, services: List<PersistentService>
                     text = service.serviceDefinition.name,
                     modifier = Modifier.testTag(serviceTag(service.serviceDefinition.name, TAG_SERVICE_NAME))
                 )
-                ServiceActions(viewModel, service.serviceDefinition.name, index >= services.size - 1, modifier)
+                ServiceActions(
+                    viewModel,
+                    service.serviceDefinition.name,
+                    index == 0,
+                    index >= services.size - 1,
+                    modifier
+                )
             }
         }
     }
@@ -79,11 +87,26 @@ fun ServicesList(viewModel: ServicesViewModel, services: List<PersistentService>
 
 /**
  * Generate the actions for the service with the given [serviceName] in the list of services, taking the position
- * of this service into account as given by [isLast]. The actions are represented by clickable icons; a click
- * triggers a method invocation on the given [viewModel].
+ * of this service into account as given by [isFirst], and [isLast]. The actions are represented by clickable icons; a
+ * click triggers a method invocation on the given [viewModel].
  */
 @Composable
-fun ServiceActions(viewModel: ServicesViewModel, serviceName: String, isLast: Boolean, modifier: Modifier) {
+fun ServiceActions(
+    viewModel: ServicesViewModel,
+    serviceName: String,
+    isFirst: Boolean,
+    isLast: Boolean,
+    modifier: Modifier
+) {
+    if (!isFirst) {
+        Icon(
+            Icons.Filled.KeyboardArrowUp,
+            contentDescription = null,
+            modifier
+                .testTag(serviceTag(serviceName, TAG_ACTION_UP))
+                .clickable { viewModel.moveServiceUp(serviceName) }
+        )
+    }
     if (!isLast) {
         Icon(
             Icons.Filled.KeyboardArrowDown,
