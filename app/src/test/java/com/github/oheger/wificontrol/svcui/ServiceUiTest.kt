@@ -22,19 +22,26 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.domain.usecase.LoadServiceDataUseCase
+import com.github.oheger.wificontrol.domain.usecase.StoreServiceDataUseCase
 
 import io.kotest.inspectors.forAll
+import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.shouldBe
 
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
+import io.mockk.verify
 
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 
 import org.junit.Before
 import org.junit.Rule
@@ -52,6 +59,9 @@ class ServiceUiTest {
     /** A view model to serve the UI function. */
     private lateinit var servicesViewModel: ServicesViewModelImpl
 
+    /** A mock for the use case to store the modified data instance. */
+    private lateinit var storeDataUseCase: StoreServiceDataUseCase
+
     @Before
     fun setUp() {
         val initialData = ServiceData(emptyList(), 0)
@@ -60,7 +70,9 @@ class ServiceUiTest {
             every { execute(LoadServiceDataUseCase.Input) } returns dataFlow
         }
 
-        servicesViewModel = ServicesViewModelImpl(loadUseCase)
+        storeDataUseCase = mockk()
+        every { storeDataUseCase.execute(any()) } returns flowOf(Result.success(StoreServiceDataUseCase.Output))
+        servicesViewModel = ServicesViewModelImpl(loadUseCase, storeDataUseCase)
         composeTestRule.setContent { ServicesScreen(viewModel = servicesViewModel) }
     }
 
@@ -69,6 +81,18 @@ class ServiceUiTest {
      */
     private fun initServiceData(data: ServiceData) {
         dataFlow.value = Result.success(LoadServiceDataUseCase.Output(data))
+    }
+
+    /**
+     * Expect a call to store the current [ServiceData] and return the instance that was passed to the use case.
+     */
+    private fun expectStoredData(): ServiceData {
+        val slotData = slot<StoreServiceDataUseCase.Input>()
+        verify {
+            storeDataUseCase.execute(capture(slotData))
+        }
+
+        return slotData.captured.data
     }
 
     @Test
@@ -81,6 +105,26 @@ class ServiceUiTest {
                 .assertIsDisplayed()
                 .assertTextEquals(service.serviceDefinition.name)
         }
+    }
+
+    @Test
+    fun `An action to move down a service is available`() {
+        val data = createServiceData(2).also(this::initServiceData)
+
+        composeTestRule.onNodeWithTag(serviceTag(data.services.first().serviceDefinition.name, TAG_ACTION_DOWN))
+            .performClick()
+        val savedData = expectStoredData()
+
+        savedData.currentIndex shouldBe data.currentIndex
+        savedData.services shouldContainExactly listOf(data.services[1], data.services[0])
+    }
+
+    @Test
+    fun `An action to move down a service is not displayed for the last element`() {
+        val data = createServiceData(1).also(this::initServiceData)
+
+        composeTestRule.onNodeWithTag(serviceTag(data.services.first().serviceDefinition.name, TAG_ACTION_DOWN))
+            .assertDoesNotExist()
     }
 }
 

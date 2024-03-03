@@ -24,6 +24,7 @@ import androidx.lifecycle.viewModelScope
 import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.usecase.LoadServiceDataUseCase
+import com.github.oheger.wificontrol.domain.usecase.StoreServiceDataUseCase
 
 import javax.inject.Inject
 
@@ -47,6 +48,11 @@ abstract class ServicesViewModel : ViewModel() {
      * Load the current state of this app and initialize the view of services.
      */
     abstract fun loadServices()
+
+    /**
+     * Move the service with the given [serviceName] one position down in the list of services.
+     */
+    abstract fun moveServiceDown(serviceName: String)
 }
 
 /**
@@ -56,7 +62,11 @@ abstract class ServicesViewModel : ViewModel() {
  * services from here or create new ones.
  */
 class ServicesViewModelImpl @Inject constructor(
-    private val loadServicesUseCase: LoadServiceDataUseCase
+    /** The use case to load the current [ServiceData] instance. */
+    private val loadServicesUseCase: LoadServiceDataUseCase,
+
+    /** The use case to store the [ServiceData] instance after it has been modified. */
+    private val storeServicesUseCase: StoreServiceDataUseCase
 ) : ServicesViewModel() {
     /** The flow to manage the current [ServiceData] state. */
     private val mutableServiceDataFlow = MutableStateFlow(ServiceData(emptyList(), 0))
@@ -68,6 +78,14 @@ class ServicesViewModelImpl @Inject constructor(
             loadServicesUseCase.execute(LoadServiceDataUseCase.Input)
                 .map { result -> result.getOrThrow() }
                 .collect { mutableServiceDataFlow.value = it.data }
+        }
+    }
+
+    override fun moveServiceDown(serviceName: String) {
+        viewModelScope.launch {
+            storeServicesUseCase.execute(
+                StoreServiceDataUseCase.Input(mutableServiceDataFlow.value.moveDown(serviceName))
+            )
         }
     }
 }
