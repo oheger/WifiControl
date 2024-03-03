@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.runtime.Composable
@@ -40,6 +41,7 @@ import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
 internal const val TAG_SERVICE_NAME = "svcName"
 internal const val TAG_ACTION_DOWN = "actDown"
+internal const val TAG_ACTION_REMOVE = "actRemove"
 internal const val TAG_ACTION_UP = "actUp"
 
 /**
@@ -116,6 +118,13 @@ fun ServiceActions(
                 .clickable { viewModel.moveServiceDown(serviceName) }
         )
     }
+    Icon(
+        Icons.Filled.Delete,
+        contentDescription = null,
+        modifier
+            .testTag(serviceTag(serviceName, TAG_ACTION_REMOVE))
+            .clickable { viewModel.removeService(serviceName) }
+    )
 }
 
 @Preview
