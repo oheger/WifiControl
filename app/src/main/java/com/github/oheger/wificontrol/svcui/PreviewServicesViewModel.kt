@@ -45,4 +45,7 @@ class PreviewServicesViewModel(
 
     override fun moveServiceUp(serviceName: String) {
     }
+
+    override fun removeService(serviceName: String) {
+    }
 }

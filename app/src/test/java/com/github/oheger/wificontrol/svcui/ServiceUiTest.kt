@@ -146,6 +146,18 @@ class ServiceUiTest {
         composeTestRule.onNodeWithTag(serviceTag(data.services.first().serviceDefinition.name, TAG_ACTION_UP))
             .assertDoesNotExist()
     }
+
+    @Test
+    fun `An action to delete a service is available`() {
+        val data = createServiceData(3).also(this::initServiceData)
+
+        composeTestRule.onNodeWithTag(serviceTag(data.services[0].serviceDefinition.name, TAG_ACTION_REMOVE))
+            .performClick()
+        val savedData = expectStoredData()
+
+        savedData.currentIndex shouldBe data.currentIndex
+        savedData.services shouldContainExactly listOf(data.services[1], data.services[2])
+    }
 }
 
 /**

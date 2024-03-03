@@ -58,6 +58,11 @@ abstract class ServicesViewModel : ViewModel() {
      * Move the service with the given [serviceName] one position up in the list of services.
      */
     abstract fun moveServiceUp(serviceName: String)
+
+    /**
+     * Remove the service with the given [serviceName] from the list of services.
+     */
+    abstract fun removeService(serviceName: String)
 }
 
 /**
@@ -92,6 +97,10 @@ class ServicesViewModelImpl @Inject constructor(
 
     override fun moveServiceUp(serviceName: String) {
         modifyAndSaveData { it.moveUp(serviceName) }
+    }
+
+    override fun removeService(serviceName: String) {
+        modifyAndSaveData { it.removeService(serviceName) }
     }
 
     /**
