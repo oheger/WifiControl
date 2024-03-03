@@ -53,6 +53,11 @@ abstract class ServicesViewModel : ViewModel() {
      * Move the service with the given [serviceName] one position down in the list of services.
      */
     abstract fun moveServiceDown(serviceName: String)
+
+    /**
+     * Move the service with the given [serviceName] one position up in the list of services.
+     */
+    abstract fun moveServiceUp(serviceName: String)
 }
 
 /**
@@ -82,9 +87,21 @@ class ServicesViewModelImpl @Inject constructor(
     }
 
     override fun moveServiceDown(serviceName: String) {
+        modifyAndSaveData { it.moveDown(serviceName) }
+    }
+
+    override fun moveServiceUp(serviceName: String) {
+        modifyAndSaveData { it.moveUp(serviceName) }
+    }
+
+    /**
+     * Apply the given [modifyFunc] to the current [ServiceData] instance and then store the resulting object using
+     * [StoreServiceDataUseCase].
+     */
+    private fun modifyAndSaveData(modifyFunc: (ServiceData) -> ServiceData) {
         viewModelScope.launch {
             storeServicesUseCase.execute(
-                StoreServiceDataUseCase.Input(mutableServiceDataFlow.value.moveDown(serviceName))
+                StoreServiceDataUseCase.Input(modifyFunc(mutableServiceDataFlow.value))
             )
         }
     }

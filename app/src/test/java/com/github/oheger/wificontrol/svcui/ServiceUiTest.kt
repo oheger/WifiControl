@@ -126,6 +126,26 @@ class ServiceUiTest {
         composeTestRule.onNodeWithTag(serviceTag(data.services.first().serviceDefinition.name, TAG_ACTION_DOWN))
             .assertDoesNotExist()
     }
+
+    @Test
+    fun `An action to move up a service is available`() {
+        val data = createServiceData(2).also(this::initServiceData)
+
+        composeTestRule.onNodeWithTag(serviceTag(data.services[1].serviceDefinition.name, TAG_ACTION_UP))
+            .performClick()
+        val savedData = expectStoredData()
+
+        savedData.currentIndex shouldBe data.currentIndex
+        savedData.services shouldContainExactly listOf(data.services[1], data.services[0])
+    }
+
+    @Test
+    fun `An action to move up a service is not displayed for the first element`() {
+        val data = createServiceData(2).also(this::initServiceData)
+
+        composeTestRule.onNodeWithTag(serviceTag(data.services.first().serviceDefinition.name, TAG_ACTION_UP))
+            .assertDoesNotExist()
+    }
 }
 
 /**
