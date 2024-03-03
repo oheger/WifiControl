@@ -39,4 +39,7 @@ class PreviewServicesViewModel(
 
     override fun loadServices() {
     }
+
+    override fun moveServiceDown(serviceName: String) {
+    }
 }

@@ -18,10 +18,15 @@
  */
 package com.github.oheger.wificontrol.svcui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.Icon
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
@@ -33,6 +38,7 @@ import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
 internal const val TAG_SERVICE_NAME = "svcName"
+internal const val TAG_ACTION_DOWN = "actDown"
 
 /**
  * Generate the tag for an UI element related to the service with the given [serviceName]. The element is identified
@@ -57,14 +63,35 @@ fun ServicesScreen(viewModel: ServicesViewModel) {
  * the given [viewModel].
  */
 @Composable
-fun ServicesList(viewModel: ServicesViewModel, services: List<PersistentService>) {
+fun ServicesList(viewModel: ServicesViewModel, services: List<PersistentService>, modifier: Modifier = Modifier) {
     LazyColumn {
-        items(services) { service ->
-            Text(
-                text = service.serviceDefinition.name,
-                modifier = Modifier.testTag(serviceTag(service.serviceDefinition.name, TAG_SERVICE_NAME))
-            )
+        items(services.withIndex().toList()) { (index, service) ->
+            Row {
+                Text(
+                    text = service.serviceDefinition.name,
+                    modifier = Modifier.testTag(serviceTag(service.serviceDefinition.name, TAG_SERVICE_NAME))
+                )
+                ServiceActions(viewModel, service.serviceDefinition.name, index >= services.size - 1, modifier)
+            }
         }
+    }
+}
+
+/**
+ * Generate the actions for the service with the given [serviceName] in the list of services, taking the position
+ * of this service into account as given by [isLast]. The actions are represented by clickable icons; a click
+ * triggers a method invocation on the given [viewModel].
+ */
+@Composable
+fun ServiceActions(viewModel: ServicesViewModel, serviceName: String, isLast: Boolean, modifier: Modifier) {
+    if (!isLast) {
+        Icon(
+            Icons.Filled.KeyboardArrowDown,
+            contentDescription = null,
+            modifier
+                .testTag(serviceTag(serviceName, TAG_ACTION_DOWN))
+                .clickable { viewModel.moveServiceDown(serviceName) }
+        )
     }
 }
 
