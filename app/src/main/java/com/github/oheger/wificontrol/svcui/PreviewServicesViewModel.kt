@@ -19,10 +19,12 @@
 package com.github.oheger.wificontrol.svcui
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceData
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 
 /**
  * A specialized implementation of [ServicesViewModel] that is used for preview functions. The services to be
@@ -34,8 +36,8 @@ class PreviewServicesViewModel(
 ) : ServicesViewModel() {
     private val internalServicesFlow = MutableStateFlow(services)
 
-    override val servicesFlow: Flow<List<PersistentService>>
-        get() = internalServicesFlow.asStateFlow()
+    override val uiStateFlow: Flow<ServicesUiState>
+        get() = internalServicesFlow.asStateFlow().map { ServicesUiStateLoaded(ServiceData(it, 0)) }
 
     override fun loadServices() {
     }

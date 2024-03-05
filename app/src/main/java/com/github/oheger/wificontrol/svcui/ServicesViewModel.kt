@@ -21,7 +21,6 @@ package com.github.oheger.wificontrol.svcui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 
-import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.usecase.LoadServiceDataUseCase
 import com.github.oheger.wificontrol.domain.usecase.StoreServiceDataUseCase
@@ -40,9 +39,9 @@ import kotlinx.coroutines.launch
  */
 abstract class ServicesViewModel : ViewModel() {
     /**
-     * The flow providing the list of existing services.
+     * The flow providing the current state of the services UI.
      */
-    abstract val servicesFlow: Flow<List<PersistentService>>
+    abstract val uiStateFlow: Flow<ServicesUiState>
 
     /**
      * Load the current state of this app and initialize the view of services.
@@ -78,16 +77,16 @@ class ServicesViewModelImpl @Inject constructor(
     /** The use case to store the [ServiceData] instance after it has been modified. */
     private val storeServicesUseCase: StoreServiceDataUseCase
 ) : ServicesViewModel() {
-    /** The flow to manage the current [ServiceData] state. */
-    private val mutableServiceDataFlow = MutableStateFlow(ServiceData(emptyList(), 0))
+    /** The flow to manage the current UI state. */
+    private val mutableUiStateFlow = MutableStateFlow<ServicesUiState>(ServicesUiStateLoading)
 
-    override val servicesFlow = mutableServiceDataFlow.asStateFlow().map { it.services }
+    override val uiStateFlow = mutableUiStateFlow.asStateFlow()
 
     override fun loadServices() {
         viewModelScope.launch {
             loadServicesUseCase.execute(LoadServiceDataUseCase.Input)
                 .map { result -> result.getOrThrow() }
-                .collect { mutableServiceDataFlow.value = it.data }
+                .collect { mutableUiStateFlow.value = ServicesUiStateLoaded(it.data) }
         }
     }
 
@@ -109,8 +108,9 @@ class ServicesViewModelImpl @Inject constructor(
      */
     private fun modifyAndSaveData(modifyFunc: (ServiceData) -> ServiceData) {
         viewModelScope.launch {
+            val data = mutableUiStateFlow.value as ServicesUiStateLoaded
             storeServicesUseCase.execute(
-                StoreServiceDataUseCase.Input(modifyFunc(mutableServiceDataFlow.value))
+                StoreServiceDataUseCase.Input(modifyFunc(data.serviceData))
             )
         }
     }

@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
@@ -57,9 +58,10 @@ internal fun serviceTag(serviceName: String, subTag: String): String = "${servic
 fun ServicesScreen(viewModel: ServicesViewModel) {
     viewModel.loadServices()
 
-    viewModel.servicesFlow.collectAsState(emptyList()).value.let { services ->
-        ServicesList(viewModel, services)
-    }
+    viewModel.uiStateFlow.collectAsState(ServicesUiStateLoaded(ServiceData(emptyList(), 0))).value
+        .let { state ->
+            ServicesList(viewModel, (state as? ServicesUiStateLoaded)?.serviceData?.services.orEmpty())
+        }
 }
 
 /**
