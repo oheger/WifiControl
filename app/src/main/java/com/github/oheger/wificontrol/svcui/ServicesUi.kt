@@ -19,10 +19,13 @@
 package com.github.oheger.wificontrol.svcui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
@@ -31,6 +34,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
@@ -40,6 +44,7 @@ import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
+internal const val TAG_LOADING_INDICATOR = "svcLoading"
 internal const val TAG_SERVICE_NAME = "svcName"
 internal const val TAG_ACTION_DOWN = "actDown"
 internal const val TAG_ACTION_REMOVE = "actRemove"
@@ -60,8 +65,23 @@ fun ServicesScreen(viewModel: ServicesViewModel) {
 
     viewModel.uiStateFlow.collectAsState(ServicesUiStateLoaded(ServiceData(emptyList(), 0))).value
         .let { state ->
-            ServicesList(viewModel, (state as? ServicesUiStateLoaded)?.serviceData?.services.orEmpty())
+            ServicesScreenForState(viewModel, state)
         }
+}
+
+/**
+ * Generate the screen with the overview over all services that can be controlled based on the given [state].
+ * Propagate user interaction to the given [viewModel].
+ */
+@Composable
+fun ServicesScreenForState(viewModel: ServicesViewModel, state: ServicesUiState, modifier: Modifier = Modifier) {
+    when(state) {
+        is ServicesUiStateLoading ->
+            ServicesLoading(modifier = modifier)
+        is ServicesUiStateLoaded ->
+            ServicesList(viewModel = viewModel, services = state.serviceData.services)
+        else -> {}
+    }
 }
 
 /**
@@ -129,6 +149,20 @@ fun ServiceActions(
     )
 }
 
+/**
+ * Generate the services screen while data is still being loaded.
+ */
+@Composable
+fun ServicesLoading(modifier: Modifier) {
+    Column(
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        CircularProgressIndicator(modifier.testTag(TAG_LOADING_INDICATOR))
+    }
+}
+
 @Preview
 @Composable
 fun ServicesListPreview() {
@@ -153,10 +187,20 @@ fun ServicesListPreview() {
         )
     )
     val model = PreviewServicesViewModel(services)
+    val state = ServicesUiStateLoaded(ServiceData(services, 0))
 
     WifiControlTheme {
         Column {
-            ServicesList(model, services)
+            ServicesScreenForState(model, state)
         }
+    }
+}
+
+@Preview
+@Composable
+fun ServicesLoadingPreview() {
+    val model = PreviewServicesViewModel(emptyList())
+    WifiControlTheme {
+        ServicesScreenForState(viewModel = model, state = ServicesUiStateLoading)
     }
 }

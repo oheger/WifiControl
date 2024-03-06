@@ -40,8 +40,9 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.runTest
 
 import org.junit.Before
 import org.junit.Rule
@@ -54,7 +55,7 @@ class ServiceUiTest {
     val composeTestRule = createComposeRule()
 
     /** The flow used to inject data into the view model under test. */
-    private lateinit var dataFlow: MutableStateFlow<Result<LoadServiceDataUseCase.Output>>
+    private lateinit var dataFlow: MutableSharedFlow<Result<LoadServiceDataUseCase.Output>>
 
     /** A view model to serve the UI function. */
     private lateinit var servicesViewModel: ServicesViewModelImpl
@@ -64,8 +65,7 @@ class ServiceUiTest {
 
     @Before
     fun setUp() {
-        val initialData = ServiceData(emptyList(), 0)
-        dataFlow = MutableStateFlow(Result.success(LoadServiceDataUseCase.Output(initialData)))
+        dataFlow = MutableSharedFlow()
         val loadUseCase = mockk<LoadServiceDataUseCase> {
             every { execute(LoadServiceDataUseCase.Input) } returns dataFlow
         }
@@ -79,8 +79,9 @@ class ServiceUiTest {
     /**
      * Set the current value of the data flow to the given [data]. This data should then be picked up by the UI.
      */
-    private fun initServiceData(data: ServiceData) {
-        dataFlow.value = Result.success(LoadServiceDataUseCase.Output(data))
+    private suspend fun initServiceData(data: ServiceData): ServiceData {
+        dataFlow.emit(Result.success(LoadServiceDataUseCase.Output(data)))
+        return data
     }
 
     /**
@@ -96,9 +97,8 @@ class ServiceUiTest {
     }
 
     @Test
-    fun `The list of services is displayed`() {
-        val data = createServiceData(3)
-        initServiceData(data)
+    fun `The list of services is displayed`() = runTest {
+        val data = initServiceData(createServiceData(3))
 
         data.services.forAll { service ->
             composeTestRule.onNodeWithTag(serviceTag(service.serviceDefinition.name, TAG_SERVICE_NAME))
@@ -108,8 +108,8 @@ class ServiceUiTest {
     }
 
     @Test
-    fun `An action to move down a service is available`() {
-        val data = createServiceData(2).also(this::initServiceData)
+    fun `An action to move down a service is available`() = runTest {
+        val data = initServiceData(createServiceData(2))
 
         composeTestRule.onNodeWithTag(serviceTag(data.services.first().serviceDefinition.name, TAG_ACTION_DOWN))
             .performClick()
@@ -120,16 +120,16 @@ class ServiceUiTest {
     }
 
     @Test
-    fun `An action to move down a service is not displayed for the last element`() {
-        val data = createServiceData(1).also(this::initServiceData)
+    fun `An action to move down a service is not displayed for the last element`() = runTest {
+        val data = initServiceData(createServiceData(1))
 
         composeTestRule.onNodeWithTag(serviceTag(data.services.first().serviceDefinition.name, TAG_ACTION_DOWN))
             .assertDoesNotExist()
     }
 
     @Test
-    fun `An action to move up a service is available`() {
-        val data = createServiceData(2).also(this::initServiceData)
+    fun `An action to move up a service is available`() = runTest {
+        val data = initServiceData(createServiceData(2))
 
         composeTestRule.onNodeWithTag(serviceTag(data.services[1].serviceDefinition.name, TAG_ACTION_UP))
             .performClick()
@@ -140,16 +140,16 @@ class ServiceUiTest {
     }
 
     @Test
-    fun `An action to move up a service is not displayed for the first element`() {
-        val data = createServiceData(2).also(this::initServiceData)
+    fun `An action to move up a service is not displayed for the first element`() = runTest {
+        val data = initServiceData(createServiceData(2))
 
         composeTestRule.onNodeWithTag(serviceTag(data.services.first().serviceDefinition.name, TAG_ACTION_UP))
             .assertDoesNotExist()
     }
 
     @Test
-    fun `An action to delete a service is available`() {
-        val data = createServiceData(3).also(this::initServiceData)
+    fun `An action to delete a service is available`() = runTest {
+        val data = initServiceData(createServiceData(3))
 
         composeTestRule.onNodeWithTag(serviceTag(data.services[0].serviceDefinition.name, TAG_ACTION_REMOVE))
             .performClick()
@@ -157,6 +157,11 @@ class ServiceUiTest {
 
         savedData.currentIndex shouldBe data.currentIndex
         savedData.services shouldContainExactly listOf(data.services[1], data.services[2])
+    }
+
+    @Test
+    fun `A loading indicator is displayed while data is loaded`() {
+        composeTestRule.onNodeWithTag(TAG_LOADING_INDICATOR).assertIsDisplayed()
     }
 }
 
