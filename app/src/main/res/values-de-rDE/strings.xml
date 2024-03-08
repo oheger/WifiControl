@@ -9,4 +9,6 @@
     <string name="state_wifi_available">WLAN verbunden.</string>
     <string name="state_server_not_found_hint">Die Test-Anfrage wird nach einer Weile wiederholt.</string>
     <string name="state_searching_hint">Schicke eine Test-Anfrage…</string>
+    <string name="svc_load_error_details">Beim Laden der Dienste aus der Konfiguration ist der folgende Fehler aufgetreten:</string>
+    <string name="svc_load_error_title">Laden der Dienste fehlgeschlagen</string>
 </resources>
