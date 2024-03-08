@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.CircularProgressIndicator
@@ -36,14 +37,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
+import com.github.oheger.wificontrol.R
 import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
+internal const val TAG_ERROR_HEADER = "svcErrorHeader"
+internal const val TAG_ERROR_MSG = "svcErrorMsg"
 internal const val TAG_LOADING_INDICATOR = "svcLoading"
 internal const val TAG_SERVICE_NAME = "svcName"
 internal const val TAG_ACTION_DOWN = "actDown"
@@ -75,12 +84,15 @@ fun ServicesScreen(viewModel: ServicesViewModel) {
  */
 @Composable
 fun ServicesScreenForState(viewModel: ServicesViewModel, state: ServicesUiState, modifier: Modifier = Modifier) {
-    when(state) {
+    when (state) {
         is ServicesUiStateLoading ->
             ServicesLoading(modifier = modifier)
+
         is ServicesUiStateLoaded ->
             ServicesList(viewModel = viewModel, services = state.serviceData.services)
-        else -> {}
+
+        is ServicesUiStateError ->
+            ServicesError(exception = state.error, modifier = modifier)
     }
 }
 
@@ -163,6 +175,38 @@ fun ServicesLoading(modifier: Modifier) {
     }
 }
 
+/**
+ * Generate a screen if loading of the services failed due to the given [exception].
+ */
+@Composable
+fun ServicesError(exception: Throwable, modifier: Modifier) {
+    Column(
+        modifier
+            .fillMaxSize()
+            .padding(16.dp)) {
+        Text(
+            text = stringResource(id = R.string.svc_load_error_title),
+            color = Color.Red,
+            fontSize = 30.sp,
+            modifier = modifier
+                .testTag(TAG_ERROR_HEADER)
+                .padding(bottom = 32.dp)
+                .align(Alignment.CenterHorizontally)
+        )
+        Text(
+            text = stringResource(id = R.string.svc_load_error_details),
+            color = Color.Red,
+            modifier = modifier.padding(bottom = 16.dp)
+        )
+        Text(
+            text = exception.toString(),
+            color = Color.Red,
+            fontStyle = FontStyle.Italic,
+            modifier = modifier.testTag(TAG_ERROR_MSG)
+        )
+    }
+}
+
 @Preview
 @Composable
 fun ServicesListPreview() {
@@ -202,5 +246,16 @@ fun ServicesLoadingPreview() {
     val model = PreviewServicesViewModel(emptyList())
     WifiControlTheme {
         ServicesScreenForState(viewModel = model, state = ServicesUiStateLoading)
+    }
+}
+
+@Preview
+@Composable
+fun ServicesErrorPreview() {
+    val exception = IllegalStateException("Something went terribly wrong :-(")
+    val state = ServicesUiStateError(exception)
+    val model = PreviewServicesViewModel(emptyList())
+    WifiControlTheme {
+        ServicesScreenForState(viewModel = model, state = state)
     }
 }

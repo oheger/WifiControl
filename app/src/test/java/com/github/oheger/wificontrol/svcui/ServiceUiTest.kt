@@ -19,6 +19,7 @@
 package com.github.oheger.wificontrol.svcui
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -80,8 +81,16 @@ class ServiceUiTest {
      * Set the current value of the data flow to the given [data]. This data should then be picked up by the UI.
      */
     private suspend fun initServiceData(data: ServiceData): ServiceData {
-        dataFlow.emit(Result.success(LoadServiceDataUseCase.Output(data)))
+        initLoadResult(Result.success(LoadServiceDataUseCase.Output(data)))
         return data
+    }
+
+    /**
+     * Set the current value of the data flow to the given [result]. This function allows setting arbitrary results,
+     * including errors.
+     */
+    private suspend fun initLoadResult(result: Result<LoadServiceDataUseCase.Output>) {
+        dataFlow.emit(result)
     }
 
     /**
@@ -162,6 +171,17 @@ class ServiceUiTest {
     @Test
     fun `A loading indicator is displayed while data is loaded`() {
         composeTestRule.onNodeWithTag(TAG_LOADING_INDICATOR).assertIsDisplayed()
+    }
+
+    @Test
+    fun `An error view is shown if loading of data failed`() = runTest {
+        val exception = IllegalArgumentException("Some exception occurred :-(")
+        initLoadResult(Result.failure(exception))
+
+        composeTestRule.onNodeWithTag(TAG_ERROR_HEADER).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TAG_ERROR_MSG)
+            .assertTextContains(exception.javaClass.simpleName, substring = true)
+            .assertTextContains(exception.message!!, substring = true)
     }
 }
 

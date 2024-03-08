@@ -85,8 +85,10 @@ class ServicesViewModelImpl @Inject constructor(
     override fun loadServices() {
         viewModelScope.launch {
             loadServicesUseCase.execute(LoadServiceDataUseCase.Input)
-                .map { result -> result.getOrThrow() }
-                .collect { mutableUiStateFlow.value = ServicesUiStateLoaded(it.data) }
+                .map { result ->
+                    result.map { ServicesUiStateLoaded(it.data) }.getOrElse { ServicesUiStateError(it) }
+                }
+                .collect { state -> mutableUiStateFlow.value = state }
         }
     }
 
