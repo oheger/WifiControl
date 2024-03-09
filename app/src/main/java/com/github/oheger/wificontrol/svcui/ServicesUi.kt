@@ -22,6 +22,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -54,6 +55,8 @@ import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 internal const val TAG_ERROR_HEADER = "svcErrorHeader"
 internal const val TAG_ERROR_MSG = "svcErrorMsg"
 internal const val TAG_LOADING_INDICATOR = "svcLoading"
+internal const val TAG_SAVE_ERROR = "svcSaveError"
+internal const val TAG_SAVE_ERROR_MSG = "svcSaveErrorMsg"
 internal const val TAG_SERVICE_NAME = "svcName"
 internal const val TAG_ACTION_DOWN = "actDown"
 internal const val TAG_ACTION_REMOVE = "actRemove"
@@ -89,10 +92,40 @@ fun ServicesScreenForState(viewModel: ServicesViewModel, state: ServicesUiState,
             ServicesLoading(modifier = modifier)
 
         is ServicesUiStateLoaded ->
-            ServicesList(viewModel = viewModel, services = state.serviceData.services)
+            ServicesLoaded(viewModel = viewModel, state = state, modifier = modifier)
 
         is ServicesUiStateError ->
             ServicesError(exception = state.error, modifier = modifier)
+    }
+}
+
+/**
+ * Generate the screen with the overview over all services if the data about services has been loaded successfully.
+ * Use the given [state] to access the data, and [viewModel] to propagate user interaction.
+ */
+@Composable
+fun ServicesLoaded(viewModel: ServicesViewModel, state: ServicesUiStateLoaded, modifier: Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        ServicesList(viewModel = viewModel, services = state.serviceData.services, modifier)
+
+        Spacer(modifier = modifier.weight(1.0f, fill = true))
+        state.updateError?.let { error ->
+            Text(
+                text = stringResource(id = R.string.svc_update_error),
+                color = Color.Red,
+                modifier = modifier.testTag(TAG_SAVE_ERROR)
+            )
+            Text(
+                text = error.toString(),
+                color = Color.Red,
+                fontStyle = FontStyle.Italic,
+                modifier = modifier.testTag(TAG_SAVE_ERROR_MSG)
+            )
+        }
     }
 }
 
@@ -101,7 +134,7 @@ fun ServicesScreenForState(viewModel: ServicesViewModel, state: ServicesUiState,
  * the given [viewModel].
  */
 @Composable
-fun ServicesList(viewModel: ServicesViewModel, services: List<PersistentService>, modifier: Modifier = Modifier) {
+fun ServicesList(viewModel: ServicesViewModel, services: List<PersistentService>, modifier: Modifier) {
     LazyColumn {
         items(services.withIndex().toList()) { (index, service) ->
             Row {
@@ -183,7 +216,8 @@ fun ServicesError(exception: Throwable, modifier: Modifier) {
     Column(
         modifier
             .fillMaxSize()
-            .padding(16.dp)) {
+            .padding(16.dp)
+    ) {
         Text(
             text = stringResource(id = R.string.svc_load_error_title),
             color = Color.Red,
@@ -231,7 +265,10 @@ fun ServicesListPreview() {
         )
     )
     val model = PreviewServicesViewModel(services)
-    val state = ServicesUiStateLoaded(ServiceData(services, 0))
+    val state = ServicesUiStateLoaded(
+        ServiceData(services, 0),
+        IllegalStateException("Error when saving services.")
+    )
 
     WifiControlTheme {
         Column {
