@@ -30,6 +30,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
@@ -80,7 +81,15 @@ class ServicesViewModelImpl @Inject constructor(
     /** The flow to manage the current UI state. */
     private val mutableUiStateFlow = MutableStateFlow<ServicesUiState>(ServicesUiStateLoading)
 
-    override val uiStateFlow = mutableUiStateFlow.asStateFlow()
+    /** A flow to keep track on errors that occur during saving of service data. */
+    private val saveErrorFlow = MutableStateFlow<Throwable?>(null)
+
+    override val uiStateFlow = mutableUiStateFlow.asStateFlow().combine(saveErrorFlow) { state, error ->
+        when(state) {
+            is ServicesUiStateLoaded -> state.copy(updateError = error)
+            else -> state
+        }
+    }
 
     override fun loadServices() {
         viewModelScope.launch {
@@ -113,7 +122,7 @@ class ServicesViewModelImpl @Inject constructor(
             val data = mutableUiStateFlow.value as ServicesUiStateLoaded
             storeServicesUseCase.execute(
                 StoreServiceDataUseCase.Input(modifyFunc(data.serviceData))
-            )
+            ).collect { result -> saveErrorFlow.value = result.exceptionOrNull() }
         }
     }
 }

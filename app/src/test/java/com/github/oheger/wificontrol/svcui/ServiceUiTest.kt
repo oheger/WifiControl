@@ -183,6 +183,22 @@ class ServiceUiTest {
             .assertTextContains(exception.javaClass.simpleName, substring = true)
             .assertTextContains(exception.message!!, substring = true)
     }
+
+    @Test
+    fun `An error message is shown if service data cannot be saved`() = runTest {
+        val exception = IllegalArgumentException("Some exception while saving :-O")
+        every { storeDataUseCase.execute(any()) } returns flowOf(Result.failure(exception))
+        val data = initServiceData(createServiceData(4))
+
+        composeTestRule.onNodeWithTag(serviceTag(data.services[0].serviceDefinition.name, TAG_ACTION_REMOVE))
+            .performClick()
+        expectStoredData()
+
+        composeTestRule.onNodeWithTag(TAG_SAVE_ERROR).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TAG_SAVE_ERROR_MSG)
+            .assertTextContains(exception.javaClass.simpleName, substring = true)
+            .assertTextContains(exception.message!!, substring = true)
+    }
 }
 
 /**
