@@ -48,10 +48,30 @@ data class ServiceData(
     }
 
     /**
+     * Return a [LookupService] that matches the given [serviceName] or *null* if no such service exists.
+     */
+    operator fun get(serviceName: String): LookupService? =
+        indexOf(serviceName).takeIf { it >= 0 }?.let { get(it) }
+
+    /**
      * Check whether this object contains a service with the given [serviceName].
      */
     operator fun contains(serviceName: String): Boolean =
         indexOf(serviceName) >= 0
+
+    /**
+     * Return the [LookupService] with the given [serviceName] or throw an [IllegalArgumentException] if the name
+     * cannot be resolved.
+     */
+    fun getService(serviceName: String): LookupService =
+        get(indexOfOrThrow(serviceName))
+
+    /**
+     * Return the [PersistentService] with the given [serviceName] or throw an [IllegalArgumentException] if the
+     * name cannot be resolved.
+     */
+    fun getPersistentService(serviceName: String): PersistentService =
+        services[indexOfOrThrow(serviceName)]
 
     /**
      * Return a new [ServiceData] instance with the given [service] added as the last element in the list of services.
