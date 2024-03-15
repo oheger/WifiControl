@@ -22,6 +22,7 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.nulls.beNull
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -58,6 +59,77 @@ class ServiceDataTest : WordSpec({
 
             lookupService.service shouldBe service2
             lookupService.lookupConfig shouldBe expectedLookupConfig
+        }
+
+        "return an existing LookupService by name" {
+            val expectedLookupConfig = LookupConfig(
+                persistentService1.networkTimeout!!,
+                persistentService1.retryDelay!!,
+                persistentService1.sendRequestInterval!!
+            )
+            val data = createServiceData()
+
+            val lookupService = data[service1.name]
+
+            lookupService.shouldNotBeNull()
+            lookupService.service shouldBe service1
+            lookupService.lookupConfig shouldBe expectedLookupConfig
+        }
+
+        "return null for if the service name cannot be resolved" {
+            val data = createServiceData()
+
+            val lookupService = data["aNonExistingService"]
+
+            lookupService should beNull()
+        }
+    }
+
+    "getService" should {
+        "return an existing service" {
+            val expectedLookupConfig = LookupConfig(
+                persistentService1.networkTimeout!!,
+                persistentService1.retryDelay!!,
+                persistentService1.sendRequestInterval!!
+            )
+            val data = createServiceData()
+
+            val lookupService = data.getService(service1.name)
+
+            lookupService.service shouldBe service1
+            lookupService.lookupConfig shouldBe expectedLookupConfig
+        }
+
+        "throw an exception if the service does not exist" {
+            val unknownServiceName = "missingService"
+            val data = createServiceData()
+
+            val exception = shouldThrow<IllegalArgumentException> {
+                data.getService(unknownServiceName)
+            }
+
+            exception.message shouldContain unknownServiceName
+        }
+    }
+
+    "getPersistentService" should {
+        "return an existing service" {
+            val data = createServiceData()
+
+            val service = data.getPersistentService(service1.name)
+
+            service shouldBe persistentService1
+        }
+
+        "throw an exception if the service does not exist" {
+            val unknownServiceName = "noSuchPersistentService"
+            val data = createServiceData()
+
+            val exception = shouldThrow<IllegalArgumentException> {
+                data.getPersistentService(unknownServiceName)
+            }
+
+            exception.message shouldContain unknownServiceName
         }
     }
 
