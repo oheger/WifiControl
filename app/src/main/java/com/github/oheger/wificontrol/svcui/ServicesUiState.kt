@@ -18,27 +18,21 @@
  */
 package com.github.oheger.wificontrol.svcui
 
-import com.github.oheger.wificontrol.domain.model.ServiceData
-
 /**
  * The top-level interface of a hierarchy of classes defining the state of the services UI. There are different
  * subclasses for the UI in loading state, when data has been loaded successfully, or if an error occurred.
+ * In the success state, the data contained depends on the concrete UI screen. This is reflected by the type
+ * parameter of this interface.
  */
-sealed interface ServicesUiState
+sealed interface ServicesUiState<out T>
 
 /**
- * Data class representing the UI state that the data about the managed services has been loaded successfully.
+ * Data class representing the UI state that the data has been loaded successfully. It can now be accessed from a
+ * field.
  */
-data class ServicesUiStateLoaded(
-    /** The current [ServiceData] instance containing the managed services. */
-    val serviceData: ServiceData,
-
-    /**
-     * A flag whether an update operation of the services caused an error. This means that the current state of the
-     * application could not be saved successfully.
-     */
-    val updateError: Throwable? = null
-) : ServicesUiState
+data class ServicesUiStateLoaded<T>(
+    val data: T
+) : ServicesUiState<T>
 
 /**
  * Data class representing the UI state that data about the managed services could not be loaded. In this case, only
@@ -47,9 +41,9 @@ data class ServicesUiStateLoaded(
 data class ServicesUiStateError(
     /** The error that occurred during loaded. */
     val error: Throwable
-) : ServicesUiState
+) : ServicesUiState<Nothing>
 
 /**
  * An object representing the initial UI state that loading of data is in progress.
  */
-data object ServicesUiStateLoading : ServicesUiState
+data object ServicesUiStateLoading : ServicesUiState<Nothing>

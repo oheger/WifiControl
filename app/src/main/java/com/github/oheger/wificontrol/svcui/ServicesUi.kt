@@ -75,7 +75,7 @@ internal fun serviceTag(serviceName: String, subTag: String): String = "${servic
 fun ServicesScreen(viewModel: ServicesViewModel) {
     viewModel.loadServices()
 
-    viewModel.uiStateFlow.collectAsState(ServicesUiStateLoaded(ServiceData(emptyList(), 0))).value
+    viewModel.uiStateFlow.collectAsState(ServicesUiStateLoading).value
         .let { state ->
             ServicesScreenForState(viewModel, state)
         }
@@ -86,13 +86,17 @@ fun ServicesScreen(viewModel: ServicesViewModel) {
  * Propagate user interaction to the given [viewModel].
  */
 @Composable
-fun ServicesScreenForState(viewModel: ServicesViewModel, state: ServicesUiState, modifier: Modifier = Modifier) {
+fun ServicesScreenForState(
+    viewModel: ServicesViewModel,
+    state: ServicesUiState<ServicesOverviewState>,
+    modifier: Modifier = Modifier
+) {
     when (state) {
         is ServicesUiStateLoading ->
             ServicesLoading(modifier = modifier)
 
         is ServicesUiStateLoaded ->
-            ServicesLoaded(viewModel = viewModel, state = state, modifier = modifier)
+            ServicesLoaded(viewModel = viewModel, state = state.data, modifier = modifier)
 
         is ServicesUiStateError ->
             ServicesError(exception = state.error, modifier = modifier)
@@ -104,7 +108,7 @@ fun ServicesScreenForState(viewModel: ServicesViewModel, state: ServicesUiState,
  * Use the given [state] to access the data, and [viewModel] to propagate user interaction.
  */
 @Composable
-fun ServicesLoaded(viewModel: ServicesViewModel, state: ServicesUiStateLoaded, modifier: Modifier) {
+fun ServicesLoaded(viewModel: ServicesViewModel, state: ServicesOverviewState, modifier: Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -265,14 +269,14 @@ fun ServicesListPreview() {
         )
     )
     val model = PreviewServicesViewModel(services)
-    val state = ServicesUiStateLoaded(
+    val state = ServicesOverviewState(
         ServiceData(services, 0),
         IllegalStateException("Error when saving services.")
     )
 
     WifiControlTheme {
         Column {
-            ServicesScreenForState(model, state)
+            ServicesScreenForState(model, ServicesUiStateLoaded(state))
         }
     }
 }
