@@ -36,8 +36,10 @@ class PreviewServicesViewModel(
 ) : ServicesViewModel() {
     private val internalServicesFlow = MutableStateFlow(services)
 
-    override val uiStateFlow: Flow<ServicesUiState>
-        get() = internalServicesFlow.asStateFlow().map { ServicesUiStateLoaded(ServiceData(it, 0)) }
+    override val uiStateFlow: Flow<ServicesUiState<ServicesOverviewState>>
+        get() = internalServicesFlow.asStateFlow().map {
+            ServicesUiStateLoaded(ServicesOverviewState(ServiceData(it, 0)))
+        }
 
     override fun loadServices() {
     }

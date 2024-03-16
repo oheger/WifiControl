@@ -35,6 +35,20 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
+ * A data class describing the state of the services overview UI.
+ */
+data class ServicesOverviewState(
+    /** The current [ServiceData] instance containing the managed services. */
+    val serviceData: ServiceData,
+
+    /**
+     * A flag whether an update operation of the services caused an error. This means that the current state of the
+     * application could not be saved successfully.
+     */
+    val updateError: Throwable? = null
+)
+
+/**
  * Abstract base class for the view model for the services overview. This is used to support dummy implementations
  * for UI previews.
  */
@@ -42,7 +56,7 @@ abstract class ServicesViewModel : ViewModel() {
     /**
      * The flow providing the current state of the services UI.
      */
-    abstract val uiStateFlow: Flow<ServicesUiState>
+    abstract val uiStateFlow: Flow<ServicesUiState<ServicesOverviewState>>
 
     /**
      * Load the current state of this app and initialize the view of services.
@@ -79,14 +93,14 @@ class ServicesViewModelImpl @Inject constructor(
     private val storeServicesUseCase: StoreServiceDataUseCase
 ) : ServicesViewModel() {
     /** The flow to manage the current UI state. */
-    private val mutableUiStateFlow = MutableStateFlow<ServicesUiState>(ServicesUiStateLoading)
+    private val mutableUiStateFlow = MutableStateFlow<ServicesUiState<ServicesOverviewState>>(ServicesUiStateLoading)
 
     /** A flow to keep track on errors that occur during saving of service data. */
     private val saveErrorFlow = MutableStateFlow<Throwable?>(null)
 
     override val uiStateFlow = mutableUiStateFlow.asStateFlow().combine(saveErrorFlow) { state, error ->
         when(state) {
-            is ServicesUiStateLoaded -> state.copy(updateError = error)
+            is ServicesUiStateLoaded -> state.copy(data = state.data.copy(updateError = error))
             else -> state
         }
     }
@@ -95,7 +109,8 @@ class ServicesViewModelImpl @Inject constructor(
         viewModelScope.launch {
             loadServicesUseCase.execute(LoadServiceDataUseCase.Input)
                 .map { result ->
-                    result.map { ServicesUiStateLoaded(it.data) }.getOrElse { ServicesUiStateError(it) }
+                    result.map { ServicesUiStateLoaded(ServicesOverviewState(it.data)) }
+                        .getOrElse { ServicesUiStateError(it) }
                 }
                 .collect { state -> mutableUiStateFlow.value = state }
         }
@@ -119,9 +134,9 @@ class ServicesViewModelImpl @Inject constructor(
      */
     private fun modifyAndSaveData(modifyFunc: (ServiceData) -> ServiceData) {
         viewModelScope.launch {
-            val data = mutableUiStateFlow.value as ServicesUiStateLoaded
+            val state = mutableUiStateFlow.value as ServicesUiStateLoaded
             storeServicesUseCase.execute(
-                StoreServiceDataUseCase.Input(modifyFunc(data.serviceData))
+                StoreServiceDataUseCase.Input(modifyFunc(state.data.serviceData))
             ).collect { result -> saveErrorFlow.value = result.exceptionOrNull() }
         }
     }
