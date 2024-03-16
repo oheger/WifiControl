@@ -51,7 +51,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class ServiceUiTest {
+class ServicesOverviewUiTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -74,7 +74,7 @@ class ServiceUiTest {
         storeDataUseCase = mockk()
         every { storeDataUseCase.execute(any()) } returns flowOf(Result.success(StoreServiceDataUseCase.Output))
         servicesViewModel = ServicesViewModelImpl(loadUseCase, storeDataUseCase)
-        composeTestRule.setContent { ServicesScreen(viewModel = servicesViewModel) }
+        composeTestRule.setContent { ServicesOverviewScreen(viewModel = servicesViewModel) }
     }
 
     /**
