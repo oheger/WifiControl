@@ -13,4 +13,8 @@
     <string name="svc_load_error_title">Loading of services failed</string>
     <string name="svc_load_error_details">While loading the managed services from configuration, the following error occurred:</string>
     <string name="svc_update_error">Service data could not be saved.</string>
+    <string name="svc_lab_name">Service name</string>
+    <string name="svc_lab_multicast">Multicast address</string>
+    <string name="svc_lab_port">Port</string>
+    <string name="svc_lab_code">Request code</string>
 </resources>
