@@ -12,4 +12,8 @@
     <string name="svc_load_error_details">Beim Laden der Dienste aus der Konfiguration ist der folgende Fehler aufgetreten:</string>
     <string name="svc_load_error_title">Laden der Dienste fehlgeschlagen</string>
     <string name="svc_update_error">Das Speichern der Dienste ist fehlgeschlagen.</string>
+    <string name="svc_lab_name">Service Name</string>
+    <string name="svc_lab_multicast">Multicast Adresse</string>
+    <string name="svc_lab_port">Port</string>
+    <string name="svc_lab_code">Request Code</string>
 </resources>
