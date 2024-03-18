@@ -18,13 +18,35 @@
  */
 package com.github.oheger.wificontrol.svcui
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
 /**
  * The top-level interface of a hierarchy of classes defining the state of the services UI. There are different
  * subclasses for the UI in loading state, when data has been loaded successfully, or if an error occurred.
  * In the success state, the data contained depends on the concrete UI screen. This is reflected by the type
  * parameter of this interface.
  */
-sealed interface ServicesUiState<out T>
+sealed interface ServicesUiState<out T> {
+    companion object {
+        /**
+         * Map this [Flow] of [Result] elements (typically the result [Flow] from a use case) to a [Flow] of
+         * [ServicesUiState] elements with the help of the given [convert] function. The mapping of the [Result]
+         * handles failure results automatically. For success results, it invokes the [convert] function and
+         * produces a [ServicesUiStateLoaded] object with the result of this function.
+         */
+        fun <R, S> Flow<Result<R>>.mapResultFlow(convert: (R) -> S): Flow<ServicesUiState<S>> =
+            map { result -> fromResult(result, convert) }
+
+        /**
+         * Convert the given [result] (typically from a use case) to a [ServicesUiState] object with the help of the
+         * given [convert] function. This function handles failure results by itself. For success results, it
+         * invokes the [convert] function and generates a [ServicesUiStateLoaded] object.
+         */
+        private fun <R, S> fromResult(result: Result<R>, convert: (R) -> S): ServicesUiState<S> =
+            result.map { ServicesUiStateLoaded(convert(it)) }.getOrElse { ServicesUiStateError(it) }
+    }
+}
 
 /**
  * Data class representing the UI state that the data has been loaded successfully. It can now be accessed from a

@@ -24,6 +24,7 @@ import androidx.lifecycle.viewModelScope
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.usecase.LoadServiceDataUseCase
 import com.github.oheger.wificontrol.domain.usecase.StoreServiceDataUseCase
+import com.github.oheger.wificontrol.svcui.ServicesUiState.Companion.mapResultFlow
 
 import javax.inject.Inject
 
@@ -31,7 +32,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
@@ -108,10 +108,7 @@ class ServicesViewModelImpl @Inject constructor(
     override fun loadServices() {
         viewModelScope.launch {
             loadServicesUseCase.execute(LoadServiceDataUseCase.Input)
-                .map { result ->
-                    result.map { ServicesUiStateLoaded(ServicesOverviewState(it.data)) }
-                        .getOrElse { ServicesUiStateError(it) }
-                }
+                .mapResultFlow { result -> ServicesOverviewState(result.data) }
                 .collect { state -> mutableUiStateFlow.value = state }
         }
     }
