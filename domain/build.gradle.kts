@@ -53,6 +53,7 @@ android {
     }
     kotlinOptions {
         jvmTarget = defaultJvmTarget
+        freeCompilerArgs += "-opt-in=kotlinx.coroutines.FlowPreview"
     }
     testOptions {
         unitTests.all {
