@@ -19,6 +19,7 @@
 package com.github.oheger.wificontrol.svcui
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 /**
@@ -37,6 +38,22 @@ sealed interface ServicesUiState<out T> {
          */
         fun <R, S> Flow<Result<R>>.mapResultFlow(convert: (R) -> S): Flow<ServicesUiState<S>> =
             map { result -> fromResult(result, convert) }
+
+        /**
+         * Combine a [Flow] of the current UI state with another [modifyFlow] using the given [combineFunc]. This
+         * is typically used to extend the UI state loaded from the persistence layer by other dynamic data, for
+         * instance based on user interaction.
+         */
+        fun <S, T> Flow<ServicesUiState<S>>.combineState(
+            modifyFlow: Flow<T>,
+            combineFunc: (S, T) -> S
+        ): Flow<ServicesUiState<S>> =
+            combine(modifyFlow) { state, value ->
+                when (state) {
+                    is ServicesUiStateLoaded -> state.copy(data = combineFunc(state.data, value))
+                    else -> state
+                }
+            }
 
         /**
          * Convert the given [result] (typically from a use case) to a [ServicesUiState] object with the help of the

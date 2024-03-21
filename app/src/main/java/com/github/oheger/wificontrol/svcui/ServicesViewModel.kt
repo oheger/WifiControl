@@ -24,6 +24,7 @@ import androidx.lifecycle.viewModelScope
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.usecase.LoadServiceDataUseCase
 import com.github.oheger.wificontrol.domain.usecase.StoreServiceDataUseCase
+import com.github.oheger.wificontrol.svcui.ServicesUiState.Companion.combineState
 import com.github.oheger.wificontrol.svcui.ServicesUiState.Companion.mapResultFlow
 
 import javax.inject.Inject
@@ -31,7 +32,6 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 /**
@@ -98,11 +98,8 @@ class ServicesViewModelImpl @Inject constructor(
     /** A flow to keep track on errors that occur during saving of service data. */
     private val saveErrorFlow = MutableStateFlow<Throwable?>(null)
 
-    override val uiStateFlow = mutableUiStateFlow.asStateFlow().combine(saveErrorFlow) { state, error ->
-        when(state) {
-            is ServicesUiStateLoaded -> state.copy(data = state.data.copy(updateError = error))
-            else -> state
-        }
+    override val uiStateFlow = mutableUiStateFlow.asStateFlow().combineState(saveErrorFlow) { state, error ->
+        state.copy(updateError = error)
     }
 
     override fun loadServices() {
