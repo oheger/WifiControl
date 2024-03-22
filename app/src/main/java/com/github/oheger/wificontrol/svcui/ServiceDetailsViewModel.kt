@@ -23,6 +23,7 @@ import androidx.lifecycle.viewModelScope
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.usecase.LoadServiceUseCase
+import com.github.oheger.wificontrol.svcui.ServicesUiState.Companion.combineState
 import com.github.oheger.wificontrol.svcui.ServicesUiState.Companion.mapResultFlow
 
 import javax.inject.Inject
@@ -40,7 +41,10 @@ data class ServiceDetailsState(
     val serviceIndex: Int,
 
     /** The details of the current service. */
-    val service: PersistentService
+    val service: PersistentService,
+
+    /** Flag whether the service should be edited. */
+    val editMode: Boolean
 )
 
 /**
@@ -56,6 +60,11 @@ abstract class ServiceDetailsViewModel : ViewModel() {
      * trigger [uiStateFlow] when the data is available.
      */
     abstract fun loadService(serviceIndex: Int)
+
+    /**
+     * Switches the UI to edit mode. In this mode, the properties of the current service can be modified.
+     */
+    abstract fun editService()
 }
 
 /**
@@ -68,13 +77,23 @@ class ServiceDetailsViewModelImpl @Inject constructor(
     /** The mutable flow to manage the current UI state. */
     private val mutableUiStateFlow = MutableStateFlow<ServicesUiState<ServiceDetailsState>>(ServicesUiStateLoading)
 
-    override val uiStateFlow: Flow<ServicesUiState<ServiceDetailsState>> = mutableUiStateFlow.asStateFlow()
+    /** A flow controlling whether edit mode is enabled or not. */
+    private val editModeFlow = MutableStateFlow(false)
+
+    override val uiStateFlow: Flow<ServicesUiState<ServiceDetailsState>> =
+        mutableUiStateFlow.asStateFlow().combineState(editModeFlow) { state, editMode ->
+            state.copy(editMode = editMode)
+        }
 
     override fun loadService(serviceIndex: Int) {
         viewModelScope.launch {
             loadServiceUseCase.execute(LoadServiceUseCase.Input(serviceIndex)).mapResultFlow { result ->
-                ServiceDetailsState(serviceIndex, result.service)
+                ServiceDetailsState(serviceIndex, result.service, editMode = false)
             }.collect { state -> mutableUiStateFlow.value = state }
         }
+    }
+
+    override fun editService() {
+        editModeFlow.value = true
     }
 }

@@ -23,12 +23,15 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.domain.usecase.LoadServiceUseCase
+
+import io.kotest.inspectors.forAll
 
 import io.mockk.every
 import io.mockk.mockk
@@ -107,6 +110,26 @@ class ServiceDetailsUiTest {
         composeTestRule.onNodeWithTag(TAG_SHOW_MULTICAST).assertTextEquals(service.serviceDefinition.multicastAddress)
         composeTestRule.onNodeWithTag(TAG_SHOW_PORT).assertTextEquals(service.serviceDefinition.port.toString())
         composeTestRule.onNodeWithTag(TAG_SHOW_CODE).assertTextEquals(service.serviceDefinition.requestCode)
+
+        listOf(TAG_EDIT_NAME, TAG_EDIT_MULTICAST, TAG_EDIT_PORT, TAG_EDIT_CODE).forAll {
+            composeTestRule.onNodeWithTag(it).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun `The edit mode of the service can be entered`() = runTest {
+        initService(service)
+
+        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SERVICE).performClick()
+
+        composeTestRule.onNodeWithTag(TAG_EDIT_NAME).assertTextEquals(service.serviceDefinition.name)
+        composeTestRule.onNodeWithTag(TAG_EDIT_MULTICAST).assertTextEquals(service.serviceDefinition.multicastAddress)
+        composeTestRule.onNodeWithTag(TAG_EDIT_PORT).assertTextEquals(service.serviceDefinition.port.toString())
+        composeTestRule.onNodeWithTag(TAG_EDIT_CODE).assertTextEquals(service.serviceDefinition.requestCode)
+
+        listOf(TAG_SHOW_NAME, TAG_SHOW_MULTICAST, TAG_SHOW_PORT, TAG_SHOW_CODE).forAll {
+            composeTestRule.onNodeWithTag(it).assertDoesNotExist()
+        }
     }
 }
 
