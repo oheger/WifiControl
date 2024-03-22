@@ -23,9 +23,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.Button
 import androidx.compose.material.Text
+import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -43,6 +46,12 @@ internal const val TAG_SHOW_NAME = "svcShowName"
 internal const val TAG_SHOW_MULTICAST = "svcShowMulticast"
 internal const val TAG_SHOW_PORT = "svcShowPort"
 internal const val TAG_SHOW_CODE = "svcShowCode"
+
+internal const val TAG_EDIT_NAME = "svcEditName"
+internal const val TAG_EDIT_MULTICAST = "svcEditMulticast"
+internal const val TAG_EDIT_PORT = "svcEditPort"
+internal const val TAG_EDIT_CODE = "svcEditCode"
+internal const val TAG_BTN_EDIT_SERVICE = "svcBtnEdit"
 
 /** The indent of the property value relative to the associated label. */
 internal const val PROPERTY_INDENT = 10
@@ -72,15 +81,28 @@ private fun ServiceDetailsScreenForState(
     modifier: Modifier = Modifier
 ) {
     ServicesScreen(state = state) { detailsState ->
-        ServiceDetails(service = detailsState.service, modifier = modifier)
+        ServiceDetails(viewModel = viewModel, state = detailsState, modifier = modifier)
     }
 }
 
 /**
- * Generate the UI to show the details of the given [service].
+ * Generate the screen for the details of a service either in view or edit mode, depending on the given [state].
+ * Use the given [viewModel] to propagate user interaction.
  */
 @Composable
-private fun ServiceDetails(service: PersistentService, modifier: Modifier) {
+private fun ServiceDetails(viewModel: ServiceDetailsViewModel, state: ServiceDetailsState, modifier: Modifier) {
+    if (state.editMode) {
+        EditServiceDetails(viewModel = viewModel, service = state.service, modifier = modifier)
+    } else {
+        ViewServiceDetails(viewModel = viewModel, service = state.service, modifier = modifier)
+    }
+}
+
+/**
+ * Generate the UI to view the details of the given [service]. Use the given [viewModel] to propagate user interaction.
+ */
+@Composable
+private fun ViewServiceDetails(viewModel: ServiceDetailsViewModel, service: PersistentService, modifier: Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -111,6 +133,54 @@ private fun ServiceDetails(service: PersistentService, modifier: Modifier) {
             tag = TAG_SHOW_CODE,
             modifier = modifier
         )
+        Button(
+            onClick = { viewModel.editService() },
+            modifier = modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(top = 10.dp)
+                .testTag(TAG_BTN_EDIT_SERVICE)
+        ) {
+            Text(text = stringResource(id = R.string.svc_btn_edit))
+        }
+    }
+}
+
+/**
+ * Generate the UI to edit the properties of the given [service]. Use the given [viewModel] to propagate user
+ * interaction.
+ */
+@Composable
+private fun EditServiceDetails(viewModel: ServiceDetailsViewModel, service: PersistentService, modifier: Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(all = 10.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        EditServiceProperty(
+            labelRes = R.string.svc_lab_name,
+            value = service.serviceDefinition.name,
+            tag = TAG_EDIT_NAME,
+            modifier = modifier
+        )
+        EditServiceProperty(
+            labelRes = R.string.svc_lab_multicast,
+            value = service.serviceDefinition.multicastAddress,
+            tag = TAG_EDIT_MULTICAST,
+            modifier = modifier
+        )
+        EditServiceProperty(
+            labelRes = R.string.svc_lab_port,
+            value = service.serviceDefinition.port.toString(),
+            tag = TAG_EDIT_PORT,
+            modifier = modifier
+        )
+        EditServiceProperty(
+            labelRes = R.string.svc_lab_code,
+            value = service.serviceDefinition.requestCode,
+            tag = TAG_EDIT_CODE,
+            modifier = modifier
+        )
     }
 }
 
@@ -136,6 +206,29 @@ private fun ServiceProperty(labelRes: Int, value: String, tag: String, modifier:
 }
 
 /**
+ * Generate the UI to edit a single property of a service. This contains a label with the given
+ * [resource ID][labelRes], and a text field displaying the given [value]. Assign the given [tag] to the edit text
+ * field.
+ */
+@Composable
+private fun EditServiceProperty(labelRes: Int, value: String, tag: String, modifier: Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 15.dp)
+    ) {
+        PropertyLabel(labelRes = labelRes, modifier = modifier)
+        TextField(
+            value = value,
+            onValueChange = {},
+            modifier = modifier
+                .testTag(tag)
+                .padding(start = PROPERTY_INDENT.dp)
+        )
+    }
+}
+
+/**
  * Generate the label for a service property. The label text is defined by the given [resource ID][labelRes].
  */
 @Composable
@@ -145,7 +238,7 @@ private fun PropertyLabel(labelRes: Int, modifier: Modifier) {
 
 @Preview
 @Composable
-fun ServiceDetailsPreview() {
+fun ViewServiceDetailsPreview() {
     val service = PersistentService(
         serviceDefinition = ServiceDefinition(
             name = "Audio Service",
@@ -158,7 +251,29 @@ fun ServiceDetailsPreview() {
         sendRequestInterval = null
     )
     val model = PreviewServiceDetailsViewModel(service)
-    val state = ServicesUiStateLoaded(ServiceDetailsState(0, service))
+    val state = ServicesUiStateLoaded(ServiceDetailsState(0, service, editMode = false))
+
+    WifiControlTheme {
+        ServiceDetailsScreenForState(viewModel = model, state = state)
+    }
+}
+
+@Preview
+@Composable
+fun EditServiceDetailsPreview() {
+    val service = PersistentService(
+        serviceDefinition = ServiceDefinition(
+            name = "Video Service",
+            multicastAddress = "231.4.3.2",
+            port = 8888,
+            requestCode = "Find_Video_Service"
+        ),
+        networkTimeout = null,
+        retryDelay = null,
+        sendRequestInterval = null
+    )
+    val model = PreviewServiceDetailsViewModel(service)
+    val state = ServicesUiStateLoaded(ServiceDetailsState(0, service, editMode = true))
 
     WifiControlTheme {
         ServiceDetailsScreenForState(viewModel = model, state = state)

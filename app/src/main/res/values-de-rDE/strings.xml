@@ -16,4 +16,5 @@
     <string name="svc_lab_multicast">Multicast Adresse</string>
     <string name="svc_lab_port">Port</string>
     <string name="svc_lab_code">Request Code</string>
+    <string name="svc_btn_edit">Bearbeiten</string>
 </resources>

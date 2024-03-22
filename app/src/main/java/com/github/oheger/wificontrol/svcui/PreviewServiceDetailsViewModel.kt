@@ -29,15 +29,19 @@ import kotlinx.coroutines.flow.map
  * A specialized implementation of [ServiceDetailsViewModel] that is used for preview functions.
  */
 class PreviewServiceDetailsViewModel(
-    service: PersistentService
+    service: PersistentService,
+    private val editMode: Boolean = false
 ) : ServiceDetailsViewModel() {
     private val internalServiceFlow = MutableStateFlow(service)
 
     override val uiStateFlow: Flow<ServicesUiState<ServiceDetailsState>>
         get() = internalServiceFlow.asStateFlow().map {
-            ServicesUiStateLoaded(ServiceDetailsState(0, it))
+            ServicesUiStateLoaded(ServiceDetailsState(0, it, editMode))
         }
 
     override fun loadService(serviceIndex: Int) {
+    }
+
+    override fun editService() {
     }
 }
