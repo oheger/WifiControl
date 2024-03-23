@@ -21,9 +21,6 @@ package com.github.oheger.wificontrol.svcui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Icon
@@ -35,12 +32,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 
 import com.github.oheger.wificontrol.R
 import com.github.oheger.wificontrol.domain.model.PersistentService
@@ -48,8 +41,6 @@ import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
-internal const val TAG_SAVE_ERROR = "svcSaveError"
-internal const val TAG_SAVE_ERROR_MSG = "svcSaveErrorMsg"
 internal const val TAG_SERVICE_NAME = "svcName"
 internal const val TAG_ACTION_DOWN = "actDown"
 internal const val TAG_ACTION_REMOVE = "actRemove"
@@ -95,27 +86,12 @@ fun ServicesOverviewScreenForState(
  */
 @Composable
 fun ServicesLoaded(viewModel: ServicesViewModel, state: ServicesOverviewState, modifier: Modifier) {
-    Column(
+    ServicesScreenWithSaveError(
+        error = state.updateError,
+        errorHintRes = R.string.svc_update_error,
         modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
     ) {
         ServicesList(viewModel = viewModel, services = state.serviceData.services, modifier)
-
-        Spacer(modifier = modifier.weight(1.0f, fill = true))
-        state.updateError?.let { error ->
-            Text(
-                text = stringResource(id = R.string.svc_update_error),
-                color = Color.Red,
-                modifier = modifier.testTag(TAG_SAVE_ERROR)
-            )
-            Text(
-                text = error.toString(),
-                color = Color.Red,
-                fontStyle = FontStyle.Italic,
-                modifier = modifier.testTag(TAG_SAVE_ERROR_MSG)
-            )
-        }
     }
 }
 
