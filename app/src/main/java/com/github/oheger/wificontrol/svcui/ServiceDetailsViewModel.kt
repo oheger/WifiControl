@@ -22,7 +22,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.usecase.LoadServiceUseCase
+import com.github.oheger.wificontrol.domain.usecase.StoreServiceUseCase
 import com.github.oheger.wificontrol.svcui.ServicesUiState.Companion.combineState
 import com.github.oheger.wificontrol.svcui.ServicesUiState.Companion.mapResultFlow
 
@@ -37,6 +39,9 @@ import kotlinx.coroutines.launch
  * A data class describing the state of the service details UI.
  */
 data class ServiceDetailsState(
+    /** The object storing the managed services. */
+    val serviceData: ServiceData,
+
     /** The index of the service that is currently processed. */
     val serviceIndex: Int,
 
@@ -65,6 +70,16 @@ abstract class ServiceDetailsViewModel : ViewModel() {
      * Switches the UI to edit mode. In this mode, the properties of the current service can be modified.
      */
     abstract fun editService()
+
+    /**
+     * Cancels the edit mode without saving the changes that might have been made on service properties.
+     */
+    abstract fun cancelEdit()
+
+    /**
+     * Make changes on the given [service] persisted. This function is used to save a service that has been edited.
+     */
+    abstract fun saveService(service: PersistentService)
 }
 
 /**
@@ -72,7 +87,10 @@ abstract class ServiceDetailsViewModel : ViewModel() {
  */
 class ServiceDetailsViewModelImpl @Inject constructor(
     /** The use case for loading the service to be displayed. */
-    private val loadServiceUseCase: LoadServiceUseCase
+    private val loadServiceUseCase: LoadServiceUseCase,
+
+    /** The use case for storing a service after it has been edited. */
+    private val storeServiceUseCase: StoreServiceUseCase
 ) : ServiceDetailsViewModel() {
     /** The mutable flow to manage the current UI state. */
     private val mutableUiStateFlow = MutableStateFlow<ServicesUiState<ServiceDetailsState>>(ServicesUiStateLoading)
@@ -88,12 +106,26 @@ class ServiceDetailsViewModelImpl @Inject constructor(
     override fun loadService(serviceIndex: Int) {
         viewModelScope.launch {
             loadServiceUseCase.execute(LoadServiceUseCase.Input(serviceIndex)).mapResultFlow { result ->
-                ServiceDetailsState(serviceIndex, result.service, editMode = false)
+                ServiceDetailsState(result.serviceData, serviceIndex, result.service, editMode = false)
             }.collect { state -> mutableUiStateFlow.value = state }
         }
     }
 
     override fun editService() {
         editModeFlow.value = true
+    }
+
+    override fun cancelEdit() {
+        editModeFlow.value = false
+    }
+
+    override fun saveService(service: PersistentService) {
+        (mutableUiStateFlow.value as? ServicesUiStateLoaded)?.let { state ->
+            editModeFlow.value = false
+            viewModelScope.launch {
+                val storeInput = StoreServiceUseCase.Input(state.data.serviceData, service, state.data.serviceIndex)
+                storeServiceUseCase.execute(storeInput).collect { }
+            }
+        }
     }
 }

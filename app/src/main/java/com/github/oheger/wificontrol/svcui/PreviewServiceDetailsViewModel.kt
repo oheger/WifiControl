@@ -19,6 +19,7 @@
 package com.github.oheger.wificontrol.svcui
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceData
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,12 +37,18 @@ class PreviewServiceDetailsViewModel(
 
     override val uiStateFlow: Flow<ServicesUiState<ServiceDetailsState>>
         get() = internalServiceFlow.asStateFlow().map {
-            ServicesUiStateLoaded(ServiceDetailsState(0, it, editMode))
+            ServicesUiStateLoaded(ServiceDetailsState(ServiceData(emptyList(), 0),0, it, editMode))
         }
 
     override fun loadService(serviceIndex: Int) {
     }
 
     override fun editService() {
+    }
+
+    override fun cancelEdit() {
+    }
+
+    override fun saveService(service: PersistentService) {
     }
 }

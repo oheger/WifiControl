@@ -18,4 +18,6 @@
     <string name="svc_lab_port">Port</string>
     <string name="svc_lab_code">Request code</string>
     <string name="svc_btn_edit">Edit</string>
+    <string name="svc_btn_cancel">Cancel</string>
+    <string name="svc_btn_save">Save</string>
 </resources>

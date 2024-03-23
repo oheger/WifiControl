@@ -17,4 +17,6 @@
     <string name="svc_lab_port">Port</string>
     <string name="svc_lab_code">Request Code</string>
     <string name="svc_btn_edit">Bearbeiten</string>
+    <string name="svc_btn_cancel">Abbrechen</string>
+    <string name="svc_btn_save">Speichern</string>
 </resources>

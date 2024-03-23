@@ -18,25 +18,32 @@
  */
 package com.github.oheger.wificontrol.svcui
 
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.domain.usecase.LoadServiceUseCase
+import com.github.oheger.wificontrol.domain.usecase.StoreServiceUseCase
 
 import io.kotest.inspectors.forAll
 
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 
 import org.junit.Before
@@ -55,6 +62,9 @@ class ServiceDetailsUiTest {
     /** The view model to serve the UI function. */
     private lateinit var detailsViewModel: ServiceDetailsViewModel
 
+    /** Mock for the use case for storing the current service. */
+    private lateinit var storeUseCase: StoreServiceUseCase
+
     @Before
     fun setUp() {
         dataFlow = MutableSharedFlow()
@@ -63,19 +73,23 @@ class ServiceDetailsUiTest {
             every { execute(loadUseCaseInput) } returns dataFlow
         }
 
-        detailsViewModel = ServiceDetailsViewModelImpl(loadUseCase)
+        storeUseCase = mockk()
+        detailsViewModel = ServiceDetailsViewModelImpl(loadUseCase, storeUseCase)
         composeTestRule.setContent {
             ServiceDetailsScreen(viewModel = detailsViewModel, serviceIndex = SERVICE_INDEX)
         }
     }
 
     /**
-     * Update the data flow to emit a result pointing to the given [service].
+     * Update the data flow to emit a result pointing to the given [service]. Return the generated output for the
+     * load service use case.
      */
-    private suspend fun initService(service: PersistentService) {
+    private suspend fun initService(service: PersistentService): LoadServiceUseCase.Output {
         val serviceData = ServiceData(listOf(service), 0)
         val loadResult = LoadServiceUseCase.Output(serviceData, service)
+
         initLoadResult(Result.success(loadResult))
+        return loadResult
     }
 
     /**
@@ -120,7 +134,7 @@ class ServiceDetailsUiTest {
     fun `The edit mode of the service can be entered`() = runTest {
         initService(service)
 
-        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SERVICE).performClick()
+        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SERVICE).performSafeClick()
 
         composeTestRule.onNodeWithTag(TAG_EDIT_NAME).assertTextEquals(service.serviceDefinition.name)
         composeTestRule.onNodeWithTag(TAG_EDIT_MULTICAST).assertTextEquals(service.serviceDefinition.multicastAddress)
@@ -130,6 +144,54 @@ class ServiceDetailsUiTest {
         listOf(TAG_SHOW_NAME, TAG_SHOW_MULTICAST, TAG_SHOW_PORT, TAG_SHOW_CODE).forAll {
             composeTestRule.onNodeWithTag(it).assertDoesNotExist()
         }
+    }
+
+    @Test
+    fun `Editing of a service can be canceled`() = runTest {
+        initService(service)
+
+        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SERVICE).performClick()
+        composeTestRule.onNodeWithTag(TAG_EDIT_CODE).setText("newRequestCode")
+
+        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_CANCEL).performSafeClick()
+
+        composeTestRule.onNodeWithTag(TAG_SHOW_CODE).assertTextEquals(service.serviceDefinition.requestCode)
+    }
+
+    @Test
+    fun `A service can be edited and saved`() = runTest {
+        every { storeUseCase.execute(any()) } returns flowOf(Result.success(StoreServiceUseCase.Output))
+        val loadOutput = initService(service)
+
+        val editedService = PersistentService(
+            serviceDefinition = ServiceDefinition(
+                name = "EditedTestService",
+                multicastAddress = "231.0.0.9",
+                port = 9875,
+                requestCode = "AnybodyOutThere?!"
+            ),
+            networkTimeout = null,
+            retryDelay = null,
+            sendRequestInterval = null
+        )
+
+        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SERVICE).performSafeClick()
+        composeTestRule.onNodeWithTag(TAG_EDIT_NAME).setText(editedService.serviceDefinition.name)
+        composeTestRule.onNodeWithTag(TAG_EDIT_MULTICAST).setText(editedService.serviceDefinition.multicastAddress)
+        composeTestRule.onNodeWithTag(TAG_EDIT_PORT).setText(editedService.serviceDefinition.port.toString())
+        composeTestRule.onNodeWithTag(TAG_EDIT_CODE).setText(editedService.serviceDefinition.requestCode)
+        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SAVE).performSafeClick()
+
+        val expectedInput = StoreServiceUseCase.Input(
+            data = loadOutput.serviceData,
+            service = editedService,
+            serviceIndex = SERVICE_INDEX
+        )
+        verify {
+            storeUseCase.execute(expectedInput)
+        }
+
+        composeTestRule.onNodeWithTag(TAG_SHOW_NAME).assertExists()
     }
 }
 
@@ -148,3 +210,21 @@ private val service = PersistentService(
     retryDelay = null,
     sendRequestInterval = null
 )
+
+/**
+ * Set the text of this node to the provided [text] making sure that previous text is cleared.
+ */
+private fun SemanticsNodeInteraction.setText(text: String) {
+    performScrollTo()
+    performTextClearance()
+    performTextInput(text)
+}
+
+/**
+ * Perform a click on this node, making sure that it is visible. Otherwise, clicks on buttons do not have any
+ * effect.
+ */
+private fun SemanticsNodeInteraction.performSafeClick() {
+    performScrollTo()
+    performClick()
+}
