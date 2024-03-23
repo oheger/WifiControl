@@ -20,6 +20,7 @@ package com.github.oheger.wificontrol.svcui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.CircularProgressIndicator
@@ -39,6 +40,8 @@ import com.github.oheger.wificontrol.R
 internal const val TAG_ERROR_HEADER = "svcErrorHeader"
 internal const val TAG_ERROR_MSG = "svcErrorMsg"
 internal const val TAG_LOADING_INDICATOR = "svcLoading"
+internal const val TAG_SAVE_ERROR = "svcSaveError"
+internal const val TAG_SAVE_ERROR_MSG = "svcSaveErrorMsg"
 
 /**
  * A generic function to render a screen that is controlled by the given [state]. The function handles the loading
@@ -103,5 +106,41 @@ fun ServicesError(exception: Throwable, modifier: Modifier) {
             fontStyle = FontStyle.Italic,
             modifier = modifier.testTag(TAG_ERROR_MSG)
         )
+    }
+}
+
+/**
+ * Generate a screen with an optional [error] message for a failed save operation. The main part of the screen is
+ * defined by the given [screen] function. If [error] is not *null*, display a message with the given [errorHintRes]
+ * resource ID and some details about the error.
+ */
+@Composable
+fun ServicesScreenWithSaveError(
+    error: Throwable?,
+    errorHintRes: Int,
+    modifier: Modifier,
+    screen: @Composable () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        screen()
+
+        if(error != null) {
+             Spacer(modifier = modifier.weight(1.0f, fill = true))
+            Text(
+                text = stringResource(id = errorHintRes),
+                color = Color.Red,
+                modifier = modifier.testTag(TAG_SAVE_ERROR)
+            )
+            Text(
+                text = error.toString(),
+                color = Color.Red,
+                fontStyle = FontStyle.Italic,
+                modifier = modifier.testTag(TAG_SAVE_ERROR_MSG)
+            )
+        }
     }
 }
