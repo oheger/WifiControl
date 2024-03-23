@@ -18,7 +18,9 @@
  */
 package com.github.oheger.wificontrol.svcui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -28,6 +30,10 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -39,6 +45,7 @@ import androidx.compose.ui.unit.sp
 
 import com.github.oheger.wificontrol.R
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
@@ -52,6 +59,8 @@ internal const val TAG_EDIT_MULTICAST = "svcEditMulticast"
 internal const val TAG_EDIT_PORT = "svcEditPort"
 internal const val TAG_EDIT_CODE = "svcEditCode"
 internal const val TAG_BTN_EDIT_SERVICE = "svcBtnEdit"
+internal const val TAG_BTN_EDIT_CANCEL = "svcBtnCancel"
+internal const val TAG_BTN_EDIT_SAVE = "svcBtnSave"
 
 /** The indent of the property value relative to the associated label. */
 internal const val PROPERTY_INDENT = 10
@@ -151,6 +160,24 @@ private fun ViewServiceDetails(viewModel: ServiceDetailsViewModel, service: Pers
  */
 @Composable
 private fun EditServiceDetails(viewModel: ServiceDetailsViewModel, service: PersistentService, modifier: Modifier) {
+    var name by rememberSaveable { mutableStateOf(service.serviceDefinition.name) }
+    var multicast by rememberSaveable { mutableStateOf(service.serviceDefinition.multicastAddress) }
+    var port by rememberSaveable { mutableStateOf(service.serviceDefinition.port.toString()) }
+    var code by rememberSaveable { mutableStateOf(service.serviceDefinition.requestCode) }
+
+    fun createEditedService(): PersistentService =
+        PersistentService(
+            serviceDefinition = ServiceDefinition(
+                name = name,
+                multicastAddress = multicast,
+                port = port.toInt(),
+                requestCode = code
+            ),
+            networkTimeout = null,
+            retryDelay = null,
+            sendRequestInterval = null
+        )
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -159,28 +186,49 @@ private fun EditServiceDetails(viewModel: ServiceDetailsViewModel, service: Pers
     ) {
         EditServiceProperty(
             labelRes = R.string.svc_lab_name,
-            value = service.serviceDefinition.name,
+            value = name,
+            updateValue = { name = it },
             tag = TAG_EDIT_NAME,
             modifier = modifier
         )
         EditServiceProperty(
             labelRes = R.string.svc_lab_multicast,
-            value = service.serviceDefinition.multicastAddress,
+            value = multicast,
+            updateValue = { multicast = it },
             tag = TAG_EDIT_MULTICAST,
             modifier = modifier
         )
         EditServiceProperty(
             labelRes = R.string.svc_lab_port,
-            value = service.serviceDefinition.port.toString(),
+            value = port,
+            updateValue = { port = it },
             tag = TAG_EDIT_PORT,
             modifier = modifier
         )
         EditServiceProperty(
             labelRes = R.string.svc_lab_code,
-            value = service.serviceDefinition.requestCode,
+            value = code,
+            updateValue = { code = it },
             tag = TAG_EDIT_CODE,
             modifier = modifier
         )
+
+        Row(
+            horizontalArrangement = Arrangement.SpaceAround,
+            modifier = modifier
+                .padding(top = 15.dp)
+                .fillMaxWidth()
+        ) {
+            Button(
+                onClick = { viewModel.saveService(createEditedService()) },
+                modifier = modifier.testTag(TAG_BTN_EDIT_SAVE)
+            ) {
+                Text(text = stringResource(id = R.string.svc_btn_save))
+            }
+            Button(onClick = { viewModel.cancelEdit() }, modifier = modifier.testTag(TAG_BTN_EDIT_CANCEL)) {
+                Text(text = stringResource(id = R.string.svc_btn_cancel))
+            }
+        }
     }
 }
 
@@ -207,11 +255,17 @@ private fun ServiceProperty(labelRes: Int, value: String, tag: String, modifier:
 
 /**
  * Generate the UI to edit a single property of a service. This contains a label with the given
- * [resource ID][labelRes], and a text field displaying the given [value]. Assign the given [tag] to the edit text
- * field.
+ * [resource ID][labelRes], and a text field displaying the given [value] and using the [updateValue] function to
+ * propagate changes. Assign the given [tag] to the edit text field.
  */
 @Composable
-private fun EditServiceProperty(labelRes: Int, value: String, tag: String, modifier: Modifier) {
+private fun EditServiceProperty(
+    labelRes: Int,
+    value: String,
+    updateValue: (String) -> Unit,
+    tag: String,
+    modifier: Modifier
+) {
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -220,7 +274,7 @@ private fun EditServiceProperty(labelRes: Int, value: String, tag: String, modif
         PropertyLabel(labelRes = labelRes, modifier = modifier)
         TextField(
             value = value,
-            onValueChange = {},
+            onValueChange = updateValue,
             modifier = modifier
                 .testTag(tag)
                 .padding(start = PROPERTY_INDENT.dp)
@@ -251,7 +305,8 @@ fun ViewServiceDetailsPreview() {
         sendRequestInterval = null
     )
     val model = PreviewServiceDetailsViewModel(service)
-    val state = ServicesUiStateLoaded(ServiceDetailsState(0, service, editMode = false))
+    val serviceData = ServiceData(emptyList(), 0)
+    val state = ServicesUiStateLoaded(ServiceDetailsState(serviceData, 0, service, editMode = false))
 
     WifiControlTheme {
         ServiceDetailsScreenForState(viewModel = model, state = state)
@@ -273,7 +328,8 @@ fun EditServiceDetailsPreview() {
         sendRequestInterval = null
     )
     val model = PreviewServiceDetailsViewModel(service)
-    val state = ServicesUiStateLoaded(ServiceDetailsState(0, service, editMode = true))
+    val serviceData = ServiceData(emptyList(), 0)
+    val state = ServicesUiStateLoaded(ServiceDetailsState(serviceData, 0, service, editMode = true))
 
     WifiControlTheme {
         ServiceDetailsScreenForState(viewModel = model, state = state)
