@@ -193,6 +193,23 @@ class ServiceDetailsUiTest {
 
         composeTestRule.onNodeWithTag(TAG_SHOW_NAME).assertExists()
     }
+
+    @Test
+    fun `For a failed save operation an error message should be shown`() = runTest {
+        initService(service)
+        val exception = IllegalStateException("Test exception: Could not save service.")
+        every { storeUseCase.execute(any()) } returns flowOf(Result.failure(exception))
+
+        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SERVICE).performSafeClick()
+        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SAVE).performSafeClick()
+
+        composeTestRule.onNodeWithTag(TAG_SAVE_ERROR).assertExists()
+        composeTestRule.onNodeWithTag(TAG_SAVE_ERROR_MSG)
+            .assertTextContains(exception.javaClass.simpleName, substring = true)
+            .assertTextContains(exception.message!!, substring = true)
+        composeTestRule.onNodeWithTag(TAG_EDIT_NAME).assertExists()
+        composeTestRule.onNodeWithTag(TAG_SHOW_NAME).assertDoesNotExist()
+    }
 }
 
 /** The index of the test service whose details should be shown. */
