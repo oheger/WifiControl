@@ -19,4 +19,5 @@
     <string name="svc_btn_edit">Bearbeiten</string>
     <string name="svc_btn_cancel">Abbrechen</string>
     <string name="svc_btn_save">Speichern</string>
+    <string name="svc_save_service_error">Das Speichern des Dienstes is fehlgeschlagen.</string>
 </resources>

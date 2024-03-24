@@ -101,7 +101,13 @@ private fun ServiceDetailsScreenForState(
 @Composable
 private fun ServiceDetails(viewModel: ServiceDetailsViewModel, state: ServiceDetailsState, modifier: Modifier) {
     if (state.editMode) {
-        EditServiceDetails(viewModel = viewModel, service = state.service, modifier = modifier)
+        ServicesScreenWithSaveError(
+            error = state.saveError,
+            errorHintRes = R.string.svc_save_service_error,
+            modifier = modifier
+        ) {
+            EditServiceDetails(viewModel = viewModel, service = state.service, modifier = modifier)
+        }
     } else {
         ViewServiceDetails(viewModel = viewModel, service = state.service, modifier = modifier)
     }
@@ -329,7 +335,9 @@ fun EditServiceDetailsPreview() {
     )
     val model = PreviewServiceDetailsViewModel(service)
     val serviceData = ServiceData(emptyList(), 0)
-    val state = ServicesUiStateLoaded(ServiceDetailsState(serviceData, 0, service, editMode = true))
+    val saveException = IllegalStateException("Could not save service.")
+    val detailsState = ServiceDetailsState(serviceData, 0, service, editMode = true, saveException)
+    val state = ServicesUiStateLoaded(detailsState)
 
     WifiControlTheme {
         ServiceDetailsScreenForState(viewModel = model, state = state)

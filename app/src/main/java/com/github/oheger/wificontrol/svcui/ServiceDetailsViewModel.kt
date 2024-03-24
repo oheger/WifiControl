@@ -49,7 +49,13 @@ data class ServiceDetailsState(
     val service: PersistentService,
 
     /** Flag whether the service should be edited. */
-    val editMode: Boolean
+    val editMode: Boolean,
+
+    /**
+     * Stores an exception that occurred when saving a modified service. This causes an error message to be displayed
+     * in the UI.
+     */
+    val saveError: Throwable? = null
 )
 
 /**
@@ -95,12 +101,17 @@ class ServiceDetailsViewModelImpl @Inject constructor(
     /** The mutable flow to manage the current UI state. */
     private val mutableUiStateFlow = MutableStateFlow<ServicesUiState<ServiceDetailsState>>(ServicesUiStateLoading)
 
+    /** A flow to keep track on errors that occur during saving of service data. */
+    private val saveErrorFlow = MutableStateFlow<Throwable?>(null)
+
     /** A flow controlling whether edit mode is enabled or not. */
     private val editModeFlow = MutableStateFlow(false)
 
     override val uiStateFlow: Flow<ServicesUiState<ServiceDetailsState>> =
         mutableUiStateFlow.asStateFlow().combineState(editModeFlow) { state, editMode ->
             state.copy(editMode = editMode)
+        }.combineState(saveErrorFlow) { state, error ->
+            state.copy(saveError = error)
         }
 
     override fun loadService(serviceIndex: Int) {
@@ -121,10 +132,13 @@ class ServiceDetailsViewModelImpl @Inject constructor(
 
     override fun saveService(service: PersistentService) {
         (mutableUiStateFlow.value as? ServicesUiStateLoaded)?.let { state ->
-            editModeFlow.value = false
             viewModelScope.launch {
                 val storeInput = StoreServiceUseCase.Input(state.data.serviceData, service, state.data.serviceIndex)
-                storeServiceUseCase.execute(storeInput).collect { }
+                storeServiceUseCase.execute(storeInput).collect { result ->
+                    val saveException = result.exceptionOrNull()
+                    saveErrorFlow.value = saveException
+                    editModeFlow.value = saveException != null
+                }
             }
         }
     }
