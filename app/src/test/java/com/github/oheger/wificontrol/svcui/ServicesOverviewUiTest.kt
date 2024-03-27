@@ -24,6 +24,8 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.navigation.NavController
+import androidx.navigation.NavOptions
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
@@ -37,7 +39,9 @@ import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.runs
 import io.mockk.slot
 import io.mockk.verify
 
@@ -64,6 +68,9 @@ class ServicesOverviewUiTest {
     /** A mock for the use case to store the modified data instance. */
     private lateinit var storeDataUseCase: StoreServiceDataUseCase
 
+    /** A mock for the [NavController]. */
+    private lateinit var navController: NavController
+
     @Before
     fun setUp() {
         dataFlow = MutableSharedFlow()
@@ -74,7 +81,14 @@ class ServicesOverviewUiTest {
         storeDataUseCase = mockk()
         every { storeDataUseCase.execute(any()) } returns flowOf(Result.success(StoreServiceDataUseCase.Output))
         servicesViewModel = ServicesViewModelImpl(loadUseCase, storeDataUseCase)
-        composeTestRule.setContent { ServicesOverviewScreen(viewModel = servicesViewModel) }
+
+        navController = mockk {
+            every { navigate(any<String>(), any<NavOptions>()) } just runs
+        }
+
+        composeTestRule.setContent {
+            ServicesOverviewScreen(viewModel = servicesViewModel, navController = navController)
+        }
     }
 
     /**
@@ -166,6 +180,20 @@ class ServicesOverviewUiTest {
 
         savedData.currentIndex shouldBe data.currentIndex
         savedData.services shouldContainExactly listOf(data.services[1], data.services[2])
+    }
+
+    @Test
+    fun `An action to go to service details is available`() = runTest {
+        val serviceIndex = 3
+        val data = initServiceData(createServiceData(5))
+
+        composeTestRule
+            .onNodeWithTag(serviceTag(data.services[serviceIndex].serviceDefinition.name, TAG_ACTION_DETAILS))
+            .performClick()
+
+        verify {
+            navController.navigate("services/$serviceIndex")
+        }
     }
 
     @Test

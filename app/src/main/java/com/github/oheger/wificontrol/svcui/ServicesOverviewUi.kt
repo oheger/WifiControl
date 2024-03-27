@@ -29,12 +29,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavController
 
+import com.github.oheger.wificontrol.Navigation
 import com.github.oheger.wificontrol.R
 import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
@@ -42,6 +45,7 @@ import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
 internal const val TAG_SERVICE_NAME = "svcName"
+internal const val TAG_ACTION_DETAILS = "actDetails"
 internal const val TAG_ACTION_DOWN = "actDown"
 internal const val TAG_ACTION_REMOVE = "actRemove"
 internal const val TAG_ACTION_UP = "actUp"
@@ -53,54 +57,86 @@ internal const val TAG_ACTION_UP = "actUp"
 internal fun serviceTag(serviceName: String, subTag: String): String = "${serviceName}_$subTag"
 
 /**
- * Generate the screen with the overview over all services that can be controlled.
+ * Generate the screen with the overview over all services that can be controlled based on the data from the given
+ * [viewModel]. Use [navController] to navigate between different screens.
  */
 @Composable
-fun ServicesOverviewScreen(viewModel: ServicesViewModel) {
+fun ServicesOverviewScreen(viewModel: ServicesViewModel, navController: NavController) {
     viewModel.loadServices()
 
     viewModel.uiStateFlow.collectAsState(ServicesUiStateLoading).value
         .let { state ->
-            ServicesOverviewScreenForState(viewModel, state)
+            ServicesOverviewScreenForState(
+                viewModel = viewModel,
+                state = state,
+                onDetailsClick = { index ->
+                    navController.navigate(
+                        Navigation.ServiceDetailsRoute.forArguments(Navigation.ServiceDetailsArgs(index))
+                    )
+                }
+            )
         }
 }
 
 /**
  * Generate the screen with the overview over all services that can be controlled based on the given [state].
- * Propagate user interaction to the given [viewModel].
+ * Propagate user interaction to the given [viewModel].  Handle clicks on the details action via the given
+ * [onDetailsClick] callback.
  */
 @Composable
 fun ServicesOverviewScreenForState(
     viewModel: ServicesViewModel,
     state: ServicesUiState<ServicesOverviewState>,
+    onDetailsClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     ServicesScreen(state = state) {
-        ServicesLoaded(viewModel = viewModel, state = it, modifier = modifier)
+        ServicesLoaded(
+            viewModel = viewModel,
+            state = it,
+            onDetailsClick = onDetailsClick,
+            modifier = modifier
+        )
     }
 }
 
 /**
  * Generate the screen with the overview over all services if the data about services has been loaded successfully.
- * Use the given [state] to access the data, and [viewModel] to propagate user interaction.
+ * Use the given [state] to access the data, and [viewModel] to propagate user interaction. Handle clicks on the
+ * details action via the given [onDetailsClick] callback.
  */
 @Composable
-fun ServicesLoaded(viewModel: ServicesViewModel, state: ServicesOverviewState, modifier: Modifier) {
+fun ServicesLoaded(
+    viewModel: ServicesViewModel,
+    state: ServicesOverviewState,
+    onDetailsClick: (Int) -> Unit,
+    modifier: Modifier
+) {
     ServicesScreenWithSaveError(
         error = state.updateError,
         errorHintRes = R.string.svc_update_error,
         modifier = modifier
     ) {
-        ServicesList(viewModel = viewModel, services = state.serviceData.services, modifier)
+        ServicesList(
+            viewModel = viewModel,
+            services = state.serviceData.services,
+            onDetailsClick = onDetailsClick,
+            modifier
+        )
     }
 }
 
 /**
  * Generate the list view with the [services] that can be controlled by this app. User interaction is propagated to
- * the given [viewModel].
+ * the given [viewModel]. For actions requiring navigation, callback functions are provided.
  */
 @Composable
-fun ServicesList(viewModel: ServicesViewModel, services: List<PersistentService>, modifier: Modifier) {
+fun ServicesList(
+    viewModel: ServicesViewModel,
+    services: List<PersistentService>,
+    onDetailsClick: (Int) -> Unit,
+    modifier: Modifier
+) {
     LazyColumn {
         items(services.withIndex().toList()) { (index, service) ->
             Row {
@@ -111,8 +147,10 @@ fun ServicesList(viewModel: ServicesViewModel, services: List<PersistentService>
                 ServiceActions(
                     viewModel,
                     service.serviceDefinition.name,
+                    index,
                     index == 0,
                     index >= services.size - 1,
+                    onDetailsClick,
                     modifier
                 )
             }
@@ -121,16 +159,19 @@ fun ServicesList(viewModel: ServicesViewModel, services: List<PersistentService>
 }
 
 /**
- * Generate the actions for the service with the given [serviceName] in the list of services, taking the position
- * of this service into account as given by [isFirst], and [isLast]. The actions are represented by clickable icons; a
- * click triggers a method invocation on the given [viewModel].
+ * Generate the actions for the service with the given [serviceName] and [index] in the list of services, taking the
+ * position of this service into account as given by [isFirst], and [isLast]. The actions are represented by
+ * clickable icons. A click triggers a method invocation on the given [viewModel]. Navigation actions are propagated
+ * via callback functions.
  */
 @Composable
 fun ServiceActions(
     viewModel: ServicesViewModel,
     serviceName: String,
+    index: Int,
     isFirst: Boolean,
     isLast: Boolean,
+    onDetailsClick: (Int) -> Unit,
     modifier: Modifier
 ) {
     if (!isFirst) {
@@ -151,6 +192,13 @@ fun ServiceActions(
                 .clickable { viewModel.moveServiceDown(serviceName) }
         )
     }
+    Icon(
+        Icons.Filled.Search,
+        contentDescription = null,
+        modifier
+            .testTag(serviceTag(serviceName, TAG_ACTION_DETAILS))
+            .clickable { onDetailsClick(index) }
+    )
     Icon(
         Icons.Filled.Delete,
         contentDescription = null,
@@ -191,7 +239,7 @@ fun ServicesListPreview() {
 
     WifiControlTheme {
         Column {
-            ServicesOverviewScreenForState(model, ServicesUiStateLoaded(state))
+            ServicesOverviewScreenForState(model, ServicesUiStateLoaded(state), {})
         }
     }
 }
@@ -201,7 +249,7 @@ fun ServicesListPreview() {
 fun ServicesLoadingPreview() {
     val model = PreviewServicesViewModel(emptyList())
     WifiControlTheme {
-        ServicesOverviewScreenForState(viewModel = model, state = ServicesUiStateLoading)
+        ServicesOverviewScreenForState(viewModel = model, state = ServicesUiStateLoading, {})
     }
 }
 
@@ -212,6 +260,6 @@ fun ServicesErrorPreview() {
     val state = ServicesUiStateError(exception)
     val model = PreviewServicesViewModel(emptyList())
     WifiControlTheme {
-        ServicesOverviewScreenForState(viewModel = model, state = state)
+        ServicesOverviewScreenForState(viewModel = model, state = state, {})
     }
 }
