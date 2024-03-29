@@ -18,12 +18,13 @@
  */
 package com.github.oheger.wificontrol
 
-import android.app.Activity
+import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.util.Log
+
 import com.github.oheger.wificontrol.domain.model.LookupService
 
 import java.net.DatagramPacket
@@ -77,16 +78,16 @@ class ServerFinder(
 
     /**
      * Execute the next step to locate the server in the network and return an updated [ServerFinder] instance.
-     * Interact with the given [activity] if necessary. From the [state] of the resulting instance, the caller can
+     * Interact with the given [context] if necessary. From the [state] of the resulting instance, the caller can
      * figure out whether the server could be successfully be located or if further steps are necessary.
      */
-    suspend fun findServerStep(activity: Activity): ServerFinder {
+    suspend fun findServerStep(context: Context): ServerFinder {
         Log.i(TAG, "Invoking in state '$state'.")
 
         return when (state) {
             is ServerFound -> this
-            is NetworkStatusUnknown -> withState(findWiFi(activity, lookupService.lookupConfig.networkTimeout))
-            is WiFiUnavailable -> withState(findWiFi(activity, 1.days))
+            is NetworkStatusUnknown -> withState(findWiFi(context, lookupService.lookupConfig.networkTimeout))
+            is WiFiUnavailable -> withState(findWiFi(context, 1.days))
             is SearchingInWiFi -> withState(searchInWiFi())
             is ServerNotFound -> withState(waitForNextUdpRequest())
         }
@@ -96,9 +97,9 @@ class ServerFinder(
      * Execute the step to find the Wi-Fi network. This function is called for the states [NetworkStatusUnknown] and
      * [WiFiUnavailable]. The difference is that in the latter state the function waits longer for the network to
      * become available; the [timeout] is expected as parameter. The [ConnectivityManager] needed to check the
-     * network status is obtained from the given [activity].
+     * network status is obtained from the given [context].
      */
-    private suspend fun findWiFi(activity: Activity, timeout: Duration): ServerLookupState =
+    private suspend fun findWiFi(context: Context, timeout: Duration): ServerLookupState =
         withContext(Dispatchers.Main) {
             val channel = Channel<ServerLookupState>()
             val callback = object : ConnectivityManager.NetworkCallback() {
@@ -107,7 +108,7 @@ class ServerFinder(
                 }
             }
 
-            val connManager = activity.getSystemService(ConnectivityManager::class.java)
+            val connManager = context.getSystemService(ConnectivityManager::class.java)
             try {
                 val request = NetworkRequest.Builder()
                     .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)

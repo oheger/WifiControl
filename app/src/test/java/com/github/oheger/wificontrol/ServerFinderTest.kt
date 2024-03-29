@@ -18,7 +18,7 @@
  */
 package com.github.oheger.wificontrol
 
-import android.app.Activity
+import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
@@ -101,25 +101,25 @@ class ServerFinderTest : StringSpec() {
         }
 
         "The WiFiUnavailable state should be returned if no network is present" {
-            val activity = mockk<Activity>()
-            activity.mockConnectivityManager()
+            val context = mockk<Context>()
+            context.mockConnectivityManager()
             mockNetworkRequest()
 
             val lookupService = finderConfig()
             val finder = ServerFinder(lookupService)
 
-            val nextFinder = finder.findServerStep(activity)
+            val nextFinder = finder.findServerStep(context)
 
             nextFinder.lookupService shouldBe lookupService
             nextFinder.state shouldBe WiFiUnavailable
         }
 
         "The network callback should be removed if no network was found" {
-            val activity = mockk<Activity>()
-            val connManager = activity.mockConnectivityManager()
+            val context = mockk<Context>()
+            val connManager = context.mockConnectivityManager()
             val request = mockNetworkRequest()
 
-            ServerFinder(finderConfig()).findServerStep(activity)
+            ServerFinder(finderConfig()).findServerStep(context)
 
             val callback = connManager.getNetworkCallback(request)
             verify(timeout = TIMEOUT_MS) {
@@ -129,12 +129,12 @@ class ServerFinderTest : StringSpec() {
 
         "The SearchingInWiFi state should be returned if the network is available" {
             val config = defaultLookupConfig.copy(networkTimeout = TIMEOUT_MS.milliseconds)
-            val activity = mockk<Activity>()
-            val connManager = activity.mockConnectivityManager()
+            val context = mockk<Context>()
+            val connManager = context.mockConnectivityManager()
             val request = mockNetworkRequest()
 
             val lookupService = finderConfig(lookupConfig = config)
-            val deferredResult = findServerStepAsync(ServerFinder(lookupService), activity)
+            val deferredResult = findServerStepAsync(ServerFinder(lookupService), context)
 
             val callback = connManager.getNetworkCallback(request)
             callback.onAvailable(mockk())
@@ -146,11 +146,11 @@ class ServerFinderTest : StringSpec() {
 
         "The network callback should be removed if the network is available" {
             val config = defaultLookupConfig.copy(networkTimeout = TIMEOUT_MS.milliseconds)
-            val activity = mockk<Activity>()
-            val connManager = activity.mockConnectivityManager()
+            val context = mockk<Context>()
+            val connManager = context.mockConnectivityManager()
             val request = mockNetworkRequest()
 
-            val result = findServerStepAsync(ServerFinder(finderConfig(lookupConfig = config)), activity)
+            val result = findServerStepAsync(ServerFinder(finderConfig(lookupConfig = config)), context)
 
             val callback = connManager.getNetworkCallback(request)
             callback.onAvailable(mockk())
@@ -162,12 +162,12 @@ class ServerFinderTest : StringSpec() {
         }
 
         "The WiFiUnavailable state should ignore the network timeout" {
-            val activity = mockk<Activity>()
-            activity.mockConnectivityManager()
+            val context = mockk<Context>()
+            context.mockConnectivityManager()
             mockNetworkRequest()
 
             val finder = ServerFinder(finderConfig(), WiFiUnavailable)
-            val deferredResult = findServerStepAsync(finder, activity)
+            val deferredResult = findServerStepAsync(finder, context)
 
             delay(defaultLookupConfig.networkTimeout * 2)
 
@@ -179,11 +179,11 @@ class ServerFinderTest : StringSpec() {
         "The WiFiUnavailable state should switch to SearchingInWiFi if Wi-Fi becomes available" {
             val lookupConfig = defaultLookupConfig.copy(networkTimeout = TIMEOUT_MS.milliseconds)
             val finderConfig = finderConfig(lookupConfig = lookupConfig)
-            val activity = mockk<Activity>()
-            val connManager = activity.mockConnectivityManager()
+            val context = mockk<Context>()
+            val connManager = context.mockConnectivityManager()
             val request = mockNetworkRequest()
 
-            val deferredResult = findServerStepAsync(ServerFinder(finderConfig, WiFiUnavailable), activity)
+            val deferredResult = findServerStepAsync(ServerFinder(finderConfig, WiFiUnavailable), context)
 
             val callback = connManager.getNetworkCallback(request)
             callback.onAvailable(mockk())
@@ -238,15 +238,15 @@ class ServerFinderTest : StringSpec() {
 
             try {
                 scope.withTestServer(answerIth(4)) {
-                    val activity = mockk<Activity>()
+                    val context = mockk<Context>()
                     val finder = ServerFinder(finderConfig(lookupConfig = config), SearchingInWiFi)
 
-                    val nextFinder = finder.findServerStep(activity)
+                    val nextFinder = finder.findServerStep(context)
 
                     // Terminate the test server.
                     val config2 = defaultLookupConfig.copy(sendRequestInterval = 1.milliseconds)
                     val finder2 = ServerFinder(finderConfig(lookupConfig = config2), SearchingInWiFi)
-                    finder2.findServerStep(activity)
+                    finder2.findServerStep(context)
 
                     nextFinder.state shouldBe ServerNotFound
                 }
@@ -326,9 +326,9 @@ private fun findUnusedPort(): Int = ServerSocket(0).use { it.localPort }
 
 /**
  * Create a mock [ConnectivityManager] and prepare it to expect a callback registration. Prepare this mock
- * [Activity] to return this manager on request.
+ * [Context] to return this manager on request.
  */
-private fun Activity.mockConnectivityManager(): ConnectivityManager {
+private fun Context.mockConnectivityManager(): ConnectivityManager {
     val connectivityManager = mockk<ConnectivityManager> {
         every { registerNetworkCallback(any(), any<ConnectivityManager.NetworkCallback>()) } just runs
         every { unregisterNetworkCallback(any<ConnectivityManager.NetworkCallback>()) } just runs
@@ -371,11 +371,11 @@ private fun mockNetworkRequest(): NetworkRequest {
 
 /**
  * Invoke the [ServerFinder.findServerStep] function asynchronously on the given [finder] object passing in the
- * specified [activity]. This can be used to execute some steps the finder is waiting for in parallel.
+ * specified [context]. This can be used to execute some steps the finder is waiting for in parallel.
  */
-private fun CoroutineScope.findServerStepAsync(finder: ServerFinder, activity: Activity): Deferred<ServerFinder> =
+private fun CoroutineScope.findServerStepAsync(finder: ServerFinder, context: Context): Deferred<ServerFinder> =
     async(Dispatchers.Default) {
-        finder.findServerStep(activity)
+        finder.findServerStep(context)
     }
 
 /**
