@@ -34,6 +34,7 @@ import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -77,7 +78,9 @@ internal fun iconTag(tag: String): String = "${tag}_icon"
  */
 @Composable
 fun ControlUi(model: ControlViewModel, modifier: Modifier = Modifier) {
-    ControlView(model.lookupState, modifier)
+    model.lookupStateFlow.collectAsState(NetworkStatusUnknown).value.let { state ->
+        ControlView(state, modifier)
+    }
 }
 
 /**
@@ -218,9 +221,8 @@ fun ControlUiPreview(
     @PreviewParameter(LookupStatePreviewProvider::class)
     lookupState: ServerLookupState
 ) {
-    val model = PreviewControlViewModel(lookupState)
     WifiControlTheme {
-        ControlUi(model)
+        ControlView(lookupState, Modifier)
     }
 }
 

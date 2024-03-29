@@ -18,10 +18,13 @@
  */
 package com.github.oheger.wificontrol
 
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 
 import javax.inject.Inject
+
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * An abstract base class for the view model used by the UI of this application.
@@ -32,9 +35,9 @@ import javax.inject.Inject
  */
 abstract class ControlViewModel : ViewModel() {
     /**
-     * The current [ServerLookupState].
+     * A [Flow] for emitting the current [ServerLookupState].
      */
-    abstract val lookupState: ServerLookupState
+    abstract val lookupStateFlow: Flow<ServerLookupState>
 
     /**
      * Set the current [ServerLookupState] to the given [state]. This function is invoked while performing the single
@@ -50,13 +53,13 @@ abstract class ControlViewModel : ViewModel() {
  * with an instance must be done on the main thread.
  */
 class ControlViewModelImpl @Inject constructor() : ControlViewModel() {
-    /** The field storing the current lookup state. */
-    private val lookupStateField = mutableStateOf<ServerLookupState>(NetworkStatusUnknown)
+    /** The flow for managing the current lookup state. */
+    private val mutualLookupStateFlow = MutableStateFlow<ServerLookupState>(NetworkStatusUnknown)
 
-    override val lookupState: ServerLookupState
-        get() = lookupStateField.value
+    override val lookupStateFlow: Flow<ServerLookupState>
+        get() = mutualLookupStateFlow.asStateFlow()
 
     override fun updateLookupState(state: ServerLookupState) {
-        lookupStateField.value = state
+        mutualLookupStateFlow.value = state
     }
 }
