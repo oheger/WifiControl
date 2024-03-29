@@ -25,58 +25,56 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 
-import com.github.oheger.wificontrol.domain.model.LookupConfig
-import com.github.oheger.wificontrol.domain.model.LookupService
-import com.github.oheger.wificontrol.domain.model.ServiceDefinition
+import com.github.oheger.wificontrol.svcui.ServiceDetailsScreen
+import com.github.oheger.wificontrol.svcui.ServicesOverviewScreen
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
 import dagger.hilt.android.AndroidEntryPoint
 
-import javax.inject.Inject
-
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
-
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    companion object {
-        /**
-         * The configuration for searching the server in the network. This is currently hard-coded (which will change
-         * later).
-         */
-        private val serviceDefinition = LookupService(
-            service = ServiceDefinition(
-                name = "demoService",
-                multicastAddress = "231.10.0.0",
-                port = 4321,
-                requestCode = "playerServer?"
-            ),
-            lookupConfig = LookupConfig(
-                networkTimeout = 5.seconds,
-                retryDelay = 10.seconds,
-                sendRequestInterval = 100.milliseconds
-            )
-        )
-    }
-
-    /** The view model of the application. */
-    @Inject internal lateinit var viewModel: ControlViewModel
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val controller = ServerLookupController.create(viewModel, this, serviceDefinition)
-        controller.startLookup()
 
         setContent {
             WifiControlTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {
-                    ControlUi(viewModel)
+                    val navController = rememberNavController()
+                    App(navController)
                 }
             }
+        }
+    }
+}
+
+/**
+ * The main entry point into the UI of this App. This function defines the main screens and enables navigation
+ * between them using the given [navController].
+ */
+@Composable
+fun App(navController: NavHostController) {
+    NavHost(navController = navController, startDestination = Navigation.ServicesRoute.route) {
+        composable(route = Navigation.ServicesRoute.route) {
+            ServicesOverviewScreen(viewModel = hiltViewModel(), navController = navController)
+        }
+
+        composable(
+            route = Navigation.ServiceDetailsRoute.route,
+            arguments = Navigation.ServiceDetailsRoute.arguments
+        ) {
+            ServiceDetailsScreen(
+                viewModel = hiltViewModel(),
+                serviceDetailsArgs = Navigation.ServiceDetailsRoute.fromEntry(it)
+            )
         }
     }
 }
