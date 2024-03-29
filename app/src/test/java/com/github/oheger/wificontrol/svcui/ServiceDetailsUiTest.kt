@@ -29,6 +29,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.github.oheger.wificontrol.Navigation
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
@@ -76,7 +77,10 @@ class ServiceDetailsUiTest {
         storeUseCase = mockk()
         detailsViewModel = ServiceDetailsViewModelImpl(loadUseCase, storeUseCase)
         composeTestRule.setContent {
-            ServiceDetailsScreen(viewModel = detailsViewModel, serviceIndex = SERVICE_INDEX)
+            ServiceDetailsScreen(
+                viewModel = detailsViewModel,
+                serviceDetailsArgs = Navigation.ServiceDetailsArgs(SERVICE_INDEX)
+            )
         }
     }
 
