@@ -29,7 +29,6 @@ import com.github.oheger.wificontrol.svcui.ServicesUiState.Companion.mapResultFl
 
 import javax.inject.Inject
 
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -49,60 +48,29 @@ data class ServicesOverviewState(
 )
 
 /**
- * Abstract base class for the view model for the services overview. This is used to support dummy implementations
- * for UI previews.
- */
-abstract class ServicesViewModel : ViewModel() {
-    /**
-     * The flow providing the current state of the services UI.
-     */
-    abstract val uiStateFlow: Flow<ServicesUiState<ServicesOverviewState>>
-
-    /**
-     * Load the current state of this app and initialize the view of services.
-     */
-    abstract fun loadServices()
-
-    /**
-     * Move the service with the given [serviceName] one position down in the list of services.
-     */
-    abstract fun moveServiceDown(serviceName: String)
-
-    /**
-     * Move the service with the given [serviceName] one position up in the list of services.
-     */
-    abstract fun moveServiceUp(serviceName: String)
-
-    /**
-     * Remove the service with the given [serviceName] from the list of services.
-     */
-    abstract fun removeService(serviceName: String)
-}
-
-/**
  * The view model for the UI showing the list of all services that can be controlled by this app.
  *
  * The list shows the service names and actions that can be applied on these services. It is also possible to edit
  * services from here or create new ones.
  */
-class ServicesViewModelImpl @Inject constructor(
+class ServicesViewModel @Inject constructor(
     /** The use case to load the current [ServiceData] instance. */
     private val loadServicesUseCase: LoadServiceDataUseCase,
 
     /** The use case to store the [ServiceData] instance after it has been modified. */
     private val storeServicesUseCase: StoreServiceDataUseCase
-) : ServicesViewModel() {
+) : ViewModel() {
     /** The flow to manage the current UI state. */
     private val mutableUiStateFlow = MutableStateFlow<ServicesUiState<ServicesOverviewState>>(ServicesUiStateLoading)
 
     /** A flow to keep track on errors that occur during saving of service data. */
     private val saveErrorFlow = MutableStateFlow<Throwable?>(null)
 
-    override val uiStateFlow = mutableUiStateFlow.asStateFlow().combineState(saveErrorFlow) { state, error ->
+    val uiStateFlow = mutableUiStateFlow.asStateFlow().combineState(saveErrorFlow) { state, error ->
         state.copy(updateError = error)
     }
 
-    override fun loadServices() {
+    fun loadServices() {
         viewModelScope.launch {
             loadServicesUseCase.execute(LoadServiceDataUseCase.Input)
                 .mapResultFlow { result -> ServicesOverviewState(result.data) }
@@ -110,15 +78,15 @@ class ServicesViewModelImpl @Inject constructor(
         }
     }
 
-    override fun moveServiceDown(serviceName: String) {
+    fun moveServiceDown(serviceName: String) {
         modifyAndSaveData { it.moveDown(serviceName) }
     }
 
-    override fun moveServiceUp(serviceName: String) {
+    fun moveServiceUp(serviceName: String) {
         modifyAndSaveData { it.moveUp(serviceName) }
     }
 
-    override fun removeService(serviceName: String) {
+    fun removeService(serviceName: String) {
         modifyAndSaveData { it.removeService(serviceName) }
     }
 
