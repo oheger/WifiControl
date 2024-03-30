@@ -63,7 +63,7 @@ class ServicesOverviewUiTest {
     private lateinit var dataFlow: MutableSharedFlow<Result<LoadServiceDataUseCase.Output>>
 
     /** A view model to serve the UI function. */
-    private lateinit var servicesViewModel: ServicesViewModelImpl
+    private lateinit var servicesViewModel: ServicesViewModel
 
     /** A mock for the use case to store the modified data instance. */
     private lateinit var storeDataUseCase: StoreServiceDataUseCase
@@ -80,7 +80,7 @@ class ServicesOverviewUiTest {
 
         storeDataUseCase = mockk()
         every { storeDataUseCase.execute(any()) } returns flowOf(Result.success(StoreServiceDataUseCase.Output))
-        servicesViewModel = ServicesViewModelImpl(loadUseCase, storeDataUseCase)
+        servicesViewModel = ServicesViewModel(loadUseCase, storeDataUseCase)
 
         navController = mockk {
             every { navigate(any<String>(), any<NavOptions>()) } just runs
