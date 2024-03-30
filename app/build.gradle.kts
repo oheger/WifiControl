@@ -89,6 +89,8 @@ android {
 
 dependencies {
     implementation(project(":domain"))
+    implementation(project(":persistence"))
+    implementation(project(":repository"))
 
     implementation(libs.accompanist.webview)
     implementation(libs.androidx.core.ktx)
