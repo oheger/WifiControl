@@ -16,7 +16,10 @@
  * SPDX-License-Identifier: Apache-2.0
  * License-Filename: LICENSE
  */
-package com.github.oheger.wificontrol
+package com.github.oheger.wificontrol.repository.di
+
+import com.github.oheger.wificontrol.domain.repo.ServiceDataRepository
+import com.github.oheger.wificontrol.repository.impl.ServiceDataRepositoryImpl
 
 import dagger.Binds
 import dagger.Module
@@ -24,11 +27,11 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 
 /**
- * A hilt module defining the dependencies used by the application.
+ * Hilt module that binds the implementations to repository interfaces.
  */
 @Module
 @InstallIn(SingletonComponent::class)
-abstract class MainModule {
+abstract class RepositoryModule {
     @Binds
-    abstract fun controlViewModel(viewModelImpl: ControlViewModelImpl): ControlViewModel
+    abstract fun serviceDataRepository(serviceDataRepository: ServiceDataRepositoryImpl): ServiceDataRepository
 }

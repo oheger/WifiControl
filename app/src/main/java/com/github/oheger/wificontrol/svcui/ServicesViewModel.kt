@@ -27,6 +27,8 @@ import com.github.oheger.wificontrol.domain.usecase.StoreServiceDataUseCase
 import com.github.oheger.wificontrol.svcui.ServicesUiState.Companion.combineState
 import com.github.oheger.wificontrol.svcui.ServicesUiState.Companion.mapResultFlow
 
+import dagger.hilt.android.lifecycle.HiltViewModel
+
 import javax.inject.Inject
 
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,6 +55,7 @@ data class ServicesOverviewState(
  * The list shows the service names and actions that can be applied on these services. It is also possible to edit
  * services from here or create new ones.
  */
+@HiltViewModel
 class ServicesViewModel @Inject constructor(
     /** The use case to load the current [ServiceData] instance. */
     private val loadServicesUseCase: LoadServiceDataUseCase,
