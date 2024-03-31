@@ -77,48 +77,74 @@ fun ServiceDetailsScreen(viewModel: ServiceDetailsViewModel, serviceDetailsArgs:
 
     viewModel.uiStateFlow.collectAsState(ServicesUiStateLoading).value
         .let { state ->
-            ServiceDetailsScreenForState(viewModel = viewModel, state = state)
+            ServiceDetailsScreenForState(
+                state = state,
+                onEditClick = viewModel::editService,
+                onSaveClick = viewModel::saveService,
+                onCancelClick = viewModel::cancelEdit
+            )
         }
 }
 
 /**
- * Generate the screen for the details of a service based on the given [viewModel] and [state].
+ * Generate the screen for the details of a service based on the given [state]. Use the given callback functions to
+ * propagate user interaction.
  */
 @Composable
 private fun ServiceDetailsScreenForState(
-    viewModel: ServiceDetailsViewModel,
     state: ServicesUiState<ServiceDetailsState>,
+    onEditClick: () -> Unit,
+    onSaveClick: (PersistentService) -> Unit,
+    onCancelClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     ServicesScreen(state = state) { detailsState ->
-        ServiceDetails(viewModel = viewModel, state = detailsState, modifier = modifier)
+        ServiceDetails(
+            state = detailsState,
+            onEditClick = onEditClick,
+            onSaveClick = onSaveClick,
+            onCancelClick = onCancelClick,
+            modifier = modifier
+        )
     }
 }
 
 /**
  * Generate the screen for the details of a service either in view or edit mode, depending on the given [state].
- * Use the given [viewModel] to propagate user interaction.
+ * Use the given callback functions to propagate user interaction.
  */
 @Composable
-private fun ServiceDetails(viewModel: ServiceDetailsViewModel, state: ServiceDetailsState, modifier: Modifier) {
+private fun ServiceDetails(
+    state: ServiceDetailsState,
+    onEditClick: () -> Unit,
+    onSaveClick: (PersistentService) -> Unit,
+    onCancelClick: () -> Unit,
+    modifier: Modifier
+) {
     if (state.editMode) {
         ServicesScreenWithSaveError(
             error = state.saveError,
             errorHintRes = R.string.svc_save_service_error,
             modifier = modifier
         ) {
-            EditServiceDetails(viewModel = viewModel, service = state.service, modifier = modifier)
+            EditServiceDetails(
+                service = state.service,
+                onSaveClick = onSaveClick,
+                onCancelClick = onCancelClick,
+                modifier = modifier
+            )
         }
     } else {
-        ViewServiceDetails(viewModel = viewModel, service = state.service, modifier = modifier)
+        ViewServiceDetails(service = state.service, onEditClick = onEditClick, modifier = modifier)
     }
 }
 
 /**
- * Generate the UI to view the details of the given [service]. Use the given [viewModel] to propagate user interaction.
+ * Generate the UI to view the details of the given [service]. Use the given [onEditClick] callback to indicate that
+ * the user wants to edit this service.
  */
 @Composable
-private fun ViewServiceDetails(viewModel: ServiceDetailsViewModel, service: PersistentService, modifier: Modifier) {
+private fun ViewServiceDetails(service: PersistentService, onEditClick: () -> Unit, modifier: Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -150,7 +176,7 @@ private fun ViewServiceDetails(viewModel: ServiceDetailsViewModel, service: Pers
             modifier = modifier
         )
         Button(
-            onClick = { viewModel.editService() },
+            onClick = onEditClick,
             modifier = modifier
                 .align(Alignment.CenterHorizontally)
                 .padding(top = 10.dp)
@@ -162,11 +188,16 @@ private fun ViewServiceDetails(viewModel: ServiceDetailsViewModel, service: Pers
 }
 
 /**
- * Generate the UI to edit the properties of the given [service]. Use the given [viewModel] to propagate user
- * interaction.
+ * Generate the UI to edit the properties of the given [service]. Use the [onSaveClick] and [onCancelClick] callbacks
+ * to report that the user clicked on the save or cancel button respectively.
  */
 @Composable
-private fun EditServiceDetails(viewModel: ServiceDetailsViewModel, service: PersistentService, modifier: Modifier) {
+private fun EditServiceDetails(
+    service: PersistentService,
+    onSaveClick: (PersistentService) -> Unit,
+    onCancelClick: () -> Unit,
+    modifier: Modifier
+) {
     var name by rememberSaveable { mutableStateOf(service.serviceDefinition.name) }
     var multicast by rememberSaveable { mutableStateOf(service.serviceDefinition.multicastAddress) }
     var port by rememberSaveable { mutableStateOf(service.serviceDefinition.port.toString()) }
@@ -227,12 +258,12 @@ private fun EditServiceDetails(viewModel: ServiceDetailsViewModel, service: Pers
                 .fillMaxWidth()
         ) {
             Button(
-                onClick = { viewModel.saveService(createEditedService()) },
+                onClick = { onSaveClick(createEditedService()) },
                 modifier = modifier.testTag(TAG_BTN_EDIT_SAVE)
             ) {
                 Text(text = stringResource(id = R.string.svc_btn_save))
             }
-            Button(onClick = { viewModel.cancelEdit() }, modifier = modifier.testTag(TAG_BTN_EDIT_CANCEL)) {
+            Button(onClick = onCancelClick, modifier = modifier.testTag(TAG_BTN_EDIT_CANCEL)) {
                 Text(text = stringResource(id = R.string.svc_btn_cancel))
             }
         }
@@ -311,12 +342,11 @@ fun ViewServiceDetailsPreview() {
         retryDelay = null,
         sendRequestInterval = null
     )
-    val model = PreviewServiceDetailsViewModel(service)
     val serviceData = ServiceData(emptyList(), 0)
     val state = ServicesUiStateLoaded(ServiceDetailsState(serviceData, 0, service, editMode = false))
 
     WifiControlTheme {
-        ServiceDetailsScreenForState(viewModel = model, state = state)
+        ServiceDetailsScreenForState(state = state, {}, {}, {})
     }
 }
 
@@ -334,13 +364,12 @@ fun EditServiceDetailsPreview() {
         retryDelay = null,
         sendRequestInterval = null
     )
-    val model = PreviewServiceDetailsViewModel(service)
     val serviceData = ServiceData(emptyList(), 0)
     val saveException = IllegalStateException("Could not save service.")
     val detailsState = ServiceDetailsState(serviceData, 0, service, editMode = true, saveException)
     val state = ServicesUiStateLoaded(detailsState)
 
     WifiControlTheme {
-        ServiceDetailsScreenForState(viewModel = model, state = state)
+        ServiceDetailsScreenForState(state = state, {}, {}, {})
     }
 }
