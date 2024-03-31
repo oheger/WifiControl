@@ -75,7 +75,7 @@ class ServiceDetailsUiTest {
         }
 
         storeUseCase = mockk()
-        detailsViewModel = ServiceDetailsViewModelImpl(loadUseCase, storeUseCase)
+        detailsViewModel = ServiceDetailsViewModel(loadUseCase, storeUseCase)
         composeTestRule.setContent {
             ServiceDetailsScreen(
                 viewModel = detailsViewModel,
