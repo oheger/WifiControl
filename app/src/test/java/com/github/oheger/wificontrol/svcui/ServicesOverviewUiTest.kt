@@ -128,6 +128,8 @@ class ServicesOverviewUiTest {
                 .assertIsDisplayed()
                 .assertTextEquals(service.serviceDefinition.name)
         }
+
+        composeTestRule.onNodeWithTag(TAG_NO_SERVICES_MSG).assertDoesNotExist()
     }
 
     @Test
@@ -194,6 +196,13 @@ class ServicesOverviewUiTest {
         verify {
             navController.navigate("services/$serviceIndex")
         }
+    }
+
+    @Test
+    fun `A message is displayed if no services exist`() = runTest {
+        initServiceData(createServiceData(0))
+
+        composeTestRule.onNodeWithTag(TAG_NO_SERVICES_MSG).assertIsDisplayed()
     }
 
     @Test

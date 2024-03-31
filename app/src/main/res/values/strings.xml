@@ -21,4 +21,5 @@
     <string name="svc_btn_cancel">Cancel</string>
     <string name="svc_btn_save">Save</string>
     <string name="svc_save_service_error">The service could not be saved.</string>
+    <string name="svc_no_services">No services have been defined yet. Use the \"Create\" button to create a new one.</string>
 </resources>

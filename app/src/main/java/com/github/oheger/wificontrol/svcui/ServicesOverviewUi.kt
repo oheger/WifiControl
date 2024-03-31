@@ -34,7 +34,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 
 import com.github.oheger.wificontrol.Navigation
@@ -44,6 +46,7 @@ import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
+internal const val TAG_NO_SERVICES_MSG = "svcNoServices"
 internal const val TAG_SERVICE_NAME = "svcName"
 internal const val TAG_ACTION_DETAILS = "actDetails"
 internal const val TAG_ACTION_DOWN = "actDown"
@@ -147,6 +150,14 @@ fun ServicesList(
     onRemoveClick: (String) -> Unit,
     modifier: Modifier
 ) {
+    if (services.isEmpty()) {
+        Text(
+            text = stringResource(id = R.string.svc_no_services),
+            fontSize = 14.sp,
+            modifier = modifier.testTag(TAG_NO_SERVICES_MSG)
+        )
+    }
+
     LazyColumn {
         items(services.withIndex().toList()) { (index, service) ->
             Row {
@@ -247,6 +258,20 @@ fun ServicesListPreview() {
     val state = ServicesOverviewState(
         ServiceData(services, 0),
         IllegalStateException("Error when saving services.")
+    )
+
+    WifiControlTheme {
+        Column {
+            ServicesOverviewScreenForState(ServicesUiStateLoaded(state), {}, {}, {}, {})
+        }
+    }
+}
+
+@Preview
+@Composable
+fun ServicesListEmptyPreview() {
+    val state = ServicesOverviewState(
+        ServiceData(emptyList(), 0)
     )
 
     WifiControlTheme {
