@@ -18,16 +18,12 @@
  */
 package com.github.oheger.wificontrol.svcui
 
-import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performTextClearance
-import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.oheger.wificontrol.Navigation
 
@@ -36,6 +32,8 @@ import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.domain.usecase.LoadServiceUseCase
 import com.github.oheger.wificontrol.domain.usecase.StoreServiceUseCase
+import com.github.oheger.wificontrol.performSafeClick
+import com.github.oheger.wificontrol.setText
 
 import io.kotest.inspectors.forAll
 
@@ -231,21 +229,3 @@ private val service = PersistentService(
     retryDelay = null,
     sendRequestInterval = null
 )
-
-/**
- * Set the text of this node to the provided [text] making sure that previous text is cleared.
- */
-private fun SemanticsNodeInteraction.setText(text: String) {
-    performScrollTo()
-    performTextClearance()
-    performTextInput(text)
-}
-
-/**
- * Perform a click on this node, making sure that it is visible. Otherwise, clicks on buttons do not have any
- * effect.
- */
-private fun SemanticsNodeInteraction.performSafeClick() {
-    performScrollTo()
-    performClick()
-}
