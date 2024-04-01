@@ -20,6 +20,7 @@ package com.github.oheger.wificontrol.domain.usecase
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
+import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 
 import javax.inject.Inject
 
@@ -27,9 +28,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 /**
- * A use case for loading a specific [PersistentService]. The services to be loaded is identified by its index in
+ * A use case for loading a specific [PersistentService]. The service to be loaded is identified by its index in
  * the global [ServiceData] object. This is sufficient to identify the service uniquely, since it remains constant
- * while this specific service is displayed or edited.
+ * while this specific service is displayed or edited. It is also possible to use the reserved index
+ * [ServiceData.NEW_SERVICE_INDEX]; in this case, a new, empty service is created which can later be added to the
+ * [ServiceData] object.
  */
 class LoadServiceUseCase @Inject constructor(
     config: UseCaseConfig,
@@ -37,11 +40,31 @@ class LoadServiceUseCase @Inject constructor(
     /** The use case for loading the whole data about services. */
     private val loadServiceDataUseCase: LoadServiceDataUseCase
 ) : BaseUseCase<LoadServiceUseCase.Input, LoadServiceUseCase.Output>(config) {
+    companion object {
+        /** A service object with empty properties that is used when a new service is to be created. */
+        private val newService = PersistentService(
+            serviceDefinition = ServiceDefinition(
+                name = "",
+                multicastAddress = "",
+                port = 0,
+                requestCode = ""
+            ),
+            networkTimeout = null,
+            retryDelay = null,
+            sendRequestInterval = null
+        )
+    }
+
     override fun process(input: Input): Flow<Output> {
         return loadServiceDataUseCase.execute(LoadServiceDataUseCase.Input).map { dataResult ->
             dataResult.map { data ->
                 val serviceData = data.data
-                Output(serviceData,  serviceData.services[input.serviceIndex])
+                val service = if (input.serviceIndex == ServiceData.NEW_SERVICE_INDEX) {
+                    newService
+                } else {
+                    serviceData.services[input.serviceIndex]
+                }
+                Output(serviceData, service)
             }.getOrThrow()
         }
     }

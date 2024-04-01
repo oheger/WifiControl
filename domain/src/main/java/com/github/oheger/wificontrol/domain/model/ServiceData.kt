@@ -29,6 +29,15 @@ data class ServiceData(
     /** The index of the current service. This is the last service the user interacted with. */
     val currentIndex: Int
 ) {
+    companion object {
+        /**
+         * A special index value to indicate a new service. Using this value means that not an existing service from
+         * the list of a [ServiceData] instance is referenced, but a one that will be newly created. This constant is
+         * used from multiple use cases.
+         */
+        const val NEW_SERVICE_INDEX = -1
+    }
+
     /**
      * Return a [LookupService] object for the currently selected service or *null* if nothing is selected.
      */

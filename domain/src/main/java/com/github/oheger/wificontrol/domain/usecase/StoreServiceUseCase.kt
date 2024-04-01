@@ -20,6 +20,7 @@ package com.github.oheger.wificontrol.domain.usecase
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
+import com.github.oheger.wificontrol.domain.model.ServiceData.Companion.NEW_SERVICE_INDEX
 
 import javax.inject.Inject
 
@@ -39,14 +40,6 @@ class StoreServiceUseCase @Inject constructor(
     /** The use case for storing the updated [ServiceData] object. */
     private val storeDataUseCase: StoreServiceDataUseCase
 ) : BaseUseCase<StoreServiceUseCase.Input, StoreServiceUseCase.Output>(config) {
-    companion object {
-        /**
-         * A special service index value to indicate a newly created service. This value must be specified in an
-         * [Input] object to persist a newly created service.
-         */
-        const val NEW_SERVICE_INDEX = -1
-    }
-
     override fun process(input: Input): Flow<Output> =
         updateFlow(input).flatMapConcat(storeDataUseCase::execute).map { Output }
 
