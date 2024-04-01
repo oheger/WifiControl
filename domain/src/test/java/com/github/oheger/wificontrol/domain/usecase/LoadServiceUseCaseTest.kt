@@ -53,6 +53,28 @@ class LoadServiceUseCaseTest : StringSpec({
         resultFlow.first().shouldBeSuccess(LoadServiceUseCase.Output(serviceData, service))
     }
 
+    "The index for a new service should be handled correctly" {
+        val serviceData = ServiceData(listOf(createService(1), createService(2)), 0)
+        val loadDataUseCase = mockk<LoadServiceDataUseCase> {
+            every {
+                execute(LoadServiceDataUseCase.Input)
+            } returns flowOf(Result.success(LoadServiceDataUseCase.Output(serviceData)))
+        }
+
+        val loadUseCase = LoadServiceUseCase(useCaseConfig, loadDataUseCase)
+        val resultFlow = loadUseCase.execute(LoadServiceUseCase.Input(ServiceData.NEW_SERVICE_INDEX))
+
+        resultFlow.first().shouldBeSuccess { output ->
+            output.serviceData shouldBe serviceData
+            output.service shouldBe PersistentService(
+                serviceDefinition = ServiceDefinition("", "", 0, ""),
+                networkTimeout = null,
+                retryDelay = null,
+                sendRequestInterval = null
+            )
+        }
+    }
+
     "A non existing service should cause a failure result" {
         val nonExistingIndex = 42
         val serviceData = ServiceData(listOf(createService(1), createService(2)), 1)

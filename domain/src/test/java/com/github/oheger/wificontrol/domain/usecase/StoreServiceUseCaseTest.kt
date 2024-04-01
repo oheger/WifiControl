@@ -88,7 +88,7 @@ class StoreServiceUseCaseTest : StringSpec({
             } returns flowOf(Result.success(StoreServiceDataUseCase.Output))
         }
 
-        val input = StoreServiceUseCase.Input(serviceDataOrg, newService, StoreServiceUseCase.NEW_SERVICE_INDEX)
+        val input = StoreServiceUseCase.Input(serviceDataOrg, newService, ServiceData.NEW_SERVICE_INDEX)
         val useCase = StoreServiceUseCase(useCaseConfig, storeDataUseCase)
         val result = useCase.execute(input).first()
 
