@@ -19,8 +19,11 @@
 package com.github.oheger.wificontrol.svcui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -41,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 
@@ -176,18 +180,22 @@ fun ServicesList(
     if (services.isEmpty()) {
         Text(
             text = stringResource(id = R.string.svc_no_services),
-            fontSize = 14.sp,
+            fontSize = 16.sp,
             modifier = modifier.testTag(TAG_NO_SERVICES_MSG)
         )
     }
 
-    LazyColumn {
+    LazyColumn(modifier = modifier.fillMaxWidth()) {
         items(services.withIndex().toList()) { (index, service) ->
             Row {
                 Text(
                     text = service.serviceDefinition.name,
-                    modifier = Modifier.testTag(serviceTag(service.serviceDefinition.name, TAG_SERVICE_NAME))
+                    fontSize = 18.sp,
+                    modifier = Modifier
+                        .testTag(serviceTag(service.serviceDefinition.name, TAG_SERVICE_NAME))
+                        .padding(bottom = 10.dp)
                 )
+                Spacer(modifier = modifier.weight(1f))
                 ServiceActions(
                     service.serviceDefinition.name,
                     index,
@@ -221,38 +229,42 @@ fun ServiceActions(
     onRemoveClick: (String) -> Unit,
     modifier: Modifier
 ) {
-    if (!isFirst) {
+    Row(
+        horizontalArrangement = Arrangement.SpaceAround
+    ) {
+        if (!isFirst) {
+            Icon(
+                Icons.Filled.KeyboardArrowUp,
+                contentDescription = null,
+                modifier
+                    .testTag(serviceTag(serviceName, TAG_ACTION_UP))
+                    .clickable { onMoveUpClick(serviceName) }
+            )
+        }
+        if (!isLast) {
+            Icon(
+                Icons.Filled.KeyboardArrowDown,
+                contentDescription = null,
+                modifier
+                    .testTag(serviceTag(serviceName, TAG_ACTION_DOWN))
+                    .clickable { onMoveDownClick(serviceName) }
+            )
+        }
         Icon(
-            Icons.Filled.KeyboardArrowUp,
+            Icons.Filled.Search,
             contentDescription = null,
             modifier
-                .testTag(serviceTag(serviceName, TAG_ACTION_UP))
-                .clickable { onMoveUpClick(serviceName) }
+                .testTag(serviceTag(serviceName, TAG_ACTION_DETAILS))
+                .clickable { onDetailsClick(index) }
         )
-    }
-    if (!isLast) {
         Icon(
-            Icons.Filled.KeyboardArrowDown,
+            Icons.Filled.Delete,
             contentDescription = null,
             modifier
-                .testTag(serviceTag(serviceName, TAG_ACTION_DOWN))
-                .clickable { onMoveDownClick(serviceName) }
+                .testTag(serviceTag(serviceName, TAG_ACTION_REMOVE))
+                .clickable { onRemoveClick(serviceName) }
         )
     }
-    Icon(
-        Icons.Filled.Search,
-        contentDescription = null,
-        modifier
-            .testTag(serviceTag(serviceName, TAG_ACTION_DETAILS))
-            .clickable { onDetailsClick(index) }
-    )
-    Icon(
-        Icons.Filled.Delete,
-        contentDescription = null,
-        modifier
-            .testTag(serviceTag(serviceName, TAG_ACTION_REMOVE))
-            .clickable { onRemoveClick(serviceName) }
-    )
 }
 
 @Preview
