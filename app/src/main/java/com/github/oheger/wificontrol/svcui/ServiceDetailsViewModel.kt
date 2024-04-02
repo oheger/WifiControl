@@ -116,7 +116,7 @@ class ServiceDetailsViewModel @Inject constructor(
      * currently edited, the cancel button causes the overview UI to be displayed again.
      */
     fun cancelEdit(navController: NavController) {
-        if ((mutableUiStateFlow.value as? ServicesUiStateLoaded)?.data?.serviceIndex == ServiceData.NEW_SERVICE_INDEX) {
+        if (mutableUiStateFlow.value.process { it.serviceIndex == ServiceData.NEW_SERVICE_INDEX } == true) {
             navController.navigate(Navigation.ServicesRoute.route)
         } else {
             editModeFlow.value = false
@@ -128,9 +128,9 @@ class ServiceDetailsViewModel @Inject constructor(
      * If this is successful, use the given [navController] to navigate back to the services overview UI.
      */
     fun saveService(service: PersistentService, navController: NavController) {
-        (mutableUiStateFlow.value as? ServicesUiStateLoaded)?.let { state ->
+        mutableUiStateFlow.value.process { data ->
             viewModelScope.launch {
-                val storeInput = StoreServiceUseCase.Input(state.data.serviceData, service, state.data.serviceIndex)
+                val storeInput = StoreServiceUseCase.Input(data.serviceData, service, data.serviceIndex)
                 storeServiceUseCase.execute(storeInput).collect { result ->
                     val saveException = result.exceptionOrNull()
                     saveErrorFlow.value = saveException

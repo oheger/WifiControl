@@ -63,6 +63,13 @@ sealed interface ServicesUiState<out T> {
         private fun <R, S> fromResult(result: Result<R>, convert: (R) -> S): ServicesUiState<S> =
             result.map { ServicesUiStateLoaded(convert(it)) }.getOrElse { ServicesUiStateError(it) }
     }
+
+    /**
+     * Apply the given processing function [f] to the state encapsulated in this instance if it is present. Return
+     * the result of the processing function or *null* if the state has not yet been loaded.
+     */
+    fun <R> process(f: (T) -> R): R? =
+        (this as? ServicesUiStateLoaded)?.let { f(it.data) }
 }
 
 /**

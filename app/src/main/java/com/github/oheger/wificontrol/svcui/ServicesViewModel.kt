@@ -98,11 +98,12 @@ class ServicesViewModel @Inject constructor(
      * [StoreServiceDataUseCase].
      */
     private fun modifyAndSaveData(modifyFunc: (ServiceData) -> ServiceData) {
-        viewModelScope.launch {
-            val state = mutableUiStateFlow.value as ServicesUiStateLoaded
-            storeServicesUseCase.execute(
-                StoreServiceDataUseCase.Input(modifyFunc(state.data.serviceData))
-            ).collect { result -> saveErrorFlow.value = result.exceptionOrNull() }
+        mutableUiStateFlow.value.process { data ->
+            viewModelScope.launch {
+                storeServicesUseCase.execute(
+                    StoreServiceDataUseCase.Input(modifyFunc(data.serviceData))
+                ).collect { result -> saveErrorFlow.value = result.exceptionOrNull() }
+            }
         }
     }
 }
