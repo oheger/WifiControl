@@ -236,6 +236,17 @@ class ServicesOverviewUiTest {
             .assertTextContains(exception.javaClass.simpleName, substring = true)
             .assertTextContains(exception.message!!, substring = true)
     }
+
+    @Test
+    fun `Navigation to a form to create a new service is possible`() = runTest {
+        initServiceData(createServiceData(1))
+
+        composeTestRule.onNodeWithTag(TAG_ACTION_CREATE).performClick()
+
+        verify {
+            navController.navigate("services/${ServiceData.NEW_SERVICE_INDEX}")
+        }
+    }
 }
 
 /**

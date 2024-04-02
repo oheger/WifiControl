@@ -21,4 +21,5 @@
     <string name="svc_btn_save">Speichern</string>
     <string name="svc_save_service_error">Das Speichern des Dienstes is fehlgeschlagen.</string>
     <string name="svc_no_services">Es sind noch keine Dienste angelegt worden. Verwenden Sie den \"Neu\" Button, um einen neuen zu erzeugen.</string>
+    <string name="svc_overview_title">Dienste</string>
 </resources>

@@ -23,6 +23,8 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 
+import com.github.oheger.wificontrol.domain.model.ServiceData
+
 /**
  * An object defining the navigation routes and their parameters used by this app.
  */
@@ -79,6 +81,9 @@ object Navigation {
             }
         )
     ) {
+        /** A route to a form that allows creating a new service. */
+        val forNewService = forArguments(ServiceDetailsArgs(ServiceData.NEW_SERVICE_INDEX))
+
         /**
          * Generate the routing path to the service details UI for the given [arguments].
          */

@@ -21,11 +21,16 @@ package com.github.oheger.wificontrol.svcui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.Icon
+import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
+import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -48,6 +53,7 @@ import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
 internal const val TAG_NO_SERVICES_MSG = "svcNoServices"
 internal const val TAG_SERVICE_NAME = "svcName"
+internal const val TAG_ACTION_CREATE = "actCreate"
 internal const val TAG_ACTION_DETAILS = "actDetails"
 internal const val TAG_ACTION_DOWN = "actDown"
 internal const val TAG_ACTION_REMOVE = "actRemove"
@@ -78,7 +84,8 @@ fun ServicesOverviewScreen(viewModel: ServicesViewModel, navController: NavContr
                 },
                 onMoveUpClick = viewModel::moveServiceUp,
                 onMoveDownClick = viewModel::moveServiceDown,
-                onRemoveClick = viewModel::removeService
+                onRemoveClick = viewModel::removeService,
+                onCreateClick = { navController.navigate(Navigation.ServiceDetailsRoute.forNewService) }
             )
         }
 }
@@ -94,17 +101,33 @@ fun ServicesOverviewScreenForState(
     onMoveUpClick: (String) -> Unit,
     onMoveDownClick: (String) -> Unit,
     onRemoveClick: (String) -> Unit,
+    onCreateClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    ServicesScreen(state = state) {
-        ServicesLoaded(
-            state = it,
-            onDetailsClick = onDetailsClick,
-            onMoveUpClick = onMoveUpClick,
-            onMoveDownClick = onMoveDownClick,
-            onRemoveClick = onRemoveClick,
-            modifier = modifier
-        )
+    ServicesScreen(state = state) { overviewState ->
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(text = stringResource(id = R.string.svc_overview_title))
+                    }
+                )
+            },
+            floatingActionButton = {
+                FloatingActionButton(onClick = onCreateClick, modifier = modifier.testTag(TAG_ACTION_CREATE)) {
+                    Icon(Icons.Filled.Add, null, modifier = modifier)
+                }
+            }
+        ) { innerPadding ->
+            ServicesLoaded(
+                state = overviewState,
+                onDetailsClick = onDetailsClick,
+                onMoveUpClick = onMoveUpClick,
+                onMoveDownClick = onMoveDownClick,
+                onRemoveClick = onRemoveClick,
+                modifier = modifier.padding(innerPadding)
+            )
+        }
     }
 }
 
@@ -262,7 +285,7 @@ fun ServicesListPreview() {
 
     WifiControlTheme {
         Column {
-            ServicesOverviewScreenForState(ServicesUiStateLoaded(state), {}, {}, {}, {})
+            ServicesOverviewScreenForState(ServicesUiStateLoaded(state), {}, {}, {}, {}, {})
         }
     }
 }
@@ -276,7 +299,7 @@ fun ServicesListEmptyPreview() {
 
     WifiControlTheme {
         Column {
-            ServicesOverviewScreenForState(ServicesUiStateLoaded(state), {}, {}, {}, {})
+            ServicesOverviewScreenForState(ServicesUiStateLoaded(state), {}, {}, {}, {}, {})
         }
     }
 }
@@ -285,7 +308,7 @@ fun ServicesListEmptyPreview() {
 @Composable
 fun ServicesLoadingPreview() {
     WifiControlTheme {
-        ServicesOverviewScreenForState(state = ServicesUiStateLoading, {}, {}, {}, {})
+        ServicesOverviewScreenForState(state = ServicesUiStateLoading, {}, {}, {}, {}, {})
     }
 }
 
@@ -295,6 +318,6 @@ fun ServicesErrorPreview() {
     val exception = IllegalStateException("Something went terribly wrong :-(")
     val state = ServicesUiStateError(exception)
     WifiControlTheme {
-        ServicesOverviewScreenForState(state = state, {}, {}, {}, {})
+        ServicesOverviewScreenForState(state = state, {}, {}, {}, {}, {})
     }
 }
