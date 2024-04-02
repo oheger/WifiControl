@@ -20,6 +20,8 @@ package com.github.oheger.wificontrol.svcui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavController
+import com.github.oheger.wificontrol.Navigation
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
@@ -83,7 +85,8 @@ class ServiceDetailsViewModel @Inject constructor(
     /** The flow providing the current state of the service details UI. */
     val uiStateFlow: Flow<ServicesUiState<ServiceDetailsState>> =
         mutableUiStateFlow.asStateFlow().combineState(editModeFlow) { state, editMode ->
-            state.copy(editMode = editMode)
+            // If a new service is to be created, only the edit form is shown.
+            state.copy(editMode = editMode || state.serviceIndex == ServiceData.NEW_SERVICE_INDEX)
         }.combineState(saveErrorFlow) { state, error ->
             state.copy(saveError = error)
         }
@@ -108,23 +111,33 @@ class ServiceDetailsViewModel @Inject constructor(
     }
 
     /**
-     * Cancel the edit mode without saving the changes that might have been made on service properties.
+     * Cancel the edit mode without saving the changes that might have been made on service properties. Depending on
+     * the current UI state, use the given [navController] to change the screen if necessary: If a new service is
+     * currently edited, the cancel button causes the overview UI to be displayed again.
      */
-    fun cancelEdit() {
-        editModeFlow.value = false
+    fun cancelEdit(navController: NavController) {
+        if ((mutableUiStateFlow.value as? ServicesUiStateLoaded)?.data?.serviceIndex == ServiceData.NEW_SERVICE_INDEX) {
+            navController.navigate(Navigation.ServicesRoute.route)
+        } else {
+            editModeFlow.value = false
+        }
     }
 
     /**
      * Make changes on the given [service] persistent. This function is used to save a service that has been edited.
+     * If this is successful, use the given [navController] to navigate back to the services overview UI.
      */
-    fun saveService(service: PersistentService) {
+    fun saveService(service: PersistentService, navController: NavController) {
         (mutableUiStateFlow.value as? ServicesUiStateLoaded)?.let { state ->
             viewModelScope.launch {
                 val storeInput = StoreServiceUseCase.Input(state.data.serviceData, service, state.data.serviceIndex)
                 storeServiceUseCase.execute(storeInput).collect { result ->
                     val saveException = result.exceptionOrNull()
                     saveErrorFlow.value = saveException
-                    editModeFlow.value = saveException != null
+
+                    if (saveException == null) {
+                        navController.navigate(Navigation.ServicesRoute.route)
+                    }
                 }
             }
         }

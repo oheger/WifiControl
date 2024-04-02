@@ -42,8 +42,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.oheger.wificontrol.Navigation
+import androidx.navigation.NavController
 
+import com.github.oheger.wificontrol.Navigation
 import com.github.oheger.wificontrol.R
 import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
@@ -69,10 +70,14 @@ internal const val PROPERTY_INDENT = 10
 /**
  * Generate the screen showing the details of a specific service, which also allows editing the service. Use the given
  * [viewModel] to load and access the data to be displayed. Process the service identified by the given
- * [serviceDetailsArgs].
+ * [serviceDetailsArgs]. Use the given [navController] for navigation to other screens if required.
  */
 @Composable
-fun ServiceDetailsScreen(viewModel: ServiceDetailsViewModel, serviceDetailsArgs: Navigation.ServiceDetailsArgs) {
+fun ServiceDetailsScreen(
+    viewModel: ServiceDetailsViewModel,
+    serviceDetailsArgs: Navigation.ServiceDetailsArgs,
+    navController: NavController
+) {
     viewModel.loadService(serviceDetailsArgs.serviceIndex)
 
     viewModel.uiStateFlow.collectAsState(ServicesUiStateLoading).value
@@ -80,8 +85,8 @@ fun ServiceDetailsScreen(viewModel: ServiceDetailsViewModel, serviceDetailsArgs:
             ServiceDetailsScreenForState(
                 state = state,
                 onEditClick = viewModel::editService,
-                onSaveClick = viewModel::saveService,
-                onCancelClick = viewModel::cancelEdit
+                onSaveClick = { service -> viewModel.saveService(service, navController) },
+                onCancelClick = { viewModel.cancelEdit(navController) }
             )
         }
 }
@@ -200,7 +205,9 @@ private fun EditServiceDetails(
 ) {
     var name by rememberSaveable { mutableStateOf(service.serviceDefinition.name) }
     var multicast by rememberSaveable { mutableStateOf(service.serviceDefinition.multicastAddress) }
-    var port by rememberSaveable { mutableStateOf(service.serviceDefinition.port.toString()) }
+    var port by rememberSaveable {
+        mutableStateOf(service.serviceDefinition.port.takeIf { it > 0 }?.toString().orEmpty())
+    }
     var code by rememberSaveable { mutableStateOf(service.serviceDefinition.requestCode) }
 
     fun createEditedService(): PersistentService =

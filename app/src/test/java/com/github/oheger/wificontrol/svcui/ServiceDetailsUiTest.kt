@@ -24,6 +24,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.navigation.NavController
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.oheger.wificontrol.Navigation
 
@@ -38,7 +39,9 @@ import com.github.oheger.wificontrol.setText
 import io.kotest.inspectors.forAll
 
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.runs
 import io.mockk.verify
 
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -64,6 +67,9 @@ class ServiceDetailsUiTest {
     /** Mock for the use case for storing the current service. */
     private lateinit var storeUseCase: StoreServiceUseCase
 
+    /** Mock for the [NavController] to check the correct navigation. */
+    private lateinit var navController: NavController
+
     @Before
     fun setUp() {
         dataFlow = MutableSharedFlow()
@@ -73,11 +79,13 @@ class ServiceDetailsUiTest {
         }
 
         storeUseCase = mockk()
+        navController = mockk()
         detailsViewModel = ServiceDetailsViewModel(loadUseCase, storeUseCase)
         composeTestRule.setContent {
             ServiceDetailsScreen(
                 viewModel = detailsViewModel,
-                serviceDetailsArgs = Navigation.ServiceDetailsArgs(SERVICE_INDEX)
+                serviceDetailsArgs = Navigation.ServiceDetailsArgs(SERVICE_INDEX),
+                navController
             )
         }
     }
@@ -164,6 +172,7 @@ class ServiceDetailsUiTest {
     fun `A service can be edited and saved`() = runTest {
         every { storeUseCase.execute(any()) } returns flowOf(Result.success(StoreServiceUseCase.Output))
         val loadOutput = initService(service)
+        every { navController.navigate(any<String>()) } just runs
 
         val editedService = PersistentService(
             serviceDefinition = ServiceDefinition(
@@ -191,9 +200,8 @@ class ServiceDetailsUiTest {
         )
         verify {
             storeUseCase.execute(expectedInput)
+            navController.navigate(Navigation.ServicesRoute.route)
         }
-
-        composeTestRule.onNodeWithTag(TAG_SHOW_NAME).assertExists()
     }
 
     @Test

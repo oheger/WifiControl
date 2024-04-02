@@ -73,7 +73,8 @@ fun App(navController: NavHostController) {
         ) {
             ServiceDetailsScreen(
                 viewModel = hiltViewModel(),
-                serviceDetailsArgs = Navigation.ServiceDetailsRoute.fromEntry(it)
+                serviceDetailsArgs = Navigation.ServiceDetailsRoute.fromEntry(it),
+                navController = navController
             )
         }
     }
