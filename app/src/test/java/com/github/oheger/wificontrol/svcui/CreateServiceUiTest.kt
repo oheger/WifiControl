@@ -18,15 +18,18 @@
  */
 package com.github.oheger.wificontrol.svcui
 
+import android.content.Context
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.navigation.NavController
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
 import com.github.oheger.wificontrol.Navigation
+import com.github.oheger.wificontrol.R
 import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
@@ -106,6 +109,13 @@ class CreateServiceUiTest {
         listOf(TAG_EDIT_NAME, TAG_EDIT_MULTICAST, TAG_EDIT_PORT, TAG_EDIT_CODE).forAll { tag ->
             composeTestRule.onNodeWithTag(tag).assertTextEquals("")
         }
+    }
+
+    @Test
+    fun `The title indicates that a new service is edited`() {
+        val expectedTitle = ApplicationProvider.getApplicationContext<Context>().getString(R.string.svc_new_title)
+
+        composeTestRule.onNodeWithTag(TAG_SVC_TITLE).assertTextEquals(expectedTitle)
     }
 
     @Test

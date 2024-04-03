@@ -26,8 +26,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
+import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
+import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -63,6 +65,7 @@ internal const val TAG_EDIT_CODE = "svcEditCode"
 internal const val TAG_BTN_EDIT_SERVICE = "svcBtnEdit"
 internal const val TAG_BTN_EDIT_CANCEL = "svcBtnCancel"
 internal const val TAG_BTN_EDIT_SAVE = "svcBtnSave"
+internal const val TAG_SVC_TITLE = "svcDetailsTitle"
 
 /** The indent of the property value relative to the associated label. */
 internal const val PROPERTY_INDENT = 10
@@ -104,13 +107,30 @@ private fun ServiceDetailsScreenForState(
     modifier: Modifier = Modifier
 ) {
     ServicesScreen(state = state) { detailsState ->
-        ServiceDetails(
-            state = detailsState,
-            onEditClick = onEditClick,
-            onSaveClick = onSaveClick,
-            onCancelClick = onCancelClick,
-            modifier = modifier
-        )
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = if (detailsState.serviceIndex == ServiceData.NEW_SERVICE_INDEX) {
+                                stringResource(id = R.string.svc_new_title)
+                            } else {
+                                detailsState.service.serviceDefinition.name
+                            },
+                            modifier = modifier.testTag(TAG_SVC_TITLE)
+                        )
+                    }
+                )
+            }
+        ) { innerPadding ->
+            ServiceDetails(
+                state = detailsState,
+                onEditClick = onEditClick,
+                onSaveClick = onSaveClick,
+                onCancelClick = onCancelClick,
+                modifier = modifier.padding(innerPadding)
+            )
+        }
     }
 }
 
