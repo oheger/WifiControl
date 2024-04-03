@@ -34,13 +34,13 @@ import androidx.compose.material.TextField
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -131,13 +131,19 @@ private fun ServiceDetailsScreenForState(
                         IconButton(onClick = onOverviewClick, modifier = modifier.testTag(TAG_BTN_SVC_OVERVIEW)) {
                             Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                         }
+                    },
+                    actions = {
+                        if (!detailsState.editMode) {
+                            IconButton(onClick = onEditClick, modifier = modifier.testTag(TAG_BTN_EDIT_SERVICE)) {
+                                Icon(imageVector = Icons.Filled.Edit, contentDescription = null)
+                            }
+                        }
                     }
                 )
             }
         ) { innerPadding ->
             ServiceDetails(
                 state = detailsState,
-                onEditClick = onEditClick,
                 onSaveClick = onSaveClick,
                 onCancelClick = onCancelClick,
                 modifier = modifier.padding(innerPadding)
@@ -153,7 +159,6 @@ private fun ServiceDetailsScreenForState(
 @Composable
 private fun ServiceDetails(
     state: ServiceDetailsState,
-    onEditClick: () -> Unit,
     onSaveClick: (PersistentService) -> Unit,
     onCancelClick: () -> Unit,
     modifier: Modifier
@@ -172,16 +177,15 @@ private fun ServiceDetails(
             )
         }
     } else {
-        ViewServiceDetails(service = state.service, onEditClick = onEditClick, modifier = modifier)
+        ViewServiceDetails(service = state.service, modifier = modifier)
     }
 }
 
 /**
- * Generate the UI to view the details of the given [service]. Use the given [onEditClick] callback to indicate that
- * the user wants to edit this service.
+ * Generate the UI to view the details of the given [service].
  */
 @Composable
-private fun ViewServiceDetails(service: PersistentService, onEditClick: () -> Unit, modifier: Modifier) {
+private fun ViewServiceDetails(service: PersistentService, modifier: Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -212,15 +216,6 @@ private fun ViewServiceDetails(service: PersistentService, onEditClick: () -> Un
             tag = TAG_SHOW_CODE,
             modifier = modifier
         )
-        Button(
-            onClick = onEditClick,
-            modifier = modifier
-                .align(Alignment.CenterHorizontally)
-                .padding(top = 10.dp)
-                .testTag(TAG_BTN_EDIT_SERVICE)
-        ) {
-            Text(text = stringResource(id = R.string.svc_btn_edit))
-        }
     }
 }
 

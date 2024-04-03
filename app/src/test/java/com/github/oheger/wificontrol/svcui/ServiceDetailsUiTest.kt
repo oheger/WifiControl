@@ -145,7 +145,7 @@ class ServiceDetailsUiTest {
     fun `The edit mode of the service can be entered`() = runTest {
         initService(service)
 
-        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SERVICE).performSafeClick()
+        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SERVICE).performClick()
 
         composeTestRule.onNodeWithTag(TAG_SVC_TITLE).assertTextEquals(service.serviceDefinition.name)
         composeTestRule.onNodeWithTag(TAG_EDIT_NAME).assertTextEquals(service.serviceDefinition.name)
@@ -188,7 +188,7 @@ class ServiceDetailsUiTest {
             sendRequestInterval = null
         )
 
-        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SERVICE).performSafeClick()
+        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SERVICE).performClick()
         composeTestRule.onNodeWithTag(TAG_EDIT_NAME).setText(editedService.serviceDefinition.name)
         composeTestRule.onNodeWithTag(TAG_EDIT_MULTICAST).setText(editedService.serviceDefinition.multicastAddress)
         composeTestRule.onNodeWithTag(TAG_EDIT_PORT).setText(editedService.serviceDefinition.port.toString())
@@ -212,7 +212,7 @@ class ServiceDetailsUiTest {
         val exception = IllegalStateException("Test exception: Could not save service.")
         every { storeUseCase.execute(any()) } returns flowOf(Result.failure(exception))
 
-        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SERVICE).performSafeClick()
+        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SERVICE).performClick()
         composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SAVE).performSafeClick()
 
         composeTestRule.onNodeWithTag(TAG_SAVE_ERROR).assertExists()
