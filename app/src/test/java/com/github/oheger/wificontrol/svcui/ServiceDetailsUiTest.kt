@@ -222,6 +222,18 @@ class ServiceDetailsUiTest {
         composeTestRule.onNodeWithTag(TAG_EDIT_NAME).assertExists()
         composeTestRule.onNodeWithTag(TAG_SHOW_NAME).assertDoesNotExist()
     }
+
+    @Test
+    fun `There is a navigation button to go back to the overview screen`() = runTest {
+        initService(service)
+        every { navController.navigate(any<String>()) } just runs
+
+        composeTestRule.onNodeWithTag(TAG_BTN_SVC_OVERVIEW).performClick()
+
+        verify {
+            navController.navigate(Navigation.ServicesRoute.route)
+        }
+    }
 }
 
 /** The index of the test service whose details should be shown. */

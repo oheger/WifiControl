@@ -26,10 +26,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.TopAppBar
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -65,6 +69,7 @@ internal const val TAG_EDIT_CODE = "svcEditCode"
 internal const val TAG_BTN_EDIT_SERVICE = "svcBtnEdit"
 internal const val TAG_BTN_EDIT_CANCEL = "svcBtnCancel"
 internal const val TAG_BTN_EDIT_SAVE = "svcBtnSave"
+internal const val TAG_BTN_SVC_OVERVIEW = "svcBtnOverview"
 internal const val TAG_SVC_TITLE = "svcDetailsTitle"
 
 /** The indent of the property value relative to the associated label. */
@@ -89,7 +94,8 @@ fun ServiceDetailsScreen(
                 state = state,
                 onEditClick = viewModel::editService,
                 onSaveClick = { service -> viewModel.saveService(service, navController) },
-                onCancelClick = { viewModel.cancelEdit(navController) }
+                onCancelClick = { viewModel.cancelEdit(navController) },
+                onOverviewClick = { navController.navigate(Navigation.ServicesRoute.route) }
             )
         }
 }
@@ -104,6 +110,7 @@ private fun ServiceDetailsScreenForState(
     onEditClick: () -> Unit,
     onSaveClick: (PersistentService) -> Unit,
     onCancelClick: () -> Unit,
+    onOverviewClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     ServicesScreen(state = state) { detailsState ->
@@ -119,6 +126,11 @@ private fun ServiceDetailsScreenForState(
                             },
                             modifier = modifier.testTag(TAG_SVC_TITLE)
                         )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onOverviewClick, modifier = modifier.testTag(TAG_BTN_SVC_OVERVIEW)) {
+                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        }
                     }
                 )
             }
@@ -373,7 +385,7 @@ fun ViewServiceDetailsPreview() {
     val state = ServicesUiStateLoaded(ServiceDetailsState(serviceData, 0, service, editMode = false))
 
     WifiControlTheme {
-        ServiceDetailsScreenForState(state = state, {}, {}, {})
+        ServiceDetailsScreenForState(state = state, {}, {}, {}, {})
     }
 }
 
@@ -397,6 +409,6 @@ fun EditServiceDetailsPreview() {
     val state = ServicesUiStateLoaded(detailsState)
 
     WifiControlTheme {
-        ServiceDetailsScreenForState(state = state, {}, {}, {})
+        ServiceDetailsScreenForState(state = state, {}, {}, {}, {})
     }
 }
