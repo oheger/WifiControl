@@ -130,6 +130,7 @@ class ServiceDetailsUiTest {
     fun `The details of the service should be displayed`() = runTest {
         initService(service)
 
+        composeTestRule.onNodeWithTag(TAG_SVC_TITLE).assertTextEquals(service.serviceDefinition.name)
         composeTestRule.onNodeWithTag(TAG_SHOW_NAME).assertTextEquals(service.serviceDefinition.name)
         composeTestRule.onNodeWithTag(TAG_SHOW_MULTICAST).assertTextEquals(service.serviceDefinition.multicastAddress)
         composeTestRule.onNodeWithTag(TAG_SHOW_PORT).assertTextEquals(service.serviceDefinition.port.toString())
@@ -146,6 +147,7 @@ class ServiceDetailsUiTest {
 
         composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SERVICE).performSafeClick()
 
+        composeTestRule.onNodeWithTag(TAG_SVC_TITLE).assertTextEquals(service.serviceDefinition.name)
         composeTestRule.onNodeWithTag(TAG_EDIT_NAME).assertTextEquals(service.serviceDefinition.name)
         composeTestRule.onNodeWithTag(TAG_EDIT_MULTICAST).assertTextEquals(service.serviceDefinition.multicastAddress)
         composeTestRule.onNodeWithTag(TAG_EDIT_PORT).assertTextEquals(service.serviceDefinition.port.toString())
