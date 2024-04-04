@@ -40,13 +40,14 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 
 import com.github.oheger.wificontrol.Navigation
@@ -77,22 +78,22 @@ internal fun serviceTag(serviceName: String, subTag: String): String = "${servic
 @Composable
 fun ServicesOverviewScreen(viewModel: ServicesViewModel, navController: NavController) {
     viewModel.loadServices()
+    val state: ServicesUiState<ServicesOverviewState> by viewModel.uiStateFlow.collectAsStateWithLifecycle(
+        ServicesUiStateLoading
+    )
 
-    viewModel.uiStateFlow.collectAsState(ServicesUiStateLoading).value
-        .let { state ->
-            ServicesOverviewScreenForState(
-                state = state,
-                onDetailsClick = { index ->
-                    navController.navigate(
-                        Navigation.ServiceDetailsRoute.forArguments(Navigation.ServiceDetailsArgs(index))
-                    )
-                },
-                onMoveUpClick = viewModel::moveServiceUp,
-                onMoveDownClick = viewModel::moveServiceDown,
-                onRemoveClick = viewModel::removeService,
-                onCreateClick = { navController.navigate(Navigation.ServiceDetailsRoute.forNewService) }
+    ServicesOverviewScreenForState(
+        state = state,
+        onDetailsClick = { index ->
+            navController.navigate(
+                Navigation.ServiceDetailsRoute.forArguments(Navigation.ServiceDetailsArgs(index))
             )
-        }
+        },
+        onMoveUpClick = viewModel::moveServiceUp,
+        onMoveDownClick = viewModel::moveServiceDown,
+        onRemoveClick = viewModel::removeService,
+        onCreateClick = { navController.navigate(Navigation.ServiceDetailsRoute.forNewService) }
+    )
 }
 
 /**
@@ -213,7 +214,7 @@ fun ServicesList(
 
         // Add space at the bottom of the list to prevent that the floating button blocks the actions of the last
         // list elements. With this space, the elements can be scrolled until they are above the button.
-        item { 
+        item {
             Spacer(modifier = modifier.height(54.dp))
         }
     }
