@@ -55,19 +55,16 @@ class LoadServiceUseCase @Inject constructor(
         )
     }
 
-    override fun process(input: Input): Flow<Output> {
-        return loadServiceDataUseCase.execute(LoadServiceDataUseCase.Input).map { dataResult ->
-            dataResult.map { data ->
-                val serviceData = data.data
-                val service = if (input.serviceIndex == ServiceData.NEW_SERVICE_INDEX) {
-                    newService
-                } else {
-                    serviceData.services[input.serviceIndex]
-                }
-                Output(serviceData, service)
-            }.getOrThrow()
+    override fun process(input: Input): Flow<Output> =
+        loadServiceDataUseCase.process(LoadServiceDataUseCase.Input).map { output ->
+            val serviceData = output.data
+            val service = if (input.serviceIndex == ServiceData.NEW_SERVICE_INDEX) {
+                newService
+            } else {
+                serviceData.services[input.serviceIndex]
+            }
+            Output(serviceData, service)
         }
-    }
 
     /**
      * The input type of this use case. Here the name of the service to be loaded is expected.

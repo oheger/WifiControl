@@ -35,6 +35,7 @@ import io.mockk.mockk
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 
 class LoadServiceUseCaseTest : StringSpec({
@@ -43,8 +44,8 @@ class LoadServiceUseCaseTest : StringSpec({
         val serviceData = ServiceData(listOf(createService(0), service, createService(2)), 0)
         val loadDataUseCase = mockk<LoadServiceDataUseCase> {
             every {
-                execute(LoadServiceDataUseCase.Input)
-            } returns flowOf(Result.success(LoadServiceDataUseCase.Output(serviceData)))
+                process(LoadServiceDataUseCase.Input)
+            } returns flowOf(LoadServiceDataUseCase.Output(serviceData))
         }
 
         val loadUseCase = LoadServiceUseCase(useCaseConfig, loadDataUseCase)
@@ -57,8 +58,8 @@ class LoadServiceUseCaseTest : StringSpec({
         val serviceData = ServiceData(listOf(createService(1), createService(2)), 0)
         val loadDataUseCase = mockk<LoadServiceDataUseCase> {
             every {
-                execute(LoadServiceDataUseCase.Input)
-            } returns flowOf(Result.success(LoadServiceDataUseCase.Output(serviceData)))
+                process(LoadServiceDataUseCase.Input)
+            } returns flowOf(LoadServiceDataUseCase.Output(serviceData))
         }
 
         val loadUseCase = LoadServiceUseCase(useCaseConfig, loadDataUseCase)
@@ -80,8 +81,8 @@ class LoadServiceUseCaseTest : StringSpec({
         val serviceData = ServiceData(listOf(createService(1), createService(2)), 1)
         val loadDataUseCase = mockk<LoadServiceDataUseCase> {
             every {
-                execute(LoadServiceDataUseCase.Input)
-            } returns flowOf(Result.success(LoadServiceDataUseCase.Output(serviceData)))
+                process(LoadServiceDataUseCase.Input)
+            } returns flowOf(LoadServiceDataUseCase.Output(serviceData))
         }
 
         val loadUseCase = LoadServiceUseCase(useCaseConfig, loadDataUseCase)
@@ -96,7 +97,7 @@ class LoadServiceUseCaseTest : StringSpec({
     "An error from the load data use case should be handled" {
         val loadException = IllegalArgumentException("Loading failed.")
         val loadDataUseCase = mockk<LoadServiceDataUseCase> {
-            every { execute(LoadServiceDataUseCase.Input) } returns flowOf(Result.failure(loadException))
+            every { process(LoadServiceDataUseCase.Input) } returns flow { throw loadException }
         }
 
         val loadUseCase = LoadServiceUseCase(useCaseConfig, loadDataUseCase)
