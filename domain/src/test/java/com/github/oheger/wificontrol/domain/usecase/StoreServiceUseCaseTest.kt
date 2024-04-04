@@ -60,8 +60,8 @@ class StoreServiceUseCaseTest : StringSpec({
         val expectedInput = StoreServiceDataUseCase.Input(serviceDataNew)
         val storeDataUseCase = mockk<StoreServiceDataUseCase> {
             every {
-                execute(expectedInput)
-            } returns flowOf(Result.success(StoreServiceDataUseCase.Output))
+                process(expectedInput)
+            } returns flowOf(StoreServiceDataUseCase.Output)
         }
 
         val input = StoreServiceUseCase.Input(serviceDataOrg, modifiedService, serviceIndex)
@@ -70,7 +70,7 @@ class StoreServiceUseCaseTest : StringSpec({
 
         result.shouldBeSuccess(StoreServiceUseCase.Output)
         verify {
-            storeDataUseCase.execute(expectedInput)
+            storeDataUseCase.process(expectedInput)
         }
     }
 
@@ -84,8 +84,8 @@ class StoreServiceUseCaseTest : StringSpec({
         val expectedInput = StoreServiceDataUseCase.Input(serviceDataNew)
         val storeDataUseCase = mockk<StoreServiceDataUseCase> {
             every {
-                execute(expectedInput)
-            } returns flowOf(Result.success(StoreServiceDataUseCase.Output))
+                process(expectedInput)
+            } returns flowOf(StoreServiceDataUseCase.Output)
         }
 
         val input = StoreServiceUseCase.Input(serviceDataOrg, newService, ServiceData.NEW_SERVICE_INDEX)
@@ -94,7 +94,7 @@ class StoreServiceUseCaseTest : StringSpec({
 
         result.shouldBeSuccess(StoreServiceUseCase.Output)
         verify {
-            storeDataUseCase.execute(expectedInput)
+            storeDataUseCase.process(expectedInput)
         }
     }
 
@@ -124,7 +124,7 @@ class StoreServiceUseCaseTest : StringSpec({
 
         val expException = IllegalArgumentException("Could not store service data.")
         val storeDataUseCase = mockk<StoreServiceDataUseCase> {
-            every { execute(any()) } throws expException
+            every { process(any()) } throws expException
         }
 
         val input = StoreServiceUseCase.Input(serviceData, service, 0)

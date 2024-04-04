@@ -41,7 +41,7 @@ class StoreServiceUseCase @Inject constructor(
     private val storeDataUseCase: StoreServiceDataUseCase
 ) : BaseUseCase<StoreServiceUseCase.Input, StoreServiceUseCase.Output>(config) {
     override fun process(input: Input): Flow<Output> =
-        updateFlow(input).flatMapConcat(storeDataUseCase::execute).map { Output }
+        updateFlow(input).flatMapConcat(storeDataUseCase::process).map { Output }
 
     /**
      * Return a [Flow] that updates the current [ServiceData] in the given [Input] based on the specified parameters.
