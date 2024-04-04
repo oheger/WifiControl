@@ -18,6 +18,8 @@
  */
 package com.github.oheger.wificontrol.domain.usecase
 
+import android.util.Log
+
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flowOn
@@ -36,19 +38,27 @@ abstract class BaseUseCase<in I : BaseUseCase.Input, out O : BaseUseCase.Output>
     /**
      * Execute this use case with the given [input]. Return a [Flow] with the resulting data wrapped in a [Result].
      */
-    fun execute(input: I): Flow<Result<O>> =
-        process(input)
-            .map { result -> Result.success(result) }
+    fun execute(input: I): Flow<Result<O>> {
+        return process(input)
+            .map { result ->
+                Log.i(
+                    "UseCase",
+                    "Executing use case ${this::class.simpleName} with input $input on " +
+                            "${Thread.currentThread().name}."
+                )
+                Result.success(result)
+            }
             .flowOn(config.dispatcher)
             .catch {
                 emit(Result.failure(it))
             }
+    }
 
     /**
      * Return the [Flow] with the output of this use case. This is called by [execute] to obtain the actual result.
      * The returned [Flow] is then further mapped to handle errors and set other parameters.
      */
-    protected abstract fun process(input: I): Flow<O>
+    internal abstract fun process(input: I): Flow<O>
 
     /**
      * A marker interface defining the input type for this use case. The [execute] function expects an object of this
