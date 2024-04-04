@@ -14,7 +14,7 @@ hiltNavigationCompose = "1.2.0"
 junitVintage = "5.10.2"
 koTest = "5.8.1"
 kotlinAndroidPlugin = "1.9.23"
-lifecycleRuntimeKtx = "2.7.0"
+lifecycleRuntime = "2.7.0"
 mockk = "1.13.10"
 protobufJavaLite = "4.26.1"
 protobufPlugin = "0.9.4"
@@ -45,7 +45,8 @@ androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", versi
 androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "composeUi" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "androidXDataStore" }
-androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycleRuntime" }
+androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycleRuntime" }
 androidx-test-espresso = { module = "androidx.test.espresso:espresso-core", version.ref = "testEspresso" }
 androidx-test-junit = { module = "androidx.test.ext:junit", version.ref = "testJUnit" }
 coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
