@@ -69,15 +69,26 @@ class ServicesViewModel @Inject constructor(
     /** A flow to keep track on errors that occur during saving of service data. */
     private val saveErrorFlow = MutableStateFlow<Throwable?>(null)
 
+    /**
+     * A flag to control that data about services is loaded only once. During recomposition, the [loadServices]
+     * function can be called multiple times. Since there is only a single flow with data, it does not make sense to
+     * execute the load use case multiple times.
+     * Note: As all invocations happen on the main dispatcher, there is no need for synchronization.
+     */
+    private var servicesLoaded = false
+
     val uiStateFlow = mutableUiStateFlow.asStateFlow().combineState(saveErrorFlow) { state, error ->
         state.copy(updateError = error)
     }
 
     fun loadServices() {
-        viewModelScope.launch {
-            loadServicesUseCase.execute(LoadServiceDataUseCase.Input)
-                .mapResultFlow { result -> ServicesOverviewState(result.data) }
-                .collect { state -> mutableUiStateFlow.value = state }
+        if (!servicesLoaded) {
+            servicesLoaded = true
+            viewModelScope.launch {
+                loadServicesUseCase.execute(LoadServiceDataUseCase.Input)
+                    .mapResultFlow { result -> ServicesOverviewState(result.data) }
+                    .collect { state -> mutableUiStateFlow.value = state }
+            }
         }
     }
 
