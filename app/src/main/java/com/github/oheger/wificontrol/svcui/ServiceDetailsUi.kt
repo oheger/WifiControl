@@ -36,7 +36,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -48,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 
 import com.github.oheger.wificontrol.Navigation
@@ -87,17 +87,16 @@ fun ServiceDetailsScreen(
     navController: NavController
 ) {
     viewModel.loadService(serviceDetailsArgs.serviceIndex)
+    val state: ServicesUiState<ServiceDetailsState> by
+    viewModel.uiStateFlow.collectAsStateWithLifecycle(ServicesUiStateLoading)
 
-    viewModel.uiStateFlow.collectAsState(ServicesUiStateLoading).value
-        .let { state ->
-            ServiceDetailsScreenForState(
-                state = state,
-                onEditClick = viewModel::editService,
-                onSaveClick = { service -> viewModel.saveService(service, navController) },
-                onCancelClick = { viewModel.cancelEdit(navController) },
-                onOverviewClick = { navController.navigate(Navigation.ServicesRoute.route) }
-            )
-        }
+    ServiceDetailsScreenForState(
+        state = state,
+        onEditClick = viewModel::editService,
+        onSaveClick = { service -> viewModel.saveService(service, navController) },
+        onCancelClick = { viewModel.cancelEdit(navController) },
+        onOverviewClick = { navController.navigate(Navigation.ServicesRoute.route) }
+    )
 }
 
 /**
