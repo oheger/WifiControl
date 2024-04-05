@@ -82,6 +82,9 @@ class ServiceDetailsViewModel @Inject constructor(
     /** A flow controlling whether edit mode is enabled or not. */
     private val editModeFlow = MutableStateFlow(false)
 
+    /** A flag that prevents multiple executions of the use case to load the current service. */
+    private var serviceLoaded = false
+
     /** The flow providing the current state of the service details UI. */
     val uiStateFlow: Flow<ServicesUiState<ServiceDetailsState>> =
         mutableUiStateFlow.asStateFlow().combineState(editModeFlow) { state, editMode ->
@@ -96,10 +99,13 @@ class ServiceDetailsViewModel @Inject constructor(
      * trigger [uiStateFlow] when the data is available.
      */
     fun loadService(serviceIndex: Int) {
-        viewModelScope.launch {
-            loadServiceUseCase.execute(LoadServiceUseCase.Input(serviceIndex)).mapResultFlow { result ->
-                ServiceDetailsState(result.serviceData, serviceIndex, result.service, editMode = false)
-            }.collect { state -> mutableUiStateFlow.value = state }
+        if (!serviceLoaded) {
+            serviceLoaded = true
+            viewModelScope.launch {
+                loadServiceUseCase.execute(LoadServiceUseCase.Input(serviceIndex)).mapResultFlow { result ->
+                    ServiceDetailsState(result.serviceData, serviceIndex, result.service, editMode = false)
+                }.collect { state -> mutableUiStateFlow.value = state }
+            }
         }
     }
 
