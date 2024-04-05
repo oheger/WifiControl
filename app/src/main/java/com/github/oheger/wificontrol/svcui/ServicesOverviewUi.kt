@@ -18,6 +18,7 @@
  */
 package com.github.oheger.wificontrol.svcui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,10 +27,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.Icon
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
@@ -42,6 +45,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -189,13 +193,17 @@ fun ServicesList(
 
     LazyColumn(modifier = modifier.fillMaxWidth()) {
         items(services.withIndex().toList()) { (index, service) ->
-            Row {
+            val color = if (index % 2 == 0) MaterialTheme.colors.surface else MaterialTheme.colors.secondary
+            Row(
+                modifier = modifier
+                    .background(color)
+                    .padding(top = 8.dp, bottom = 8.dp)
+            ) {
                 Text(
                     text = service.serviceDefinition.name,
-                    fontSize = 18.sp,
+                    fontSize = 24.sp,
                     modifier = Modifier
                         .testTag(serviceTag(service.serviceDefinition.name, TAG_SERVICE_NAME))
-                        .padding(bottom = 10.dp)
                 )
                 Spacer(modifier = modifier.weight(1f))
                 ServiceActions(
@@ -241,38 +249,50 @@ fun ServiceActions(
         horizontalArrangement = Arrangement.SpaceAround
     ) {
         if (!isFirst) {
-            Icon(
-                Icons.Filled.KeyboardArrowUp,
-                contentDescription = null,
-                modifier
-                    .testTag(serviceTag(serviceName, TAG_ACTION_UP))
-                    .clickable { onMoveUpClick(serviceName) }
+            ServiceAction(
+                image = Icons.Filled.KeyboardArrowUp,
+                onClick = { onMoveUpClick(serviceName) },
+                tag = serviceTag(serviceName, TAG_ACTION_UP),
+                modifier = modifier
             )
         }
         if (!isLast) {
-            Icon(
-                Icons.Filled.KeyboardArrowDown,
-                contentDescription = null,
-                modifier
-                    .testTag(serviceTag(serviceName, TAG_ACTION_DOWN))
-                    .clickable { onMoveDownClick(serviceName) }
+            ServiceAction(
+                image = Icons.Filled.KeyboardArrowDown,
+                onClick = { onMoveDownClick(serviceName) },
+                tag = serviceTag(serviceName, TAG_ACTION_DOWN),
+                modifier = modifier
             )
         }
-        Icon(
-            Icons.Filled.Search,
-            contentDescription = null,
-            modifier
-                .testTag(serviceTag(serviceName, TAG_ACTION_DETAILS))
-                .clickable { onDetailsClick(index) }
+        ServiceAction(
+            image = Icons.Filled.Search,
+            onClick = { onDetailsClick(index) },
+            tag = serviceTag(serviceName, TAG_ACTION_DETAILS),
+            modifier = modifier
         )
-        Icon(
-            Icons.Filled.Delete,
-            contentDescription = null,
-            modifier
-                .testTag(serviceTag(serviceName, TAG_ACTION_REMOVE))
-                .clickable { onRemoveClick(serviceName) }
+        ServiceAction(
+            image = Icons.Filled.Delete,
+            onClick = { onRemoveClick(serviceName) },
+            tag = serviceTag(serviceName, TAG_ACTION_REMOVE),
+            modifier = modifier
         )
     }
+}
+
+/**
+ * Generate an icon with the given [image] to represent an action to modify a service. Use the given [onClick]
+ * function to report clicks and set the given [tag] to support testing.
+ */
+@Composable
+private fun ServiceAction(image: ImageVector, onClick: () -> Unit, tag: String, modifier: Modifier) {
+    Icon(
+        image,
+        contentDescription = null,
+        modifier = modifier
+            .testTag(tag)
+            .size(34.dp)
+            .clickable(onClick = onClick)
+    )
 }
 
 @Preview
