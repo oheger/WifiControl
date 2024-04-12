@@ -16,27 +16,26 @@
  * SPDX-License-Identifier: Apache-2.0
  * License-Filename: LICENSE
  */
-package com.github.oheger.wificontrol.repository.di
+package com.github.oheger.wificontrol.control.di
 
-import com.github.oheger.wificontrol.domain.repo.ServiceDataRepository
-import com.github.oheger.wificontrol.domain.repo.WiFiStateRepository
-import com.github.oheger.wificontrol.repository.impl.ServiceDataRepositoryImpl
-import com.github.oheger.wificontrol.repository.impl.WiFiStateRepositoryImpl
+import android.content.Context
 
-import dagger.Binds
+import com.github.oheger.wificontrol.control.source.WiFiStateDataSourceImpl
+import com.github.oheger.wificontrol.repository.ds.WiFiStateDataSource
+
 import dagger.Module
+import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 
 /**
- * Hilt module that binds the implementations to repository interfaces.
+ * Hilt module that provides the data source implementations hosted in this project.
  */
 @Module
 @InstallIn(SingletonComponent::class)
-abstract class RepositoryModule {
-    @Binds
-    abstract fun serviceDataRepository(serviceDataRepository: ServiceDataRepositoryImpl): ServiceDataRepository
-
-    @Binds
-    abstract fun wiFiStateRepository(stateRepository: WiFiStateRepositoryImpl): WiFiStateRepository
+class DataSourceModule {
+    @Provides
+    fun wiFiStateDataSource(@ApplicationContext context: Context): WiFiStateDataSource =
+        WiFiStateDataSourceImpl.create(context)
 }
