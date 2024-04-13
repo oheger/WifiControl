@@ -88,6 +88,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":control"))
     implementation(project(":domain"))
     implementation(project(":persistence"))
     implementation(project(":repository"))
