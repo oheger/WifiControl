@@ -90,4 +90,76 @@ class NavigationTest : WordSpec({
             args shouldBe Navigation.ServiceDetailsArgs(0)
         }
     }
+
+    "ControlServiceRoute" should {
+        "define the correct route" {
+            Navigation.ControlServiceRoute.route shouldBe "control/{serviceName}"
+        }
+
+        "have a correct argument" {
+            with(Navigation.ControlServiceRoute.arguments.single()) {
+                name shouldBe "serviceName"
+                argument.type shouldBe NavType.StringType
+                argument.isNullable shouldBe false
+            }
+        }
+
+        "generate the correct route for a specific service name" {
+            val controlArgs = Navigation.ControlServiceArgs("MyServiceToControl")
+
+            val route = Navigation.ControlServiceRoute.forArguments(controlArgs)
+
+            route shouldBe "control/MyServiceToControl"
+        }
+
+        "return a ControlServiceArgs object from a NavBackStackEntry" {
+            val serviceName = "ControlTestService"
+
+            val bundle = mockk<Bundle> {
+                every { getString("serviceName") } returns serviceName
+            }
+            val entry = mockk<NavBackStackEntry> {
+                every { arguments } returns bundle
+            }
+
+            val args = Navigation.ControlServiceRoute.fromEntry(entry)
+
+            args shouldBe Navigation.ControlServiceArgs(serviceName)
+        }
+
+        "return a ControlServiceArgs object from a NavBackStackEntry if the Bundle is null" {
+            val entry = mockk<NavBackStackEntry> {
+                every { arguments } returns null
+            }
+
+            val args = Navigation.ControlServiceRoute.fromEntry(entry)
+
+            args shouldBe Navigation.ControlServiceArgs("")
+        }
+
+        "URL encode special characters in a service name when generating the route" {
+            val serviceName = "My Test? Service"
+            val expectedRoute = "control/My+Test%3F+Service"
+
+            val route = Navigation.ControlServiceRoute.forArguments(Navigation.ControlServiceArgs(serviceName))
+
+            route shouldBe expectedRoute
+        }
+
+        "URL decode the service name from a NavBackStackEntry" {
+            val encodedServiceName = "Control+Test%23+Service"
+            val serviceName = "Control Test# Service"
+
+            val bundle = mockk<Bundle> {
+                every { getString("serviceName") } returns encodedServiceName
+            }
+            val entry = mockk<NavBackStackEntry> {
+                every { arguments } returns bundle
+            }
+
+            val args = Navigation.ControlServiceRoute.fromEntry(entry)
+
+            args shouldBe Navigation.ControlServiceArgs(serviceName)
+        }
+    }
 })

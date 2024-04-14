@@ -25,6 +25,9 @@ import androidx.navigation.navArgument
 
 import com.github.oheger.wificontrol.domain.model.ServiceData
 
+import java.net.URLDecoder
+import java.net.URLEncoder
+
 /**
  * An object defining the navigation routes and their parameters used by this app.
  */
@@ -32,8 +35,17 @@ object Navigation {
     /** Route path for the services overview UI. */
     private const val ROUTE_SERVICES = "services"
 
+    /** Route path for the control UI. */
+    private const val ROUTE_CONTROL = "control"
+
     /** The argument defining the service index. */
     private const val ARG_SERVICE_INDEX = "serviceIndex"
+
+    /** The argument defining the service name. */
+    private const val ARG_SERVICE_NAME = "serviceName"
+
+    /** The encoding used for URL encoding and decoding. */
+    private const val ENCODING = "UTF-8"
 
     /**
      * Generate a route path from this string with the given sub [path].
@@ -51,6 +63,14 @@ object Navigation {
     data class ServiceDetailsArgs(
         /** The index of the service to be displayed. */
         val serviceIndex: Int
+    )
+
+    /**
+     * A data class defining the arguments for the UI to control a specific service.
+     */
+    data class ControlServiceArgs(
+        /** The name of the service to be controlled. */
+        val serviceName: String
     )
 
     /**
@@ -95,5 +115,32 @@ object Navigation {
          */
         fun fromEntry(entry: NavBackStackEntry): ServiceDetailsArgs =
             ServiceDetailsArgs(entry.arguments?.getInt(ARG_SERVICE_INDEX) ?: 0)
+    }
+
+    /**
+     * The object representing the route to the UI to control a specific service. Here, the service is identified by
+     * its name. Since the name can contain special characters, it must be encoded.
+     */
+    data object ControlServiceRoute : NavigationRoute(
+        ROUTE_CONTROL.subPathArgument(ARG_SERVICE_NAME),
+        listOf(
+            navArgument(ARG_SERVICE_NAME) {
+                type = NavType.StringType
+            }
+        )
+    ) {
+        /**
+         * Generate the routing path to the control UI for the given [arguments].
+         */
+        fun forArguments(arguments: ControlServiceArgs): String =
+            ROUTE_CONTROL.subPath(URLEncoder.encode(arguments.serviceName, ENCODING))
+
+        /**
+         * Extract a [ControlServiceArgs] object from the given [entry].
+         */
+        fun fromEntry(entry: NavBackStackEntry): ControlServiceArgs =
+            ControlServiceArgs(
+                URLDecoder.decode(entry.arguments?.getString(ARG_SERVICE_NAME).orEmpty(), ENCODING)
+            )
     }
 }
