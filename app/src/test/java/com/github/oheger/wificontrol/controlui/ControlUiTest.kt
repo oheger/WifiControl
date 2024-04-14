@@ -24,6 +24,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
+import com.github.oheger.wificontrol.Navigation
 import com.github.oheger.wificontrol.domain.model.WiFiState
 import com.github.oheger.wificontrol.domain.usecase.GetWiFiStateUseCase
 
@@ -57,7 +58,7 @@ class ControlUiTest {
 
         val controlViewModel = ControlViewModel(getWiFiStateUseCase)
         composeTestRule.setContent {
-            ControlScreen(viewModel = controlViewModel, serviceName = SERVICE_NAME)
+            ControlScreen(viewModel = controlViewModel, controlArgs = Navigation.ControlServiceArgs(SERVICE_NAME))
         }
     }
 

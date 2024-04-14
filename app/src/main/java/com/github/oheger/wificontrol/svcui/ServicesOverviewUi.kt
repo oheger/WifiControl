@@ -88,6 +88,11 @@ fun ServicesOverviewScreen(viewModel: ServicesViewModel, navController: NavContr
 
     ServicesOverviewScreenForState(
         state = state,
+        onServiceClick = { serviceName ->
+            navController.navigate(
+                Navigation.ControlServiceRoute.forArguments(Navigation.ControlServiceArgs(serviceName))
+            )
+        },
         onDetailsClick = { index ->
             navController.navigate(
                 Navigation.ServiceDetailsRoute.forArguments(Navigation.ServiceDetailsArgs(index))
@@ -107,6 +112,7 @@ fun ServicesOverviewScreen(viewModel: ServicesViewModel, navController: NavContr
 @Composable
 fun ServicesOverviewScreenForState(
     state: ServicesUiState<ServicesOverviewState>,
+    onServiceClick: (String) -> Unit,
     onDetailsClick: (Int) -> Unit,
     onMoveUpClick: (String) -> Unit,
     onMoveDownClick: (String) -> Unit,
@@ -131,6 +137,7 @@ fun ServicesOverviewScreenForState(
         ) { innerPadding ->
             ServicesLoaded(
                 state = overviewState,
+                onServiceClick = onServiceClick,
                 onDetailsClick = onDetailsClick,
                 onMoveUpClick = onMoveUpClick,
                 onMoveDownClick = onMoveDownClick,
@@ -148,6 +155,7 @@ fun ServicesOverviewScreenForState(
 @Composable
 fun ServicesLoaded(
     state: ServicesOverviewState,
+    onServiceClick: (String) -> Unit,
     onDetailsClick: (Int) -> Unit,
     onMoveUpClick: (String) -> Unit,
     onMoveDownClick: (String) -> Unit,
@@ -161,6 +169,7 @@ fun ServicesLoaded(
     ) {
         ServicesList(
             services = state.serviceData.services,
+            onServiceClick = onServiceClick,
             onDetailsClick = onDetailsClick,
             onMoveUpClick = onMoveUpClick,
             onMoveDownClick = onMoveDownClick,
@@ -177,6 +186,7 @@ fun ServicesLoaded(
 @Composable
 fun ServicesList(
     services: List<PersistentService>,
+    onServiceClick: (String) -> Unit,
     onDetailsClick: (Int) -> Unit,
     onMoveUpClick: (String) -> Unit,
     onMoveDownClick: (String) -> Unit,
@@ -203,6 +213,7 @@ fun ServicesList(
                     text = service.serviceDefinition.name,
                     fontSize = 24.sp,
                     modifier = Modifier
+                        .clickable { onServiceClick(service.serviceDefinition.name) }
                         .testTag(serviceTag(service.serviceDefinition.name, TAG_SERVICE_NAME))
                 )
                 Spacer(modifier = modifier.weight(1f))
@@ -325,7 +336,7 @@ fun ServicesListPreview() {
 
     WifiControlTheme {
         Column {
-            ServicesOverviewScreenForState(ServicesUiStateLoaded(state), {}, {}, {}, {}, {})
+            ServicesOverviewScreenForState(ServicesUiStateLoaded(state), {}, {}, {}, {}, {}, {})
         }
     }
 }
@@ -339,7 +350,7 @@ fun ServicesListEmptyPreview() {
 
     WifiControlTheme {
         Column {
-            ServicesOverviewScreenForState(ServicesUiStateLoaded(state), {}, {}, {}, {}, {})
+            ServicesOverviewScreenForState(ServicesUiStateLoaded(state), {}, {}, {}, {}, {}, {})
         }
     }
 }
@@ -348,7 +359,7 @@ fun ServicesListEmptyPreview() {
 @Composable
 fun ServicesLoadingPreview() {
     WifiControlTheme {
-        ServicesOverviewScreenForState(state = ServicesUiStateLoading, {}, {}, {}, {}, {})
+        ServicesOverviewScreenForState(state = ServicesUiStateLoading, {}, {}, {}, {}, {}, {})
     }
 }
 
@@ -358,6 +369,6 @@ fun ServicesErrorPreview() {
     val exception = IllegalStateException("Something went terribly wrong :-(")
     val state = ServicesUiStateError(exception)
     WifiControlTheme {
-        ServicesOverviewScreenForState(state = state, {}, {}, {}, {}, {})
+        ServicesOverviewScreenForState(state = state, {}, {}, {}, {}, {}, {})
     }
 }

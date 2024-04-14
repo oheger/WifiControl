@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
+import com.github.oheger.wificontrol.Navigation
 import com.github.oheger.wificontrol.R
 import com.github.oheger.wificontrol.TAG_WIFI_UNAVAILABLE_HINT
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
@@ -65,15 +66,15 @@ internal fun iconTag(tag: String): String = "${tag}_icon"
 
 /**
  * The main entry point into the UI to control a specific service. The UI shows the different states when obtaining
- * the control UI of the service with the given [serviceName]. Once the UI is available, it is opened in a Web view.
- * The given [viewModel] is responsible for updating the UI state accordingly.
+ * the control UI of the service identified by the given [controlArgs]. Once the UI is available, it is opened in a
+ * Web view. The given [viewModel] is responsible for updating the UI state accordingly.
  */
 @Composable
-fun ControlScreen(viewModel: ControlViewModel, serviceName: String) {
+fun ControlScreen(viewModel: ControlViewModel, controlArgs: Navigation.ControlServiceArgs) {
     viewModel.initControlState()
     val state: ControlUiState by viewModel.uiStateFlow.collectAsStateWithLifecycle(WiFiUnavailable)
 
-    ControlScreenForState(serviceName = serviceName, uiState = state)
+    ControlScreenForState(serviceName = controlArgs.serviceName, uiState = state)
 }
 
 /**
