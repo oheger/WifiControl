@@ -33,6 +33,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 
+import com.github.oheger.wificontrol.controlui.ControlScreen
 import com.github.oheger.wificontrol.svcui.ServiceDetailsScreen
 import com.github.oheger.wificontrol.svcui.ServicesOverviewScreen
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
@@ -76,6 +77,13 @@ fun App(navController: NavHostController) {
                 serviceDetailsArgs = Navigation.ServiceDetailsRoute.fromEntry(it),
                 navController = navController
             )
+        }
+
+        composable(
+            route = Navigation.ControlServiceRoute.route,
+            arguments = Navigation.ControlServiceRoute.arguments
+        ) {
+            ControlScreen(viewModel = hiltViewModel(), controlArgs = Navigation.ControlServiceRoute.fromEntry(it))
         }
     }
 }

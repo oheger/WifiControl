@@ -247,6 +247,18 @@ class ServicesOverviewUiTest {
             navController.navigate("services/${ServiceData.NEW_SERVICE_INDEX}")
         }
     }
+
+    @Test
+    fun `Navigation to the control UI for a specific service is possible`() = runTest {
+        val serviceData = initServiceData(createServiceData(3))
+        val service = serviceData.services[1]
+
+        composeTestRule.onNodeWithTag(serviceTag(service.serviceDefinition.name, TAG_SERVICE_NAME)).performClick()
+
+        verify {
+            navController.navigate("control/${service.serviceDefinition.name}")
+        }
+    }
 }
 
 /**
