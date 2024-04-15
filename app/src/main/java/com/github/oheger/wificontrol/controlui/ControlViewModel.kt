@@ -52,17 +52,27 @@ class ControlViewModel @Inject constructor(
     val uiStateFlow: Flow<ControlUiState> = mutableUiStateFlow
 
     /**
+     * A flag whether this model has already been initialized. This is used to prevent multiple use case
+     * invocations during recomposition of the UI.
+     */
+    private var initialized = false
+
+    /**
      * Trigger the initialization of the [ControlUiState] for the current service. Changes in the state can then be
      * tracked via the [uiStateFlow] property.
      */
     fun initControlState() {
-        viewModelScope.launch {
-            getWiFiStateUseCase.execute(GetWiFiStateUseCase.Input)
-                .mapNotNull { result -> result.getOrNull()?.wiFiState }
-                .collect { wiFiState ->
-                    val uiState = if (wiFiState == WiFiState.WI_FI_AVAILABLE) ServiceDiscovery else WiFiUnavailable
-                    mutableUiStateFlow.value = uiState
-                }
+        if (!initialized) {
+            initialized = true
+
+            viewModelScope.launch {
+                getWiFiStateUseCase.execute(GetWiFiStateUseCase.Input)
+                    .mapNotNull { result -> result.getOrNull()?.wiFiState }
+                    .collect { wiFiState ->
+                        val uiState = if (wiFiState == WiFiState.WI_FI_AVAILABLE) ServiceDiscovery else WiFiUnavailable
+                        mutableUiStateFlow.value = uiState
+                    }
+            }
         }
     }
 }
