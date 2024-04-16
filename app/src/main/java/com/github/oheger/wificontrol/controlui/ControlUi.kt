@@ -27,10 +27,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -44,12 +47,14 @@ import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 
 import com.github.oheger.wificontrol.Navigation
 import com.github.oheger.wificontrol.R
 import com.github.oheger.wificontrol.TAG_WIFI_UNAVAILABLE_HINT
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
+internal const val TAG_BTN_NAV_OVERVIEW = "ctrlBtnNavOverview"
 internal const val TAG_SERVICE_NAME = "ctrlServiceName"
 internal const val TAG_WIFI_AVAILABLE = "ctrlWiFiAvailable"
 internal const val TAG_WIFI_UNAVAILABLE = "ctrlWiFiUnavailable"
@@ -67,26 +72,45 @@ internal fun iconTag(tag: String): String = "${tag}_icon"
 /**
  * The main entry point into the UI to control a specific service. The UI shows the different states when obtaining
  * the control UI of the service identified by the given [controlArgs]. Once the UI is available, it is opened in a
- * Web view. The given [viewModel] is responsible for updating the UI state accordingly.
+ * Web view. The given [viewModel] is responsible for updating the UI state accordingly. Use the given
+ * [navController] to navigate to other application screens.
  */
 @Composable
-fun ControlScreen(viewModel: ControlViewModel, controlArgs: Navigation.ControlServiceArgs) {
+fun ControlScreen(
+    viewModel: ControlViewModel,
+    controlArgs: Navigation.ControlServiceArgs,
+    navController: NavController
+) {
     viewModel.initControlState()
     val state: ControlUiState by viewModel.uiStateFlow.collectAsStateWithLifecycle(WiFiUnavailable)
 
-    ControlScreenForState(serviceName = controlArgs.serviceName, uiState = state)
+    ControlScreenForState(
+        serviceName = controlArgs.serviceName,
+        uiState = state,
+        onOverviewClick = { navController.navigate(Navigation.ServicesRoute.route) }
+    )
 }
 
 /**
  * Render the control UI for the service with the given [serviceName] based on the given [uiState].
  */
 @Composable
-private fun ControlScreenForState(serviceName: String, uiState: ControlUiState, modifier: Modifier = Modifier) {
+private fun ControlScreenForState(
+    serviceName: String,
+    uiState: ControlUiState,
+    onOverviewClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(text = serviceName, modifier = modifier.testTag(TAG_SERVICE_NAME))
+                },
+                navigationIcon = {
+                    IconButton(onClick = onOverviewClick, modifier = modifier.testTag(TAG_BTN_NAV_OVERVIEW)) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                    }
                 }
             )
         }
@@ -169,7 +193,7 @@ fun ControlScreenPreview(
     uiState: ControlUiState
 ) {
     WifiControlTheme {
-        ControlScreenForState(serviceName = "Test service", uiState = uiState)
+        ControlScreenForState(serviceName = "Test service", uiState = uiState, {})
     }
 }
 

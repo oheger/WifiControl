@@ -22,6 +22,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.navigation.NavController
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
 import com.github.oheger.wificontrol.Navigation
@@ -31,7 +33,10 @@ import com.github.oheger.wificontrol.domain.usecase.GetWiFiStateUseCase
 import io.kotest.inspectors.forAll
 
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.runs
+import io.mockk.verify
 
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.runTest
@@ -46,6 +51,9 @@ class ControlUiTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
+    /** A mock for the [NavController] for testing navigation actions. */
+    private lateinit var navController: NavController
+
     /** The flow used to inject the Wi-Fi state into test cases. */
     private lateinit var wiFiStateFlow: MutableSharedFlow<Result<GetWiFiStateUseCase.Output>>
 
@@ -56,9 +64,14 @@ class ControlUiTest {
             every { execute(GetWiFiStateUseCase.Input) } returns wiFiStateFlow
         }
 
+        navController = mockk()
         val controlViewModel = ControlViewModel(getWiFiStateUseCase)
         composeTestRule.setContent {
-            ControlScreen(viewModel = controlViewModel, controlArgs = Navigation.ControlServiceArgs(SERVICE_NAME))
+            ControlScreen(
+                viewModel = controlViewModel,
+                controlArgs = Navigation.ControlServiceArgs(SERVICE_NAME),
+                navController = navController
+            )
         }
     }
 
@@ -86,6 +99,17 @@ class ControlUiTest {
     @Test
     fun `The service name should be shown`() {
         composeTestRule.onNodeWithTag(TAG_SERVICE_NAME).assertTextEquals(SERVICE_NAME)
+    }
+
+    @Test
+    fun `Navigation to the services overview UI should be possible`() {
+        every { navController.navigate(any<String>()) } just runs
+
+        composeTestRule.onNodeWithTag(TAG_BTN_NAV_OVERVIEW).performClick()
+
+        verify {
+            navController.navigate(Navigation.ServicesRoute.route)
+        }
     }
 
     @Test
