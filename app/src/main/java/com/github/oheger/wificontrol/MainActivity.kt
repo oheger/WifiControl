@@ -83,7 +83,11 @@ fun App(navController: NavHostController) {
             route = Navigation.ControlServiceRoute.route,
             arguments = Navigation.ControlServiceRoute.arguments
         ) {
-            ControlScreen(viewModel = hiltViewModel(), controlArgs = Navigation.ControlServiceRoute.fromEntry(it))
+            ControlScreen(
+                viewModel = hiltViewModel(),
+                controlArgs = Navigation.ControlServiceRoute.fromEntry(it),
+                navController = navController
+            )
         }
     }
 }
