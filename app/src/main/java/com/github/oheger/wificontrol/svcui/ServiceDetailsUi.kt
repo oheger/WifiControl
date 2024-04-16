@@ -42,6 +42,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -66,10 +67,13 @@ internal const val TAG_EDIT_NAME = "svcEditName"
 internal const val TAG_EDIT_MULTICAST = "svcEditMulticast"
 internal const val TAG_EDIT_PORT = "svcEditPort"
 internal const val TAG_EDIT_CODE = "svcEditCode"
-internal const val TAG_BTN_EDIT_SERVICE = "svcBtnEdit"
+
+internal const val TAG_BTN_CONTROL_SERVICE = "svcBtnControl"
 internal const val TAG_BTN_EDIT_CANCEL = "svcBtnCancel"
+internal const val TAG_BTN_EDIT_SERVICE = "svcBtnEdit"
 internal const val TAG_BTN_EDIT_SAVE = "svcBtnSave"
 internal const val TAG_BTN_SVC_OVERVIEW = "svcBtnOverview"
+
 internal const val TAG_SVC_TITLE = "svcDetailsTitle"
 
 /** The indent of the property value relative to the associated label. */
@@ -93,6 +97,7 @@ fun ServiceDetailsScreen(
     ServiceDetailsScreenForState(
         state = state,
         onEditClick = viewModel::editService,
+        onControlClick = { navController.navigateControl(state) },
         onSaveClick = { service -> viewModel.saveService(service, navController) },
         onCancelClick = { viewModel.cancelEdit(navController) },
         onOverviewClick = { navController.navigate(Navigation.ServicesRoute.route) }
@@ -107,6 +112,7 @@ fun ServiceDetailsScreen(
 private fun ServiceDetailsScreenForState(
     state: ServicesUiState<ServiceDetailsState>,
     onEditClick: () -> Unit,
+    onControlClick: () -> Unit,
     onSaveClick: (PersistentService) -> Unit,
     onCancelClick: () -> Unit,
     onOverviewClick: () -> Unit,
@@ -135,6 +141,15 @@ private fun ServiceDetailsScreenForState(
                         if (!detailsState.editMode) {
                             IconButton(onClick = onEditClick, modifier = modifier.testTag(TAG_BTN_EDIT_SERVICE)) {
                                 Icon(imageVector = Icons.Filled.Edit, contentDescription = null)
+                            }
+                            IconButton(
+                                onClick = onControlClick,
+                                modifier = modifier.testTag(TAG_BTN_CONTROL_SERVICE)
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_remote_control),
+                                    contentDescription = null
+                                )
                             }
                         }
                     }
@@ -361,6 +376,14 @@ private fun PropertyLabel(labelRes: Int, modifier: Modifier) {
     Text(text = stringResource(id = labelRes), fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = modifier)
 }
 
+/**
+ * Helper function to navigate to the control UI for the current service in the given [state] object.
+ */
+private fun NavController.navigateControl(state: ServicesUiState<ServiceDetailsState>) {
+    val serviceName = state.process { it.service.serviceDefinition.name }.orEmpty()
+    navigate(Navigation.ControlServiceRoute.forArguments(Navigation.ControlServiceArgs(serviceName)))
+}
+
 @Preview
 @Composable
 fun ViewServiceDetailsPreview() {
@@ -379,7 +402,7 @@ fun ViewServiceDetailsPreview() {
     val state = ServicesUiStateLoaded(ServiceDetailsState(serviceData, 0, service, editMode = false))
 
     WifiControlTheme {
-        ServiceDetailsScreenForState(state = state, {}, {}, {}, {})
+        ServiceDetailsScreenForState(state = state, {}, {}, {}, {}, {})
     }
 }
 
@@ -403,6 +426,6 @@ fun EditServiceDetailsPreview() {
     val state = ServicesUiStateLoaded(detailsState)
 
     WifiControlTheme {
-        ServiceDetailsScreenForState(state = state, {}, {}, {}, {})
+        ServiceDetailsScreenForState(state = state, {}, {}, {}, {}, {})
     }
 }

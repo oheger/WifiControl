@@ -153,7 +153,14 @@ class ServiceDetailsUiTest {
         composeTestRule.onNodeWithTag(TAG_EDIT_PORT).assertTextEquals(service.serviceDefinition.port.toString())
         composeTestRule.onNodeWithTag(TAG_EDIT_CODE).assertTextEquals(service.serviceDefinition.requestCode)
 
-        listOf(TAG_SHOW_NAME, TAG_SHOW_MULTICAST, TAG_SHOW_PORT, TAG_SHOW_CODE).forAll {
+        listOf(
+            TAG_SHOW_NAME,
+            TAG_SHOW_MULTICAST,
+            TAG_SHOW_PORT,
+            TAG_SHOW_CODE,
+            TAG_BTN_EDIT_SERVICE,
+            TAG_BTN_CONTROL_SERVICE
+        ).forAll {
             composeTestRule.onNodeWithTag(it).assertDoesNotExist()
         }
     }
@@ -232,6 +239,18 @@ class ServiceDetailsUiTest {
 
         verify {
             navController.navigate(Navigation.ServicesRoute.route)
+        }
+    }
+
+    @Test
+    fun `Navigation to the control UI should be possible`() = runTest {
+        initService(service)
+        every { navController.navigate(any<String>()) } just runs
+
+        composeTestRule.onNodeWithTag(TAG_BTN_CONTROL_SERVICE).performClick()
+
+        verify {
+            navController.navigate("control/${service.serviceDefinition.name}")
         }
     }
 }
