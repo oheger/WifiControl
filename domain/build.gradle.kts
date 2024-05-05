@@ -74,6 +74,7 @@ kotlin {
 }
 
 dependencies {
+    api(libs.kotlinx.datetime)
     implementation(libs.androidx.core.ktx)
     implementation(libs.hilt.android)
 
