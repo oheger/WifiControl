@@ -30,6 +30,7 @@ import com.github.oheger.wificontrol.repository.ds.ServiceDiscoveryDataSource
 
 import java.net.DatagramPacket
 import java.net.DatagramSocket
+import java.net.URI
 
 import javax.inject.Inject
 
@@ -66,6 +67,13 @@ class ServiceDiscoveryDataSourceImpl @Inject constructor(
 
         /** The size of the packet for receiving UDP data. */
         private const val DATAGRAM_PACKET_SIZE = 256
+
+        /**
+         * Check whether the given [serviceResponse] is a valid URI. If not, it is ignored, and service discovery
+         * continues.
+         */
+        private fun isValidUri(serviceResponse: String): Boolean =
+            runCatching { URI(serviceResponse) }.isSuccess
     }
 
     override fun discoverService(
@@ -75,22 +83,28 @@ class ServiceDiscoveryDataSourceImpl @Inject constructor(
         val lookupFlow = MutableSharedFlow<LookupState>(replay = 1)
 
         scope.launch {
-            val lookupService = lookupServiceProvider()
-            Log.i(TAG, "Starting service discovery for '$serviceName'.")
-            DatagramSocket().use { sendSocket ->
-                DatagramSocket().use { receiveSocket ->
-                    launch { udpCommunication(lookupService, sendSocket, receiveSocket, lookupFlow) }
+            runCatching {
+                val lookupService = lookupServiceProvider()
+                Log.i(TAG, "Starting service discovery for '$serviceName'.")
 
-                    val lookupResult = withTimeoutOrNull(lookupService.lookupConfig.networkTimeout) {
-                        lookupFlow.first { it is LookupSucceeded }
-                    }
-                    if (lookupResult != null) {
-                        Log.i(TAG, "Service discovery was successful for '$serviceName'.")
-                    } else {
-                        Log.i(TAG, "Service '$serviceName' could not be discovered within the timeout.")
-                        lookupFlow.emit(LookupFailed)
+                DatagramSocket().use { sendSocket ->
+                    DatagramSocket().use { receiveSocket ->
+                        launch { udpCommunication(lookupService, sendSocket, receiveSocket, lookupFlow) }
+
+                        val lookupResult = withTimeoutOrNull(lookupService.lookupConfig.networkTimeout) {
+                            lookupFlow.first { it is LookupSucceeded }
+                        }
+                        if (lookupResult != null) {
+                            Log.i(TAG, "Service discovery was successful for '$serviceName'.")
+                        } else {
+                            Log.i(TAG, "Service '$serviceName' could not be discovered within the timeout.")
+                            lookupFlow.emit(LookupFailed)
+                        }
                     }
                 }
+            }.onFailure {
+                Log.e(TAG, "Service discovery failed for '$serviceName': $it")
+                lookupFlow.emit(LookupFailed)
             }
         }
 
@@ -142,7 +156,9 @@ class ServiceDiscoveryDataSourceImpl @Inject constructor(
                 val data = String(packetReceive.data, 0, packetReceive.length)
                 Log.i(TAG, "Received response from server: '$data'.")
 
-                stateFlow.emit(LookupSucceeded(data))
+                data.takeIf(::isValidUri)?.let {
+                    stateFlow.emit(LookupSucceeded(it))
+                }
             }
         }
     }

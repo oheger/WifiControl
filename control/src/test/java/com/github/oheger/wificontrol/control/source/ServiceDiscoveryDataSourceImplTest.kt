@@ -142,6 +142,34 @@ class ServiceDiscoveryDataSourceImplTest : WordSpec() {
                     states shouldHaveSize 2
                 }
             }
+
+            "handle exceptions from the lookup service provider function" {
+                withTestServer { _ ->
+                    val source = createSource()
+
+                    val stateFlow = source.discoverService(SERVICE_NAME) {
+                        throw IllegalArgumentException("Test exception")
+                    }
+
+                    stateFlow.first() shouldBe LookupFailed
+                }
+            }
+
+            "ignore an invalid URI response from the service" {
+                withTestServer(response = "?!This is not a valid URL!?") { serviceDefinition ->
+                    val lookupService = LookupService(
+                        service = serviceDefinition,
+                        lookupConfig = defaultLookupConfig.copy(networkTimeout = 200.milliseconds)
+                    )
+                    val source = createSource()
+
+                    val stateFlow = source.discoverService(SERVICE_NAME) { lookupService }
+                        .terminateAtEndState()
+
+                    val states = stateFlow.toList()
+                    states.last() shouldBe LookupFailed
+                }
+            }
         }
     }
 }
