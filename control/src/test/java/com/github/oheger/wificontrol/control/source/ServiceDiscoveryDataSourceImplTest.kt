@@ -40,6 +40,7 @@ import java.net.ServerSocket
 
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.nanoseconds
 import kotlin.time.Duration.Companion.seconds
 
 import kotlinx.coroutines.CoroutineScope
@@ -169,6 +170,41 @@ class ServiceDiscoveryDataSourceImplTest : WordSpec() {
                     val states = stateFlow.toList()
                     states.last() shouldBe LookupFailed
                 }
+            }
+
+            "cache results" {
+                val source = createSource()
+
+                withTestServer { serviceDefinition ->
+                    val lookupService = LookupService(serviceDefinition, defaultLookupConfig)
+
+                    val stateFlow = source.discoverService(SERVICE_NAME) { lookupService }
+
+                    val resultState = stateFlow.dropWhile { it is LookupInProgress }.first()
+                    resultState shouldBe LookupSucceeded(SERVER_URI)
+                }
+
+                val cachedFlow = source.discoverService(SERVICE_NAME) {
+                    throw UnsupportedOperationException("Unexpected invocation")
+                }
+
+                cachedFlow.first() shouldBe LookupSucceeded(SERVER_URI)
+            }
+
+            "always store a terminal state in the cached flow" {
+                val source = createSource()
+
+                withTestServer { serviceDefinition ->
+                    val lookupConfig = defaultLookupConfig.copy(sendRequestInterval = 1.nanoseconds)
+                    val lookupService = LookupService(serviceDefinition, lookupConfig)
+                    source.discoverService(SERVICE_NAME) { lookupService }.terminateAtEndState().collect {}
+                }
+
+                val cachedFlow = source.discoverService(SERVICE_NAME) {
+                    throw UnsupportedOperationException("Unexpected invocation")
+                }
+
+                cachedFlow.first() shouldBe LookupSucceeded(SERVER_URI)
             }
         }
     }
@@ -306,7 +342,6 @@ private suspend fun withTestServer(response: String = SERVER_URI, block: suspend
             server.shutdown()
             job.join()
         }
-
     }
 }
 

@@ -40,6 +40,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -76,10 +77,34 @@ class ServiceDiscoveryDataSourceImpl @Inject constructor(
             runCatching { URI(serviceResponse) }.isSuccess
     }
 
+    /**
+     * A map storing the state flows for the services that have been queried via the [discoverService] function. This
+     * allows direct access to the current state of the discovery operation (and potential updates) when a service is
+     * queried later again. After the end of a discovery operation, the terminal state remains in the flow and is made
+     * available via the replay buffer.
+     *
+     * Note that no synchronization is required here, since all invocations of [discoverService] are expected to come
+     * from the main thread.
+     */
+    private val discoveryFlows = mutableMapOf<String, Flow<LookupState>>()
+
     override fun discoverService(
         serviceName: String,
         lookupServiceProvider: suspend () -> LookupService
     ): Flow<LookupState> {
+        return discoveryFlows.getOrPut(serviceName) {
+            runDiscovery(serviceName, lookupServiceProvider)
+        }
+    }
+
+    /**
+     * Start a new discovery operation for the service with the given [serviceName] making use of the provided
+     * [lookupServiceProvider]. Return the [Flow] emitting state updates about the operation.
+     */
+    private fun runDiscovery(
+        serviceName: String,
+        lookupServiceProvider: suspend () -> LookupService
+    ): MutableSharedFlow<LookupState> {
         val lookupFlow = MutableSharedFlow<LookupState>(replay = 1)
 
         scope.launch {
@@ -87,20 +112,35 @@ class ServiceDiscoveryDataSourceImpl @Inject constructor(
                 val lookupService = lookupServiceProvider()
                 Log.i(TAG, "Starting service discovery for '$serviceName'.")
 
-                DatagramSocket().use { sendSocket ->
-                    DatagramSocket().use { receiveSocket ->
-                        launch { udpCommunication(lookupService, sendSocket, receiveSocket, lookupFlow) }
+                // Use a temporary flow to receive notifications from UDP communication. These notifications are
+                // propagated to the actual lookupFlow, until a success state is received. Further events (that may
+                // be caused by ongoing UDP send operations) are then ignored.
+                val udpFlow = MutableSharedFlow<LookupState>(replay = 1)
 
-                        val lookupResult = withTimeoutOrNull(lookupService.lookupConfig.networkTimeout) {
-                            lookupFlow.first { it is LookupSucceeded }
+                val lookupResult = DatagramSocket().use { sendSocket ->
+                    DatagramSocket().use { receiveSocket ->
+                        launch {
+                            udpFlow.transformWhile { state ->
+                                emit(state)
+                                lookupFlow.emit(state)
+                                state is LookupInProgress
+                            }.collect {}
                         }
-                        if (lookupResult != null) {
-                            Log.i(TAG, "Service discovery was successful for '$serviceName'.")
-                        } else {
-                            Log.i(TAG, "Service '$serviceName' could not be discovered within the timeout.")
-                            lookupFlow.emit(LookupFailed)
+                        val udpJob = launch { udpCommunication(lookupService, sendSocket, receiveSocket, udpFlow) }
+
+                        withTimeoutOrNull(lookupService.lookupConfig.networkTimeout) {
+                            lookupFlow.first { it is LookupSucceeded }
+                        }.also {
+                            udpJob.cancel()
                         }
                     }
+                }
+
+                if (lookupResult != null) {
+                    Log.i(TAG, "Service discovery was successful for '$serviceName'.")
+                } else {
+                    Log.i(TAG, "Service '$serviceName' could not be discovered within the timeout.")
+                    lookupFlow.emit(LookupFailed)
                 }
             }.onFailure {
                 Log.e(TAG, "Service discovery failed for '$serviceName': $it")
