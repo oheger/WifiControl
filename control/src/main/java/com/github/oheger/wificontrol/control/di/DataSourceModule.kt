@@ -20,7 +20,9 @@ package com.github.oheger.wificontrol.control.di
 
 import android.content.Context
 
+import com.github.oheger.wificontrol.control.source.ServiceDiscoveryDataSourceImpl
 import com.github.oheger.wificontrol.control.source.WiFiStateDataSourceImpl
+import com.github.oheger.wificontrol.repository.ds.ServiceDiscoveryDataSource
 import com.github.oheger.wificontrol.repository.ds.WiFiStateDataSource
 
 import dagger.Module
@@ -28,6 +30,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+
+import kotlinx.coroutines.CoroutineScope
 
 /**
  * Hilt module that provides the data source implementations hosted in this project.
@@ -38,4 +42,8 @@ class DataSourceModule {
     @Provides
     fun wiFiStateDataSource(@ApplicationContext context: Context): WiFiStateDataSource =
         WiFiStateDataSourceImpl.create(context)
+
+    @Provides
+    fun serviceDiscoveryDataSource(scope: CoroutineScope): ServiceDiscoveryDataSource =
+        ServiceDiscoveryDataSourceImpl(scope)
 }

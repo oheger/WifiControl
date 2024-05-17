@@ -19,8 +19,10 @@
 package com.github.oheger.wificontrol.repository.di
 
 import com.github.oheger.wificontrol.domain.repo.ServiceDataRepository
+import com.github.oheger.wificontrol.domain.repo.ServiceUriRepository
 import com.github.oheger.wificontrol.domain.repo.WiFiStateRepository
 import com.github.oheger.wificontrol.repository.impl.ServiceDataRepositoryImpl
+import com.github.oheger.wificontrol.repository.impl.ServiceUriRepositoryImpl
 import com.github.oheger.wificontrol.repository.impl.WiFiStateRepositoryImpl
 
 import dagger.Binds
@@ -39,4 +41,7 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun wiFiStateRepository(stateRepository: WiFiStateRepositoryImpl): WiFiStateRepository
+
+    @Binds
+    abstract fun serviceUriRepository(repositoryImpl: ServiceUriRepositoryImpl): ServiceUriRepository
 }
