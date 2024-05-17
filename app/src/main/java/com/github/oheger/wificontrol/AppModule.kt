@@ -25,12 +25,29 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 @Module
 @InstallIn(SingletonComponent::class)
+/**
+ * A hilt module defining central singleton objects to be used by the DI framework.
+ */
 class AppModule {
+    /**
+     * Provide the central configuration for use cases. Here the dispatcher is defined on which use cases are
+     * executed.
+     */
     @Provides
     fun useCaseConfig(): UseCaseConfig =
         UseCaseConfig(Dispatchers.IO)
+
+    /**
+     * Provide the application-wide coroutine scope. In this scope, the coroutines are launched which need to run
+     * independently on views.
+     */
+    @Provides
+    fun applicationCoroutineScope(): CoroutineScope =
+        CoroutineScope(SupervisorJob())
 }
