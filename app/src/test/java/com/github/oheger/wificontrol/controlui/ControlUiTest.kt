@@ -19,6 +19,7 @@
 package com.github.oheger.wificontrol.controlui
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -27,7 +28,10 @@ import androidx.navigation.NavController
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
 import com.github.oheger.wificontrol.Navigation
+import com.github.oheger.wificontrol.domain.model.LookupInProgress
+import com.github.oheger.wificontrol.domain.model.LookupState
 import com.github.oheger.wificontrol.domain.model.WiFiState
+import com.github.oheger.wificontrol.domain.usecase.GetServiceUriUseCase
 import com.github.oheger.wificontrol.domain.usecase.GetWiFiStateUseCase
 
 import io.kotest.inspectors.forAll
@@ -38,8 +42,12 @@ import io.mockk.mockk
 import io.mockk.runs
 import io.mockk.verify
 
+import kotlin.time.Duration.Companion.seconds
+
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 
 import org.junit.Before
 import org.junit.Rule
@@ -57,6 +65,12 @@ class ControlUiTest {
     /** The flow used to inject the Wi-Fi state into test cases. */
     private lateinit var wiFiStateFlow: MutableSharedFlow<Result<GetWiFiStateUseCase.Output>>
 
+    /** The flow used to inject the current lookup state into test cases. */
+    private lateinit var lookupStateFlow: MutableSharedFlow<Result<GetServiceUriUseCase.Output>>
+
+    /** A mock for a clock that is used to get deterministic time calculations. */
+    private lateinit var testClock: Clock
+
     @Before
     fun setUp() {
         wiFiStateFlow = MutableSharedFlow()
@@ -64,8 +78,16 @@ class ControlUiTest {
             every { execute(GetWiFiStateUseCase.Input) } returns wiFiStateFlow
         }
 
+        lookupStateFlow = MutableSharedFlow()
+        val getServiceUriUseCase = mockk<GetServiceUriUseCase> {
+            every { execute(GetServiceUriUseCase.Input(SERVICE_NAME)) } returns lookupStateFlow
+        }
+
         navController = mockk()
-        val controlViewModel = ControlViewModel(getWiFiStateUseCase)
+        testClock = mockk()
+        initTime(Clock.System.now())
+
+        val controlViewModel = ControlViewModel(getWiFiStateUseCase, getServiceUriUseCase, testClock)
         composeTestRule.setContent {
             ControlScreen(
                 viewModel = controlViewModel,
@@ -87,6 +109,29 @@ class ControlUiTest {
      */
     private suspend fun updateWiFiState(state: WiFiState) {
         updateWiFiStateResult(Result.success(state))
+    }
+
+    /**
+     * Emit the given [result] to the flow returned by the [GetServiceUriUseCase]. That way, a specific [LookupState]
+     * can be injected.
+     */
+    private suspend fun updateLookupStateResult(result: Result<LookupState>) {
+        lookupStateFlow.emit(result.map { GetServiceUriUseCase.Output(it) })
+    }
+
+    /**
+     * Convenience function to simulate a successful update to the service lookup state to the given [state].
+     */
+    private suspend fun updateLookupState(state: LookupState) {
+        updateLookupStateResult(Result.success(state))
+    }
+
+    /**
+     * Sets the time to be returned by the test clock to the given [time]. This time will then be received by the view
+     * model.
+     */
+    private fun initTime(time: Instant) {
+        every { testClock.now() } returns time
     }
 
     @Test
@@ -116,23 +161,58 @@ class ControlUiTest {
     fun `The looking up service state should be displayed when Wi-Fi is available`() = runTest {
         updateWiFiState(WiFiState.WI_FI_AVAILABLE)
 
+        val lookupStartTime = Instant.parse("2024-05-17T19:05:21Z")
+        initTime(lookupStartTime + 20.seconds)
+        updateLookupState(LookupInProgress(lookupStartTime, 11))
+
         composeTestRule.onNodeWithTag(textTag(TAG_WIFI_UNAVAILABLE)).assertDoesNotExist()
         composeTestRule.onNodeWithTag(iconTag(TAG_WIFI_AVAILABLE)).assertIsDisplayed()
         composeTestRule.onNodeWithTag(textTag(TAG_WIFI_AVAILABLE)).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(textTag(TAG_LOOKUP_MESSAGE)).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(iconTag(TAG_LOOKUP_MESSAGE)).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TAG_LOOKUP_ATTEMPTS).assertTextContains("11")
+        composeTestRule.onNodeWithTag(TAG_LOOKUP_TIME).assertTextContains("20")
+    }
+
+    /**
+     * Check whether the UI elements are displayed to represent the Wi-Fi unavailable state - and only them.
+     */
+    private fun assertWiFiUnavailableUi() {
+        composeTestRule.onNodeWithTag(textTag(TAG_WIFI_UNAVAILABLE)).assertIsDisplayed()
+        listOf(TAG_WIFI_AVAILABLE, TAG_LOOKUP_MESSAGE).forAll { tag ->
+            composeTestRule.onNodeWithTag(textTag(tag)).assertDoesNotExist()
+            composeTestRule.onNodeWithTag(iconTag(tag)).assertDoesNotExist()
+        }
     }
 
     @Test
-    fun `The Wi-Fi unavailable UI should be shown if the WI-FI connection is lost`() = runTest {
+    fun `The Wi-Fi unavailable UI should be shown before a lookup state is received`() = runTest {
         updateWiFiState(WiFiState.WI_FI_AVAILABLE)
+
+        assertWiFiUnavailableUi()
+    }
+
+    @Test
+    fun `The Wi-Fi unavailable UI should be shown if the Wi-Fi connection is lost`() = runTest {
+        updateWiFiState(WiFiState.WI_FI_AVAILABLE)
+        updateLookupState(LookupInProgress(Clock.System.now() - 10.seconds, 1))
         composeTestRule.onNodeWithTag(textTag(TAG_WIFI_UNAVAILABLE)).assertDoesNotExist()
 
         updateWiFiState(WiFiState.WI_FI_UNAVAILABLE)
 
-        composeTestRule.onNodeWithTag(textTag(TAG_WIFI_UNAVAILABLE)).assertIsDisplayed()
-        listOf(TAG_WIFI_AVAILABLE).forAll { tag ->
-            composeTestRule.onNodeWithTag(textTag(tag)).assertDoesNotExist()
-            composeTestRule.onNodeWithTag(iconTag(tag)).assertDoesNotExist()
-        }
+        assertWiFiUnavailableUi()
+    }
+
+    @Test
+    fun `Collecting the lookup state flow should stop when the Wi-Fi connection is lost`() = runTest {
+        updateWiFiState(WiFiState.WI_FI_AVAILABLE)
+        val lookUpStartTime = Clock.System.now() - 10.seconds
+        updateLookupState(LookupInProgress(lookUpStartTime, 1))
+
+        updateWiFiState(WiFiState.WI_FI_UNAVAILABLE)
+        updateLookupState(LookupInProgress(lookUpStartTime, 2))
+
+        assertWiFiUnavailableUi()
     }
 }
 

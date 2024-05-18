@@ -28,6 +28,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.datetime.Clock
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -50,4 +51,10 @@ class AppModule {
     @Provides
     fun applicationCoroutineScope(): CoroutineScope =
         CoroutineScope(SupervisorJob())
+
+    /**
+     * Provide the central [Clock] object for querying the current time.
+     */
+    @Provides
+    fun systemClock(): Clock = Clock.System
 }

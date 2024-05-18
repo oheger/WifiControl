@@ -18,20 +18,27 @@
  */
 package com.github.oheger.wificontrol.controlui
 
+import android.util.Log
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 
+import com.github.oheger.wificontrol.domain.model.LookupInProgress
 import com.github.oheger.wificontrol.domain.model.WiFiState
+import com.github.oheger.wificontrol.domain.usecase.GetServiceUriUseCase
 import com.github.oheger.wificontrol.domain.usecase.GetWiFiStateUseCase
 
 import dagger.hilt.android.lifecycle.HiltViewModel
 
 import javax.inject.Inject
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 
 /**
  * The [ViewModel] for the UI to control a specific service.
@@ -43,13 +50,29 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class ControlViewModel @Inject constructor(
     /** The use case for obtaining the Wi-Fi connection state. */
-    private val getWiFiStateUseCase: GetWiFiStateUseCase
+    private val getWiFiStateUseCase: GetWiFiStateUseCase,
+
+    /** The use case for obtaining the URI for the service to control. */
+    private val getServiceUriUseCase: GetServiceUriUseCase,
+
+    /** The clock to be used for time calculations. */
+    private val clock: Clock = Clock.System
 ) : ViewModel() {
+    companion object {
+        private const val TAG = "ControlViewModel"
+    }
+
     /** The internal flow for managing the UI state. */
     private val mutableUiStateFlow = MutableStateFlow<ControlUiState>(WiFiUnavailable)
 
     /** The flow providing the current state of the Service Control UI for the current service. */
     val uiStateFlow: Flow<ControlUiState> = mutableUiStateFlow
+
+    /**
+     * Stores the job for tracking the service lookup state. This is needed to cancel the job again when the Wi-Fi
+     * connection is lost.
+     */
+    private var lookupStateTrackingJob: Job? = null
 
     /**
      * A flag whether this model has already been initialized. This is used to prevent multiple use case
@@ -58,10 +81,10 @@ class ControlViewModel @Inject constructor(
     private var initialized = false
 
     /**
-     * Trigger the initialization of the [ControlUiState] for the current service. Changes in the state can then be
-     * tracked via the [uiStateFlow] property.
+     * Trigger the initialization of the [ControlUiState] for the service with the given [serviceName]. Changes in the
+     * state can then be tracked via the [uiStateFlow] property.
      */
-    fun initControlState() {
+    fun initControlState(serviceName: String) {
         if (!initialized) {
             initialized = true
 
@@ -69,10 +92,38 @@ class ControlViewModel @Inject constructor(
                 getWiFiStateUseCase.execute(GetWiFiStateUseCase.Input)
                     .mapNotNull { result -> result.getOrNull()?.wiFiState }
                     .collect { wiFiState ->
-                        val uiState = if (wiFiState == WiFiState.WI_FI_AVAILABLE) ServiceDiscovery else WiFiUnavailable
-                        mutableUiStateFlow.value = uiState
+                        Log.i(TAG, "Received Wi-Fi state $wiFiState.")
+                        when (wiFiState) {
+                            WiFiState.WI_FI_AVAILABLE -> {
+                                lookupStateTrackingJob = trackLookupState(serviceName)
+                            }
+
+                            WiFiState.WI_FI_UNAVAILABLE -> {
+                                mutableUiStateFlow.value = WiFiUnavailable
+                                lookupStateTrackingJob?.cancel()
+                                lookupStateTrackingJob = null
+                            }
+                        }
                     }
             }
         }
     }
+
+    /**
+     * Launch a [Job] that keeps track on changes of the lookup state for the service with the given [serviceName].
+     * While the device is connected to Wi-Fi, this job updates the UI according to the state of the service
+     * discovery operation.
+     */
+    private fun CoroutineScope.trackLookupState(serviceName: String): Job =
+        launch {
+            Log.i(TAG, "Starting a job to watch service discovery for '$serviceName'.")
+            getServiceUriUseCase.execute(GetServiceUriUseCase.Input(serviceName))
+                .mapNotNull { result -> result.getOrNull()?.lookupState }
+                .collect { lookState ->
+                    if (lookState is LookupInProgress) {
+                        val uiState = ServiceDiscovery(lookState.attempts, clock.now() - lookState.startTime)
+                        mutableUiStateFlow.value = uiState
+                    }
+                }
+        }
 }

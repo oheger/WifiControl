@@ -18,6 +18,8 @@
  */
 package com.github.oheger.wificontrol.controlui
 
+import kotlin.time.Duration
+
 /**
  * Root of a class hierarchy to represent the state of the UI that allows controlling services.
  *
@@ -34,6 +36,13 @@ sealed interface ControlUiState
 data object WiFiUnavailable : ControlUiState
 
 /**
- * An object representing the state that the service to be controlled is currently looked up in the network.
+ * A data class representing the state that the service to be controlled is currently looked up in the network. An
+ * instance contains some further information about the ongoing discovery operation.
  */
-data object ServiceDiscovery : ControlUiState
+data class ServiceDiscovery(
+    /** Contains the number of attempts that have been made to reach the service. */
+    val lookupAttempts: Int,
+
+    /** The time duration how long the discovery operation is ongoing. */
+    val lookupTime: Duration
+) : ControlUiState

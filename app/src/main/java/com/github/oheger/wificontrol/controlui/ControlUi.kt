@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
@@ -54,7 +55,18 @@ import com.github.oheger.wificontrol.R
 import com.github.oheger.wificontrol.TAG_WIFI_UNAVAILABLE_HINT
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
+import kotlin.time.Duration.Companion.seconds
+
+/** The font size used by normal text elements. */
+private val defaultFontSize = 20.sp
+
+/** The width to be used for icons. */
+private val iconWidth = 32.dp
+
 internal const val TAG_BTN_NAV_OVERVIEW = "ctrlBtnNavOverview"
+internal const val TAG_LOOKUP_ATTEMPTS = "ctrlLookupAttempts"
+internal const val TAG_LOOKUP_MESSAGE = "ctrlLookupMsg"
+internal const val TAG_LOOKUP_TIME = "ctrlLookupTime"
 internal const val TAG_SERVICE_NAME = "ctrlServiceName"
 internal const val TAG_WIFI_AVAILABLE = "ctrlWiFiAvailable"
 internal const val TAG_WIFI_UNAVAILABLE = "ctrlWiFiUnavailable"
@@ -81,7 +93,7 @@ fun ControlScreen(
     controlArgs: Navigation.ControlServiceArgs,
     navController: NavController
 ) {
-    viewModel.initControlState()
+    viewModel.initControlState(controlArgs.serviceName)
     val state: ControlUiState by viewModel.uiStateFlow.collectAsStateWithLifecycle(WiFiUnavailable)
 
     ControlScreenForState(
@@ -117,7 +129,7 @@ private fun ControlScreenForState(
     ) { innerPadding ->
         when (uiState) {
             is WiFiUnavailable -> NoWiFiAvailable(modifier = modifier.padding(innerPadding))
-            is ServiceDiscovery -> LookingUpService(modifier = modifier.padding(innerPadding))
+            is ServiceDiscovery -> LookingUpService(uiState, modifier = modifier.padding(innerPadding))
         }
     }
 }
@@ -153,36 +165,114 @@ private fun NoWiFiAvailable(modifier: Modifier) {
         }
         Text(
             stringResource(R.string.state_wifi_unavailable_hint),
-            fontSize = 20.sp,
+            fontSize = defaultFontSize,
             modifier = modifier.testTag(TAG_WIFI_UNAVAILABLE_HINT)
         )
     }
 }
 
 /**
- * Render the UI if W-Fi is available, and the service has to be looked up in the network.
+ * Render the UI if W-Fi is available and service discovery is in progress based on the given [state].
  */
 @Composable
-private fun LookingUpService(modifier: Modifier) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+private fun LookingUpService(state: ServiceDiscovery, modifier: Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(5.dp)
+    ) {
+        IconTextRow(
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.ic_wifi_available),
+                    contentDescription = null,
+                    modifier = modifier
+                        .testTag(iconTag(TAG_WIFI_AVAILABLE))
+                        .width(iconWidth)
+                )
+            },
+            text = {
+                Text(
+                    stringResource(R.string.state_wifi_available),
+                    fontSize = defaultFontSize,
+                    modifier = modifier.testTag(textTag(TAG_WIFI_AVAILABLE))
+                )
+            },
+            modifier
+        )
+
+        IconTextRow(
+            icon = {
+                CircularProgressIndicator(
+                    modifier = modifier
+                        .testTag(iconTag(TAG_LOOKUP_MESSAGE))
+                        .width(iconWidth)
+                )
+            },
+            text = {
+                Text(
+                    stringResource(id = R.string.ctrl_lookup_in_progress),
+                    fontSize = defaultFontSize,
+                    modifier = modifier.testTag(textTag(TAG_LOOKUP_MESSAGE))
+                )
+            },
             modifier = modifier
-                .fillMaxWidth()
-                .padding(5.dp)
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_wifi_available),
-                contentDescription = null,
-                modifier = modifier.testTag(iconTag(TAG_WIFI_AVAILABLE))
-            )
-            Spacer(modifier = modifier.width(4.dp))
-            Text(
-                stringResource(R.string.state_wifi_available),
-                fontSize = 18.sp,
-                modifier = modifier.testTag(textTag(TAG_WIFI_AVAILABLE))
-            )
-        }
+        )
+
+        LabelValueRow(
+            labelResId = R.string.ctrl_lab_lookup_count,
+            value = state.lookupAttempts.toString(),
+            tag = TAG_LOOKUP_ATTEMPTS,
+            modifier = modifier
+        )
+        LabelValueRow(
+            labelResId = R.string.ctrl_lab_lookup_time,
+            value = state.lookupTime.inWholeSeconds.toString(),
+            tag = TAG_LOOKUP_TIME,
+            modifier = modifier
+        )
+    }
+}
+
+/**
+ * Generate a row consisting of a left-aligned [icon] part and a [text] part next to it.
+ */
+@Composable
+private fun IconTextRow(icon: @Composable () -> Unit, text: @Composable () -> Unit, modifier: Modifier) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp)
+    ) {
+        icon()
+        Spacer(modifier = modifier.width(4.dp))
+        text()
+    }
+}
+
+/**
+ * Generate a row consisting of a left-aligned label with the given [labelResId], and a text [value] aligned to the
+ * right. The value component is assigned the given [tag].
+ */
+@Composable
+private fun LabelValueRow(labelResId: Int, value: String, tag: String, modifier: Modifier) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp)
+    ) {
+        Text(
+            text = stringResource(id = labelResId),
+            fontSize = defaultFontSize
+        )
+        Spacer(modifier = modifier.weight(1f))
+        Text(
+            text = value,
+            fontSize = defaultFontSize,
+            modifier = modifier.testTag(tag)
+        )
     }
 }
 
@@ -202,5 +292,5 @@ fun ControlScreenPreview(
  */
 class ControlUiStatePreviewProvider : PreviewParameterProvider<ControlUiState> {
     override val values: Sequence<ControlUiState>
-        get() = sequenceOf(WiFiUnavailable, ServiceDiscovery)
+        get() = sequenceOf(WiFiUnavailable, ServiceDiscovery(3, 23.seconds))
 }

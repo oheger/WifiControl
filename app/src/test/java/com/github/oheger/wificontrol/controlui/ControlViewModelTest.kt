@@ -54,13 +54,13 @@ class ControlViewModelTest : StringSpec({
         val wiFiStateUseCase = mockk<GetWiFiStateUseCase> {
             every {
                 execute(GetWiFiStateUseCase.Input)
-            } returns flowOf(Result.success(GetWiFiStateUseCase.Output(WiFiState.WI_FI_AVAILABLE)))
+            } returns flowOf(Result.success(GetWiFiStateUseCase.Output(WiFiState.WI_FI_UNAVAILABLE)))
         }
-        val viewModel = ControlViewModel(wiFiStateUseCase)
+        val viewModel = ControlViewModel(wiFiStateUseCase, mockk())
 
-        viewModel.initControlState()
+        viewModel.initControlState("someService")
         viewModel.uiStateFlow.first()
-        viewModel.initControlState()
+        viewModel.initControlState("someService")
 
         verify(exactly = 1, timeout = 3000) {
             wiFiStateUseCase.execute(GetWiFiStateUseCase.Input)

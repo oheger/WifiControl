@@ -23,4 +23,7 @@
     <string name="svc_no_services">Es sind noch keine Dienste angelegt worden. Verwenden Sie den \"Neu\" Button, um einen neuen zu erzeugen.</string>
     <string name="svc_overview_title">Dienste</string>
     <string name="svc_new_title">Neuer Dienst</string>
+    <string name="ctrl_lookup_in_progress">Suchen des Dienstes im lokalen Netzwerk…</string>
+    <string name="ctrl_lab_lookup_count">Anzahl Versuche:</string>
+    <string name="ctrl_lab_lookup_time">Verstrichene Zeit (sek):</string>
 </resources>
