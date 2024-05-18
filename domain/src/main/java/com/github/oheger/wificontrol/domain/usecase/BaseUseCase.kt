@@ -39,13 +39,14 @@ abstract class BaseUseCase<in I : BaseUseCase.Input, out O : BaseUseCase.Output>
      * Execute this use case with the given [input]. Return a [Flow] with the resulting data wrapped in a [Result].
      */
     fun execute(input: I): Flow<Result<O>> {
+        Log.i(
+            "UseCase",
+            "Executing use case ${this::class.simpleName} with input $input on " +
+                    "${Thread.currentThread().name}."
+        )
+
         return process(input)
             .map { result ->
-                Log.i(
-                    "UseCase",
-                    "Executing use case ${this::class.simpleName} with input $input on " +
-                            "${Thread.currentThread().name}."
-                )
                 Result.success(result)
             }
             .flowOn(config.dispatcher)
