@@ -59,6 +59,8 @@ android {
         }
     }
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
+
         sourceCompatibility = JavaVersion.toVersion(javaCompileVersion)
         targetCompatibility = JavaVersion.toVersion(javaCompileVersion)
     }
@@ -107,6 +109,8 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
 
     kapt(libs.hilt.compiler)
+
+    coreLibraryDesugaring(libs.desugarJdk)
 
     testImplementation(libs.androidx.test.junit)
     testImplementation(libs.androidx.test.espresso)
