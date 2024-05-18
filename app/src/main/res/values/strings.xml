@@ -24,4 +24,7 @@
     <string name="svc_no_services">No services have been defined yet. Use the \"Create\" button to create a new one.</string>
     <string name="svc_overview_title">Services</string>
     <string name="svc_new_title">New service</string>
+    <string name="ctrl_lookup_in_progress">Looking up the service in the local network…</string>
+    <string name="ctrl_lab_lookup_count">Number of attempts:</string>
+    <string name="ctrl_lab_lookup_time">Elapsed time (sec):</string>
 </resources>
