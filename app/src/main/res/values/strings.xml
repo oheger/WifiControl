@@ -27,4 +27,7 @@
     <string name="ctrl_lookup_in_progress">Looking up the service in the local network…</string>
     <string name="ctrl_lab_lookup_count">Number of attempts:</string>
     <string name="ctrl_lab_lookup_time">Elapsed time (sec):</string>
+    <string name="ctrl_error_title">Error when controlling service</string>
+    <string name="ctrl_error_details_wifi">The state of the Wi-Fi connection could not be obtained.</string>
+    <string name="ctrl_error_details_lookup">During the service discovery operation, an error occurred.</string>
 </resources>

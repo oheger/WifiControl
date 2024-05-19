@@ -23,7 +23,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 
+import com.github.oheger.wificontrol.R
 import com.github.oheger.wificontrol.domain.model.LookupInProgress
+import com.github.oheger.wificontrol.domain.model.LookupState
 import com.github.oheger.wificontrol.domain.model.WiFiState
 import com.github.oheger.wificontrol.domain.usecase.GetServiceUriUseCase
 import com.github.oheger.wificontrol.domain.usecase.GetWiFiStateUseCase
@@ -32,11 +34,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 
 import javax.inject.Inject
 
+import kotlin.time.Duration.Companion.seconds
+
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 
@@ -90,21 +93,35 @@ class ControlViewModel @Inject constructor(
 
             viewModelScope.launch {
                 getWiFiStateUseCase.execute(GetWiFiStateUseCase.Input)
-                    .mapNotNull { result -> result.getOrNull()?.wiFiState }
-                    .collect { wiFiState ->
-                        Log.i(TAG, "Received Wi-Fi state $wiFiState.")
-                        when (wiFiState) {
-                            WiFiState.WI_FI_AVAILABLE -> {
-                                lookupStateTrackingJob = trackLookupState(serviceName)
-                            }
-
-                            WiFiState.WI_FI_UNAVAILABLE -> {
-                                mutableUiStateFlow.value = WiFiUnavailable
-                                lookupStateTrackingJob?.cancel()
-                                lookupStateTrackingJob = null
-                            }
+                    .collect { wiFiStateResult ->
+                        wiFiStateResult.onSuccess { output ->
+                            handleWiFiStateUpdate(serviceName, output.wiFiState)
+                        }.onFailure { exception ->
+                            mutableUiStateFlow.value = ControlError(R.string.ctrl_error_details_wifi, exception)
                         }
                     }
+            }
+        }
+    }
+
+    /**
+     * Deal with a change in the Wi-Fi connection state for the service with the given [serviceName]. Depending on
+     * the new [wiFiState], either start tracking of the service lookup state or cancel the tracking job.
+     */
+    private fun CoroutineScope.handleWiFiStateUpdate(
+        serviceName: String,
+        wiFiState: WiFiState
+    ) {
+        Log.i(TAG, "Received Wi-Fi state $wiFiState.")
+        when (wiFiState) {
+            WiFiState.WI_FI_AVAILABLE -> {
+                lookupStateTrackingJob = trackLookupState(serviceName)
+            }
+
+            WiFiState.WI_FI_UNAVAILABLE -> {
+                mutableUiStateFlow.value = WiFiUnavailable
+                lookupStateTrackingJob?.cancel()
+                lookupStateTrackingJob = null
             }
         }
     }
@@ -118,12 +135,23 @@ class ControlViewModel @Inject constructor(
         launch {
             Log.i(TAG, "Starting a job to watch service discovery for '$serviceName'.")
             getServiceUriUseCase.execute(GetServiceUriUseCase.Input(serviceName))
-                .mapNotNull { result -> result.getOrNull()?.lookupState }
-                .collect { lookState ->
-                    if (lookState is LookupInProgress) {
-                        val uiState = ServiceDiscovery(lookState.attempts, clock.now() - lookState.startTime)
-                        mutableUiStateFlow.value = uiState
-                    }
+                .collect { lookStateResult ->
+                    val uiState = lookStateResult.map { uiStateFromLookupState(it.lookupState) }
+                        .getOrElse { exception -> ControlError(R.string.ctrl_error_details_lookup, exception) }
+                    mutableUiStateFlow.value = uiState
                 }
+        }
+
+    /**
+     * Return a [ControlUiState] to represent the given [lookupState]. Based on this, the control UI is rendered.
+     */
+    private fun uiStateFromLookupState(lookupState: LookupState): ControlUiState =
+        when (lookupState) {
+            is LookupInProgress ->
+                ServiceDiscovery(lookupState.attempts, clock.now() - lookupState.startTime)
+
+            else ->
+                // TODO: Handle other lookup states correctly.
+                ServiceDiscovery(0, 0.seconds)
         }
 }

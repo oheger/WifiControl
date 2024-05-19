@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -42,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
@@ -64,6 +66,9 @@ private val defaultFontSize = 20.sp
 private val iconWidth = 32.dp
 
 internal const val TAG_BTN_NAV_OVERVIEW = "ctrlBtnNavOverview"
+internal const val TAG_CTRL_ERROR_DETAILS = "ctrlErrorDetails"
+internal const val TAG_CTRL_ERROR_HEADER = "ctrlErrorHeader"
+internal const val TAG_CTRL_ERROR_MESSAGE = "ctrlErrorMessage"
 internal const val TAG_LOOKUP_ATTEMPTS = "ctrlLookupAttempts"
 internal const val TAG_LOOKUP_MESSAGE = "ctrlLookupMsg"
 internal const val TAG_LOOKUP_TIME = "ctrlLookupTime"
@@ -129,6 +134,7 @@ private fun ControlScreenForState(
     ) { innerPadding ->
         when (uiState) {
             is WiFiUnavailable -> NoWiFiAvailable(modifier = modifier.padding(innerPadding))
+            is ControlError -> ControlErrorScreen(uiState, modifier = modifier.padding(innerPadding))
             is ServiceDiscovery -> LookingUpService(uiState, modifier = modifier.padding(innerPadding))
         }
     }
@@ -167,6 +173,42 @@ private fun NoWiFiAvailable(modifier: Modifier) {
             stringResource(R.string.state_wifi_unavailable_hint),
             fontSize = defaultFontSize,
             modifier = modifier.testTag(TAG_WIFI_UNAVAILABLE_HINT)
+        )
+    }
+}
+
+/**
+ * Render the UI if there was an error in the view model while obtaining the current UI state. Use the passed [state]
+ * to display relevant information.
+ */
+@Composable
+private fun ControlErrorScreen(state: ControlError, modifier: Modifier) {
+    Column(
+        modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = stringResource(id = R.string.ctrl_error_title),
+            color = MaterialTheme.colors.error,
+            fontSize = 30.sp,
+            modifier = modifier
+                .testTag(TAG_CTRL_ERROR_HEADER)
+                .padding(bottom = 32.dp)
+                .align(Alignment.CenterHorizontally)
+        )
+        Text(
+            text = stringResource(id = state.messageResId),
+            color = MaterialTheme.colors.error,
+            modifier = modifier
+                .padding(bottom = 16.dp)
+                .testTag(TAG_CTRL_ERROR_DETAILS)
+        )
+        Text(
+            text = state.cause.toString(),
+            color = MaterialTheme.colors.error,
+            fontStyle = FontStyle.Italic,
+            modifier = modifier.testTag(TAG_CTRL_ERROR_MESSAGE)
         )
     }
 }
@@ -292,5 +334,9 @@ fun ControlScreenPreview(
  */
 class ControlUiStatePreviewProvider : PreviewParameterProvider<ControlUiState> {
     override val values: Sequence<ControlUiState>
-        get() = sequenceOf(WiFiUnavailable, ServiceDiscovery(3, 23.seconds))
+        get() = sequenceOf(
+            WiFiUnavailable,
+            ControlError(R.string.ctrl_error_details_wifi, IllegalArgumentException("Wi-Fi state failed.")),
+            ServiceDiscovery(3, 23.seconds)
+        )
 }

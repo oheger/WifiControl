@@ -46,3 +46,15 @@ data class ServiceDiscovery(
     /** The time duration how long the discovery operation is ongoing. */
     val lookupTime: Duration
 ) : ControlUiState
+
+/**
+ * A data class representing the state that an error occurred in the control UI. Actually, there could be different
+ * errors, since multiple data sources are accessed. Therefore, this class holds some more detail information.
+ */
+data class ControlError(
+    /** The resource ID of a message giving some background information in which context the error occurred. */
+    val messageResId: Int,
+
+    /** The exception that was actually thrown. */
+    val cause: Throwable
+) : ControlUiState

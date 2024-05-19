@@ -26,8 +26,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.navigation.NavController
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 
 import com.github.oheger.wificontrol.Navigation
+import com.github.oheger.wificontrol.R
 import com.github.oheger.wificontrol.domain.model.LookupInProgress
 import com.github.oheger.wificontrol.domain.model.LookupState
 import com.github.oheger.wificontrol.domain.model.WiFiState
@@ -213,6 +215,45 @@ class ControlUiTest {
         updateLookupState(LookupInProgress(lookUpStartTime, 2))
 
         assertWiFiUnavailableUi()
+    }
+
+    /**
+     * Check whether the expected UI elements to display an error state are available - and only them.
+     */
+    private fun assertErrorState(detailsResId: Int, exception: Throwable) {
+        val context = InstrumentationRegistry.getInstrumentation().context
+        val expectedDetailsMessage = context.getText(detailsResId).toString()
+
+        composeTestRule.onNodeWithTag(TAG_CTRL_ERROR_HEADER).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TAG_CTRL_ERROR_DETAILS)
+            .assertTextEquals(expectedDetailsMessage)
+        composeTestRule.onNodeWithTag(TAG_CTRL_ERROR_MESSAGE).assertIsDisplayed()
+            .assertTextEquals(exception.toString())
+
+        listOf(TAG_WIFI_AVAILABLE, TAG_LOOKUP_MESSAGE).forAll { tag ->
+            composeTestRule.onNodeWithTag(textTag(tag)).assertDoesNotExist()
+            composeTestRule.onNodeWithTag(iconTag(tag)).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun `An error when querying the Wi-Fi state should be handled`() = runTest {
+        val exception = IllegalArgumentException("Test Wi-Fi exception")
+        updateWiFiState(WiFiState.WI_FI_AVAILABLE)
+
+        updateWiFiStateResult(Result.failure(exception))
+
+        assertErrorState(R.string.ctrl_error_details_wifi, exception)
+    }
+
+    @Test
+    fun `An error when querying the lookup state should be handled`() = runTest {
+        val exception = IllegalArgumentException("Test lookup exception")
+        updateWiFiState(WiFiState.WI_FI_AVAILABLE)
+
+        updateLookupStateResult(Result.failure(exception))
+
+        assertErrorState(R.string.ctrl_error_details_lookup, exception)
     }
 }
 
