@@ -24,6 +24,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 
 import com.github.oheger.wificontrol.R
+import com.github.oheger.wificontrol.domain.model.LookupFailed
 import com.github.oheger.wificontrol.domain.model.LookupInProgress
 import com.github.oheger.wificontrol.domain.model.LookupState
 import com.github.oheger.wificontrol.domain.model.WiFiState
@@ -149,6 +150,9 @@ class ControlViewModel @Inject constructor(
         when (lookupState) {
             is LookupInProgress ->
                 ServiceDiscovery(lookupState.attempts, clock.now() - lookupState.startTime)
+
+            is LookupFailed ->
+                ServiceDiscoveryFailed
 
             else ->
                 // TODO: Handle other lookup states correctly.

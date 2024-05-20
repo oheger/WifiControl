@@ -48,6 +48,11 @@ data class ServiceDiscovery(
 ) : ControlUiState
 
 /**
+ * A state to represent the case that the service could not be discovered within the configured timeout.
+ */
+data object ServiceDiscoveryFailed : ControlUiState
+
+/**
  * A data class representing the state that an error occurred in the control UI. Actually, there could be different
  * errors, since multiple data sources are accessed. Therefore, this class holds some more detail information.
  */
