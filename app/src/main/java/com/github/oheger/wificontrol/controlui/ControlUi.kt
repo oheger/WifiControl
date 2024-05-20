@@ -69,6 +69,8 @@ internal const val TAG_BTN_NAV_OVERVIEW = "ctrlBtnNavOverview"
 internal const val TAG_CTRL_ERROR_DETAILS = "ctrlErrorDetails"
 internal const val TAG_CTRL_ERROR_HEADER = "ctrlErrorHeader"
 internal const val TAG_CTRL_ERROR_MESSAGE = "ctrlErrorMessage"
+internal const val TAG_FAILED_LOOKUP_HEADER = "ctrlFailedLookupHeader"
+internal const val TAG_FAILED_LOOKUP_MESSAGE = "ctrlFailedLookupMessage"
 internal const val TAG_LOOKUP_ATTEMPTS = "ctrlLookupAttempts"
 internal const val TAG_LOOKUP_MESSAGE = "ctrlLookupMsg"
 internal const val TAG_LOOKUP_TIME = "ctrlLookupTime"
@@ -136,6 +138,7 @@ private fun ControlScreenForState(
             is WiFiUnavailable -> NoWiFiAvailable(modifier = modifier.padding(innerPadding))
             is ControlError -> ControlErrorScreen(uiState, modifier = modifier.padding(innerPadding))
             is ServiceDiscovery -> LookingUpService(uiState, modifier = modifier.padding(innerPadding))
+            is ServiceDiscoveryFailed -> LookupFailedScreen(serviceName = serviceName, modifier = modifier)
         }
     }
 }
@@ -277,12 +280,52 @@ private fun LookingUpService(state: ServiceDiscovery, modifier: Modifier) {
 }
 
 /**
+ * Render the UI to be displayed when a service could not be discovered in the Wi-Fi.
+ */
+@Composable
+private fun LookupFailedScreen(serviceName: String, modifier: Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(5.dp)
+    ) {
+        Text(
+            text = stringResource(id = R.string.ctrl_lookup_failed_header),
+            fontSize = 30.sp,
+            modifier = modifier
+                .testTag(TAG_FAILED_LOOKUP_HEADER)
+                .padding(bottom = 32.dp)
+                .align(Alignment.CenterHorizontally)
+        )
+        IconTextRow(
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.ic_search_server),
+                    contentDescription = null,
+                    modifier = modifier
+                        .testTag(iconTag(TAG_FAILED_LOOKUP_MESSAGE))
+                        .width(iconWidth)
+                )
+            },
+            text = {
+                Text(
+                    stringResource(id = R.string.ctrl_lookup_failed_details, serviceName),
+                    fontSize = defaultFontSize,
+                    modifier = modifier.testTag(textTag(TAG_FAILED_LOOKUP_MESSAGE))
+                )
+            },
+            modifier = modifier
+        )
+    }
+}
+
+/**
  * Generate a row consisting of a left-aligned [icon] part and a [text] part next to it.
  */
 @Composable
 private fun IconTextRow(icon: @Composable () -> Unit, text: @Composable () -> Unit, modifier: Modifier) {
     Row(
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 10.dp)
@@ -337,6 +380,7 @@ class ControlUiStatePreviewProvider : PreviewParameterProvider<ControlUiState> {
         get() = sequenceOf(
             WiFiUnavailable,
             ControlError(R.string.ctrl_error_details_wifi, IllegalArgumentException("Wi-Fi state failed.")),
-            ServiceDiscovery(3, 23.seconds)
+            ServiceDiscovery(3, 23.seconds),
+            ServiceDiscoveryFailed
         )
 }

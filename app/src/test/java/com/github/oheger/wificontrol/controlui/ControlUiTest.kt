@@ -30,6 +30,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 
 import com.github.oheger.wificontrol.Navigation
 import com.github.oheger.wificontrol.R
+import com.github.oheger.wificontrol.domain.model.LookupFailed
 import com.github.oheger.wificontrol.domain.model.LookupInProgress
 import com.github.oheger.wificontrol.domain.model.LookupState
 import com.github.oheger.wificontrol.domain.model.WiFiState
@@ -254,6 +255,18 @@ class ControlUiTest {
         updateLookupStateResult(Result.failure(exception))
 
         assertErrorState(R.string.ctrl_error_details_lookup, exception)
+    }
+
+    @Test
+    fun `A failed lookup operation should be displayed correctly`() = runTest {
+        updateWiFiState(WiFiState.WI_FI_AVAILABLE)
+
+        updateLookupState(LookupFailed)
+
+        composeTestRule.onNodeWithTag(TAG_FAILED_LOOKUP_HEADER).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(textTag(TAG_FAILED_LOOKUP_MESSAGE))
+            .assertTextContains(SERVICE_NAME, substring = true)
+        composeTestRule.onNodeWithTag(iconTag(TAG_FAILED_LOOKUP_MESSAGE)).assertIsDisplayed()
     }
 }
 
