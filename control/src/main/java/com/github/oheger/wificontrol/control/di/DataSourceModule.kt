@@ -31,6 +31,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 
+import javax.inject.Singleton
+
 import kotlinx.coroutines.CoroutineScope
 
 /**
@@ -40,10 +42,12 @@ import kotlinx.coroutines.CoroutineScope
 @InstallIn(SingletonComponent::class)
 class DataSourceModule {
     @Provides
+    @Singleton
     fun wiFiStateDataSource(@ApplicationContext context: Context): WiFiStateDataSource =
         WiFiStateDataSourceImpl.create(context)
 
     @Provides
+    @Singleton
     fun serviceDiscoveryDataSource(scope: CoroutineScope): ServiceDiscoveryDataSource =
         ServiceDiscoveryDataSourceImpl(scope)
 }
