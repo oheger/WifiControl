@@ -53,6 +53,15 @@ data class ServiceDiscovery(
 data object ServiceDiscoveryFailed : ControlUiState
 
 /**
+ * A data class representing the state that the service could be successfully discovered in the network. An instance
+ * contains the required information to interact with the service.
+ */
+data class ServiceDiscoverySucceeded(
+    /** The URI under which the UI of the service can be reached. */
+    val uri: String
+) : ControlUiState
+
+/**
  * A data class representing the state that an error occurred in the control UI. Actually, there could be different
  * errors, since multiple data sources are accessed. Therefore, this class holds some more detail information.
  */
