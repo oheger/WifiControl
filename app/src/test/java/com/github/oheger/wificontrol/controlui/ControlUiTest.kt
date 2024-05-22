@@ -33,6 +33,7 @@ import com.github.oheger.wificontrol.R
 import com.github.oheger.wificontrol.domain.model.LookupFailed
 import com.github.oheger.wificontrol.domain.model.LookupInProgress
 import com.github.oheger.wificontrol.domain.model.LookupState
+import com.github.oheger.wificontrol.domain.model.LookupSucceeded
 import com.github.oheger.wificontrol.domain.model.WiFiState
 import com.github.oheger.wificontrol.domain.usecase.GetServiceUriUseCase
 import com.github.oheger.wificontrol.domain.usecase.GetWiFiStateUseCase
@@ -175,6 +176,8 @@ class ControlUiTest {
         composeTestRule.onNodeWithTag(iconTag(TAG_LOOKUP_MESSAGE)).assertIsDisplayed()
         composeTestRule.onNodeWithTag(TAG_LOOKUP_ATTEMPTS).assertTextContains("11")
         composeTestRule.onNodeWithTag(TAG_LOOKUP_TIME).assertTextContains("20")
+
+        assertNotDisplayed(listOf(TAG_SERVICE_URI, TAG_FAILED_LOOKUP_HEADER))
     }
 
     /**
@@ -182,10 +185,7 @@ class ControlUiTest {
      */
     private fun assertWiFiUnavailableUi() {
         composeTestRule.onNodeWithTag(textTag(TAG_WIFI_UNAVAILABLE)).assertIsDisplayed()
-        listOf(TAG_WIFI_AVAILABLE, TAG_LOOKUP_MESSAGE).forAll { tag ->
-            composeTestRule.onNodeWithTag(textTag(tag)).assertDoesNotExist()
-            composeTestRule.onNodeWithTag(iconTag(tag)).assertDoesNotExist()
-        }
+        assertNotDisplayed(dataTags)
     }
 
     @Test
@@ -230,11 +230,7 @@ class ControlUiTest {
             .assertTextEquals(expectedDetailsMessage)
         composeTestRule.onNodeWithTag(TAG_CTRL_ERROR_MESSAGE).assertIsDisplayed()
             .assertTextEquals(exception.toString())
-
-        listOf(TAG_WIFI_AVAILABLE, TAG_LOOKUP_MESSAGE).forAll { tag ->
-            composeTestRule.onNodeWithTag(textTag(tag)).assertDoesNotExist()
-            composeTestRule.onNodeWithTag(iconTag(tag)).assertDoesNotExist()
-        }
+        assertNotDisplayed(dataTags)
     }
 
     @Test
@@ -267,8 +263,54 @@ class ControlUiTest {
         composeTestRule.onNodeWithTag(textTag(TAG_FAILED_LOOKUP_MESSAGE))
             .assertTextContains(SERVICE_NAME, substring = true)
         composeTestRule.onNodeWithTag(iconTag(TAG_FAILED_LOOKUP_MESSAGE)).assertIsDisplayed()
+        assertNotDisplayed(listOf(TAG_SERVICE_URI))
+    }
+
+    @Test
+    fun `A successfully discovered service should be displayed correctly`() = runTest {
+        val serviceUri = "https://service.example.org/control/ui.html"
+        updateWiFiState(WiFiState.WI_FI_AVAILABLE)
+
+        updateLookupState(LookupSucceeded(serviceUri))
+
+        composeTestRule.onNodeWithTag(TAG_SERVICE_URI).assertTextEquals(serviceUri)
+        assertNotDisplayed(listOf(TAG_FAILED_LOOKUP_HEADER, TAG_LOOKUP_ATTEMPTS))
+    }
+
+    /**
+     * Check that none of the elements assigned to the given [tags] exists. This is used to verify the elements are
+     * not visible that are not needed for a specific state of the UI.
+     */
+    private fun assertNotDisplayed(tags: Collection<String>) {
+        tags.forAll { tag ->
+            composeTestRule.onNodeWithTag(tag).assertDoesNotExist()
+        }
     }
 }
 
 /** The name of the service to be controlled. */
 private const val SERVICE_NAME = "serviceToControl"
+
+/**
+ * A collection with tags of elements that display data related to services. These elements should not be visible in
+ * error state or when no Wi-Fi connection is available.
+ */
+private val dataTags = buildList {
+    addAll(iconTextTags(listOf(TAG_WIFI_AVAILABLE, TAG_LOOKUP_MESSAGE, TAG_FAILED_LOOKUP_MESSAGE)))
+    add(TAG_LOOKUP_ATTEMPTS)
+    add(TAG_FAILED_LOOKUP_HEADER)
+    add(TAG_SERVICE_URI)
+}
+
+/**
+ * Generate a collection with text and icon tags derived from the given [tags] collection.
+ */
+private fun iconTextTags(tags: Collection<String>): Collection<String> {
+    val derivedTags = mutableSetOf<String>()
+    tags.forEach { tag ->
+        derivedTags += textTag(tag)
+        derivedTags += iconTag(tag)
+    }
+
+    return derivedTags
+}

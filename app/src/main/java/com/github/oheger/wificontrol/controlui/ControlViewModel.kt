@@ -27,6 +27,7 @@ import com.github.oheger.wificontrol.R
 import com.github.oheger.wificontrol.domain.model.LookupFailed
 import com.github.oheger.wificontrol.domain.model.LookupInProgress
 import com.github.oheger.wificontrol.domain.model.LookupState
+import com.github.oheger.wificontrol.domain.model.LookupSucceeded
 import com.github.oheger.wificontrol.domain.model.WiFiState
 import com.github.oheger.wificontrol.domain.usecase.GetServiceUriUseCase
 import com.github.oheger.wificontrol.domain.usecase.GetWiFiStateUseCase
@@ -34,8 +35,6 @@ import com.github.oheger.wificontrol.domain.usecase.GetWiFiStateUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 
 import javax.inject.Inject
-
-import kotlin.time.Duration.Companion.seconds
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -154,8 +153,7 @@ class ControlViewModel @Inject constructor(
             is LookupFailed ->
                 ServiceDiscoveryFailed
 
-            else ->
-                // TODO: Handle other lookup states correctly.
-                ServiceDiscovery(0, 0.seconds)
+            is LookupSucceeded ->
+                ServiceDiscoverySucceeded(lookupState.serviceUri)
         }
 }

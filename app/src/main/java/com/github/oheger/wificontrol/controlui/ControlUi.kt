@@ -18,6 +18,7 @@
  */
 package com.github.oheger.wificontrol.controlui
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -57,6 +58,9 @@ import com.github.oheger.wificontrol.R
 import com.github.oheger.wificontrol.TAG_WIFI_UNAVAILABLE_HINT
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
+import com.google.accompanist.web.WebView
+import com.google.accompanist.web.rememberWebViewState
+
 import kotlin.time.Duration.Companion.seconds
 
 /** The font size used by normal text elements. */
@@ -75,6 +79,8 @@ internal const val TAG_LOOKUP_ATTEMPTS = "ctrlLookupAttempts"
 internal const val TAG_LOOKUP_MESSAGE = "ctrlLookupMsg"
 internal const val TAG_LOOKUP_TIME = "ctrlLookupTime"
 internal const val TAG_SERVICE_NAME = "ctrlServiceName"
+internal const val TAG_SERVICE_UI = "ctrlServiceUi"
+internal const val TAG_SERVICE_URI = "ctrlServiceUri"
 internal const val TAG_WIFI_AVAILABLE = "ctrlWiFiAvailable"
 internal const val TAG_WIFI_UNAVAILABLE = "ctrlWiFiUnavailable"
 
@@ -139,6 +145,7 @@ private fun ControlScreenForState(
             is ControlError -> ControlErrorScreen(uiState, modifier = modifier.padding(innerPadding))
             is ServiceDiscovery -> LookingUpService(uiState, modifier = modifier.padding(innerPadding))
             is ServiceDiscoveryFailed -> LookupFailedScreen(serviceName = serviceName, modifier = modifier)
+            is ServiceDiscoverySucceeded -> LookupSuccessScreen(uri = uiState.uri, modifier = modifier)
         }
     }
 }
@@ -320,6 +327,36 @@ private fun LookupFailedScreen(serviceName: String, modifier: Modifier) {
 }
 
 /**
+ * Display a screen with a web view to display the UI of the service after its [uri] has been discovered. The web view
+ * loads the specified [uri].
+ * TODO: Replace the deprecated [WebView] component.
+ */
+@SuppressLint("SetJavaScriptEnabled")
+@Composable
+fun LookupSuccessScreen(uri: String, modifier: Modifier) {
+    Column(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        val state = rememberWebViewState(uri)
+        WebView(
+            state = state,
+            onCreated = { it.settings.javaScriptEnabled = true },
+            modifier = modifier
+                .testTag(TAG_SERVICE_UI)
+                .weight(1.0f)
+        )
+        Text(
+            text = uri,
+            fontSize = 10.sp,
+            modifier = modifier
+                .padding(12.dp)
+                .align(Alignment.CenterHorizontally)
+                .testTag(TAG_SERVICE_URI)
+        )
+    }
+}
+
+/**
  * Generate a row consisting of a left-aligned [icon] part and a [text] part next to it.
  */
 @Composable
@@ -381,6 +418,7 @@ class ControlUiStatePreviewProvider : PreviewParameterProvider<ControlUiState> {
             WiFiUnavailable,
             ControlError(R.string.ctrl_error_details_wifi, IllegalArgumentException("Wi-Fi state failed.")),
             ServiceDiscovery(3, 23.seconds),
-            ServiceDiscoveryFailed
+            ServiceDiscoveryFailed,
+            ServiceDiscoverySucceeded("http://192.168.0.17/test-service/control.html")
         )
 }
