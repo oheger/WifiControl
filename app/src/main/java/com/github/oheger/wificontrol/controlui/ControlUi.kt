@@ -55,7 +55,6 @@ import androidx.navigation.NavController
 
 import com.github.oheger.wificontrol.Navigation
 import com.github.oheger.wificontrol.R
-import com.github.oheger.wificontrol.TAG_WIFI_UNAVAILABLE_HINT
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
 import com.google.accompanist.web.WebView
@@ -83,6 +82,7 @@ internal const val TAG_SERVICE_UI = "ctrlServiceUi"
 internal const val TAG_SERVICE_URI = "ctrlServiceUri"
 internal const val TAG_WIFI_AVAILABLE = "ctrlWiFiAvailable"
 internal const val TAG_WIFI_UNAVAILABLE = "ctrlWiFiUnavailable"
+internal const val TAG_WIFI_UNAVAILABLE_HINT = "ctrlWiFiUnavailableHint"
 
 /**
  * Generate the full tag for a text message related to the given base [tag].
