@@ -1,14 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">WifiControl</string>
-    <string name="state_wifi_unknown">Überprüfe WLAN-Status…</string>
     <string name="state_wifi_unavailable">WLAN nicht verfügbar.</string>
     <string name="state_wifi_unavailable_hint">Bitte stellen Sie sicher, dass WLAN aktiviert und verbunden ist.</string>
-    <string name="state_searching">Suche nach dem Server.</string>
-    <string name="state_server_not_found">Der Server wurde nicht gefunden im WLAN-Netzwerk.</string>
     <string name="state_wifi_available">WLAN verbunden.</string>
-    <string name="state_server_not_found_hint">Die Test-Anfrage wird nach einer Weile wiederholt.</string>
-    <string name="state_searching_hint">Schicke eine Test-Anfrage…</string>
     <string name="svc_load_error_details">Beim Laden der Dienste aus der Konfiguration ist der folgende Fehler aufgetreten:</string>
     <string name="svc_load_error_title">Laden der Dienste fehlgeschlagen</string>
     <string name="svc_update_error">Das Speichern der Dienste ist fehlgeschlagen.</string>
