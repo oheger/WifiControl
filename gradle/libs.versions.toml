@@ -14,7 +14,7 @@ hilt = "2.51.1"
 hiltNavigationCompose = "1.2.0"
 junitVintage = "5.10.2"
 koTest = "5.9.0"
-kotlinAndroidPlugin = "1.9.23"
+kotlin = "2.0.0"
 kotlinxDatetime = "0.6.0"
 lifecycleRuntime = "2.7.0"
 mockk = "1.13.11"
@@ -30,8 +30,9 @@ webView = "0.34.0"
 android-application = { id = "com.android.application", version.ref = "androidApplicationPlugin" }
 android-library = { id = "com.android.library", version.ref = "androidLibraryPlugin" }
 catalog-update = { id = "nl.littlerobots.version-catalog-update", version.ref = "catalogUpdatePlugin" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 hilt-dagger = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinAndroidPlugin" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 protobuf = { id = "com.google.protobuf", version.ref = "protobufPlugin" }
 versions = { id = "com.github.ben-manes.versions", version.ref = "versionsPlugin" }
 
