@@ -20,6 +20,7 @@ plugins {
     kotlin("kapt")
 
     alias(libs.plugins.android.application)
+    alias(libs.plugins.compose.compiler)
     alias(libs.plugins.hilt.dagger)
     alias(libs.plugins.kotlin.android)
 }
@@ -30,7 +31,6 @@ val defaultTargetSdk: String by project
 val defaultJvmTarget: String by project
 val javaCompileVersion: String by project
 val jvmToolChainVersion: String by project
-val composeCompilerVersion: String by project
 
 android {
     namespace = "com.github.oheger.wificontrol"
@@ -69,9 +69,6 @@ android {
     }
     buildFeatures {
         compose = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = composeCompilerVersion
     }
     packaging {
         resources {
