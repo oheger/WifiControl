@@ -160,7 +160,7 @@ class ServiceDiscoveryDataSourceImplTest : WordSpec() {
                 withTestServer(response = "?!This is not a valid URL!?") { serviceDefinition ->
                     val lookupService = LookupService(
                         service = serviceDefinition,
-                        lookupConfig = defaultLookupConfig.copy(networkTimeout = 200.milliseconds)
+                        lookupConfig = defaultLookupConfig.copy(lookupTimeout = 200.milliseconds)
                     )
                     val source = createSource()
 
@@ -221,8 +221,7 @@ private const val EXIT_COMMAND = "exitService"
 
 /** The default lookup configuration used by tests. */
 private val defaultLookupConfig = LookupConfig(
-    networkTimeout = 1.seconds,
-    retryDelay = 1.seconds,
+    lookupTimeout = 1.seconds,
     sendRequestInterval = 10.milliseconds
 )
 
@@ -246,11 +245,11 @@ private fun createSource(): ServiceDiscoveryDataSourceImpl {
  */
 private fun createServiceForFailedLookup(
     serviceDefinition: ServiceDefinition,
-    timeout: Duration = defaultLookupConfig.networkTimeout,
+    timeout: Duration = defaultLookupConfig.lookupTimeout,
     sendInterval: Duration = defaultLookupConfig.sendRequestInterval
 ): LookupService {
     val currentDefinition = serviceDefinition.copy(requestCode = "otherCode")
-    val lookupConfig = defaultLookupConfig.copy(networkTimeout = timeout, sendRequestInterval = sendInterval)
+    val lookupConfig = defaultLookupConfig.copy(lookupTimeout = timeout, sendRequestInterval = sendInterval)
     return LookupService(currentDefinition, lookupConfig)
 }
 

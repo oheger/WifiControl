@@ -36,7 +36,6 @@ class ServiceDataTest : WordSpec({
         "return a LookupService if all lookup properties are defined" {
             val expectedLookupConfig = LookupConfig(
                 persistentService1.networkTimeout!!,
-                persistentService1.retryDelay!!,
                 persistentService1.sendRequestInterval!!
             )
             val data = createServiceData()
@@ -49,8 +48,7 @@ class ServiceDataTest : WordSpec({
 
         "return a LookupService with default lookup properties" {
             val expectedLookupConfig = LookupConfig(
-                LookupConfig.DEFAULT_TIMEOUT,
-                LookupConfig.DEFAULT_RETRY_DELAY,
+                LookupConfig.DEFAULT_LOOKUP_TIMEOUT,
                 LookupConfig.DEFAULT_SEND_REQUEST_INTERVAL
             )
             val data = createServiceData()
@@ -64,7 +62,6 @@ class ServiceDataTest : WordSpec({
         "return an existing LookupService by name" {
             val expectedLookupConfig = LookupConfig(
                 persistentService1.networkTimeout!!,
-                persistentService1.retryDelay!!,
                 persistentService1.sendRequestInterval!!
             )
             val data = createServiceData()
@@ -89,7 +86,6 @@ class ServiceDataTest : WordSpec({
         "return an existing service" {
             val expectedLookupConfig = LookupConfig(
                 persistentService1.networkTimeout!!,
-                persistentService1.retryDelay!!,
                 persistentService1.sendRequestInterval!!
             )
             val data = createServiceData()

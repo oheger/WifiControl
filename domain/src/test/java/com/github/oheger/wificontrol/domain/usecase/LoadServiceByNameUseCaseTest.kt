@@ -102,8 +102,7 @@ private fun createService(name: String, index: Int): LookupService =
             requestCode = "code$index"
         ),
         lookupConfig = LookupConfig(
-            networkTimeout = LookupConfig.DEFAULT_TIMEOUT,
-            retryDelay = LookupConfig.DEFAULT_RETRY_DELAY,
+            lookupTimeout = LookupConfig.DEFAULT_LOOKUP_TIMEOUT,
             sendRequestInterval = LookupConfig.DEFAULT_SEND_REQUEST_INTERVAL
         )
     )

@@ -49,8 +49,7 @@ data class ServiceData(
      */
     operator fun get(index: Int): LookupService = with(services[index]) {
         val lookupConfig = LookupConfig(
-            networkTimeout ?: LookupConfig.DEFAULT_TIMEOUT,
-            retryDelay ?: LookupConfig.DEFAULT_RETRY_DELAY,
+            networkTimeout ?: LookupConfig.DEFAULT_LOOKUP_TIMEOUT,
             sendRequestInterval ?: LookupConfig.DEFAULT_SEND_REQUEST_INTERVAL
         )
         LookupService(serviceDefinition, lookupConfig)
