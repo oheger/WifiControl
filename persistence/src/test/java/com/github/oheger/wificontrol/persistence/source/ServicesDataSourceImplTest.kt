@@ -86,7 +86,7 @@ private val persistentService2 = PersistentServiceDefinition.newBuilder()
     .setMulticastAddress("231.10.18.12")
     .setPort(11111)
     .setRequestCode("testRequest2")
-    .setNetworkTimeoutMs(10000)
+    .setLookupTimeoutMs(10000)
     .setSendRequestIntervalMs(250)
     .build()
 

@@ -69,7 +69,7 @@ private fun toDomainService(serviceDefinition: PersistentServiceDefinition): Per
                 port = port,
                 requestCode = requestCode
             ),
-            lookupTimeout = networkTimeoutMs.takeIf { hasNetworkTimeoutMs() }?.milliseconds,
+            lookupTimeout = lookupTimeoutMs.takeIf { hasLookupTimeoutMs() }?.milliseconds,
             sendRequestInterval = sendRequestIntervalMs.takeIf { hasSendRequestIntervalMs() }?.milliseconds
         )
     }
@@ -85,7 +85,7 @@ private fun toPersistentService(persistentService: PersistentService): Persisten
             .setPort(serviceDefinition.port)
             .setRequestCode(serviceDefinition.requestCode)
 
-        lookupTimeout?.let { builder.setNetworkTimeoutMs(it.inWholeMilliseconds) }
+        lookupTimeout?.let { builder.setLookupTimeoutMs(it.inWholeMilliseconds) }
         sendRequestInterval?.let { builder.setSendRequestIntervalMs(it.inWholeMilliseconds) }
 
         builder.build()
