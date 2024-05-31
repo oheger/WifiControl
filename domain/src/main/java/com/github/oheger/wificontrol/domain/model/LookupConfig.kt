@@ -29,16 +29,10 @@ import kotlin.time.Duration.Companion.seconds
  */
 data class LookupConfig(
     /**
-     * A timeout after which a test is considered a failure. It applies to multiple checks that wait for some kind of
-     * response.
+     * A timeout for a lookup operation for a service. If no response is received from the service after this time
+     * range, the operation is canceled in failure state.
      */
-    val networkTimeout: Duration,
-
-    /**
-     * A delay after which another attempt is made to contact the service after a failure or when no response was
-     * received.
-     */
-    val retryDelay: Duration,
+    val lookupTimeout: Duration,
 
     /**
      * The interval in which requests are sent to the UDP server. Since packets can get lost, or there could be race
@@ -49,13 +43,10 @@ data class LookupConfig(
     val sendRequestInterval: Duration
 ) {
     companion object {
-        /** A default value for the [networkTimeout] property. */
-        val DEFAULT_TIMEOUT = 5.seconds
-
-        /** A default value for the [retryDelay] property. */
-        val DEFAULT_RETRY_DELAY = 10.seconds
+        /** A default value for the [lookupTimeout] property. */
+        val DEFAULT_LOOKUP_TIMEOUT = 30.seconds
 
         /** A default value for the [sendRequestInterval] property. */
-        val DEFAULT_SEND_REQUEST_INTERVAL = 100.milliseconds
+        val DEFAULT_SEND_REQUEST_INTERVAL = 500.milliseconds
     }
 }

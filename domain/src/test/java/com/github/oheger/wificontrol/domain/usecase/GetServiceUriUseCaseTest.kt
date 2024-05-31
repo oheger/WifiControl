@@ -64,8 +64,7 @@ class GetServiceUriUseCaseTest : StringSpec({
             every { lookupService(SERVICE_NAME, any()) } returns flowOf(LookupInProgress(Clock.System.now(), 1))
         }
         val lookupConfig = LookupConfig(
-            networkTimeout = 30.seconds,
-            retryDelay = 22.seconds,
+            lookupTimeout = 30.seconds,
             sendRequestInterval = 10.seconds
         )
         val lookupService = LookupService(

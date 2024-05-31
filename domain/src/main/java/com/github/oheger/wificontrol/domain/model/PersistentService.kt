@@ -30,7 +30,7 @@ data class PersistentService(
     /** The underlying [ServiceDefinition]. */
     val serviceDefinition: ServiceDefinition,
 
-    /** The optional [LookupConfig.networkTimeout]. */
+    /** The optional [LookupConfig.lookupTimeout]. */
     val networkTimeout: Duration?,
 
     /** The optional [LookupConfig.retryDelay]. */

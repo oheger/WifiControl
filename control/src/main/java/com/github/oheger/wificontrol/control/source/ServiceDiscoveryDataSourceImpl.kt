@@ -128,7 +128,7 @@ class ServiceDiscoveryDataSourceImpl @Inject constructor(
                         }
                         val udpJob = launch { udpCommunication(lookupService, sendSocket, receiveSocket, udpFlow) }
 
-                        withTimeoutOrNull(lookupService.lookupConfig.networkTimeout) {
+                        withTimeoutOrNull(lookupService.lookupConfig.lookupTimeout) {
                             lookupFlow.first { it is LookupSucceeded }
                         }.also {
                             udpJob.cancel()
