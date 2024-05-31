@@ -74,14 +74,12 @@ class CreateServiceUiTest {
     fun setUp() {
         val testService = PersistentService(
             serviceDefinition = ServiceDefinition("test", "1.2.3.4", 10000, "testCode"),
-            networkTimeout = null,
-            retryDelay = null,
+            lookupTimeout = null,
             sendRequestInterval = null
         )
         val newService = PersistentService(
             serviceDefinition = ServiceDefinition("", "", 0, ""),
-            networkTimeout = null,
-            retryDelay = null,
+            lookupTimeout = null,
             sendRequestInterval = null
         )
         serviceData = ServiceData(listOf(testService), 0)
@@ -183,8 +181,7 @@ private val service = PersistentService(
         port = 9007,
         requestCode = "testCode"
     ),
-    networkTimeout = null,
-    retryDelay = null,
+    lookupTimeout = null,
     sendRequestInterval = null
 )
 

@@ -312,20 +312,17 @@ fun ServicesListPreview() {
     val services = listOf(
         PersistentService(
             serviceDefinition = ServiceDefinition("Audio", "", 0, ""),
-            networkTimeout = null,
-            retryDelay = null,
+            lookupTimeout = null,
             sendRequestInterval = null
         ),
         PersistentService(
             serviceDefinition = ServiceDefinition("Video", "", 0, ""),
-            networkTimeout = null,
-            retryDelay = null,
+            lookupTimeout = null,
             sendRequestInterval = null
         ),
         PersistentService(
             serviceDefinition = ServiceDefinition("Disco", "", 0, ""),
-            networkTimeout = null,
-            retryDelay = null,
+            lookupTimeout = null,
             sendRequestInterval = null
         )
     )
