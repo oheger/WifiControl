@@ -13,7 +13,6 @@ message PersistentServiceDefinition {
   string multicast_address = 2;
   int32 port = 3;
   string request_code = 4;
-  optional int64 network_timeout_ms = 5;
-  optional int64 retry_delay_ms = 6;
-  optional int64 send_request_interval_ms = 7;
+  optional int64 lookup_timeout_ms = 5;
+  optional int64 send_request_interval_ms = 6;
 }
