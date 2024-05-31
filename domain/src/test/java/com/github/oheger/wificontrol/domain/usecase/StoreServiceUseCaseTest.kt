@@ -116,8 +116,7 @@ class StoreServiceUseCaseTest : StringSpec({
                 port = 10000,
                 requestCode = "code"
             ),
-            networkTimeout = null,
-            retryDelay = null,
+            lookupTimeout = null,
             sendRequestInterval = null
         )
         val serviceData = ServiceData(listOf(service), 0)

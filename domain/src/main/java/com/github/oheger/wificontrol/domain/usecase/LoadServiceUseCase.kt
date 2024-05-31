@@ -49,8 +49,7 @@ class LoadServiceUseCase @Inject constructor(
                 port = 0,
                 requestCode = ""
             ),
-            networkTimeout = null,
-            retryDelay = null,
+            lookupTimeout = null,
             sendRequestInterval = null
         )
     }

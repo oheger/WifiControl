@@ -190,8 +190,7 @@ class ServiceDetailsUiTest {
                 port = 9875,
                 requestCode = "AnybodyOutThere?!"
             ),
-            networkTimeout = null,
-            retryDelay = null,
+            lookupTimeout = null,
             sendRequestInterval = null
         )
 
@@ -266,7 +265,6 @@ private val service = PersistentService(
         port = 9876,
         requestCode = "AnybodyOutThere?"
     ),
-    networkTimeout = null,
-    retryDelay = null,
+    lookupTimeout = null,
     sendRequestInterval = null
 )

@@ -259,8 +259,7 @@ private fun EditServiceDetails(
                 port = port.toInt(),
                 requestCode = code
             ),
-            networkTimeout = null,
-            retryDelay = null,
+            lookupTimeout = null,
             sendRequestInterval = null
         )
 
@@ -394,8 +393,7 @@ fun ViewServiceDetailsPreview() {
             port = 7777,
             requestCode = "Lookup_audio_service"
         ),
-        networkTimeout = null,
-        retryDelay = null,
+        lookupTimeout = null,
         sendRequestInterval = null
     )
     val serviceData = ServiceData(emptyList(), 0)
@@ -416,8 +414,7 @@ fun EditServiceDetailsPreview() {
             port = 8888,
             requestCode = "Find_Video_Service"
         ),
-        networkTimeout = null,
-        retryDelay = null,
+        lookupTimeout = null,
         sendRequestInterval = null
     )
     val serviceData = ServiceData(emptyList(), 0)

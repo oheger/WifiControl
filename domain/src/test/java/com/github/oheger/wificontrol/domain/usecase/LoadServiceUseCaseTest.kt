@@ -69,8 +69,7 @@ class LoadServiceUseCaseTest : StringSpec({
             output.serviceData shouldBe serviceData
             output.service shouldBe PersistentService(
                 serviceDefinition = ServiceDefinition("", "", 0, ""),
-                networkTimeout = null,
-                retryDelay = null,
+                lookupTimeout = null,
                 sendRequestInterval = null
             )
         }
@@ -124,7 +123,6 @@ private fun createService(index: Int): PersistentService =
             port = 8000 + index,
             requestCode = "code$index"
         ),
-        networkTimeout = null,
-        retryDelay = null,
+        lookupTimeout = null,
         sendRequestInterval = null
     )

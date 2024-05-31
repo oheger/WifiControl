@@ -278,8 +278,7 @@ private fun createService(index: Int): PersistentService {
     )
     return PersistentService(
         serviceDefinition = serviceDefinition,
-        networkTimeout = null,
-        retryDelay = null,
+        lookupTimeout = null,
         sendRequestInterval = null
     )
 }

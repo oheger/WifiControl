@@ -87,7 +87,6 @@ private val persistentService2 = PersistentServiceDefinition.newBuilder()
     .setPort(11111)
     .setRequestCode("testRequest2")
     .setNetworkTimeoutMs(10000)
-    .setRetryDelayMs(20000)
     .setSendRequestIntervalMs(250)
     .build()
 
@@ -105,8 +104,7 @@ private val modelService1 = PersistentService(
         port = 9999,
         requestCode = "testRequest1"
     ),
-    networkTimeout = null,
-    retryDelay = null,
+    lookupTimeout = null,
     sendRequestInterval = null
 )
 /** A service from the domain layer corresponding to the second persistent test service. */
@@ -117,8 +115,7 @@ private val modelService2 = PersistentService(
         port = 11111,
         requestCode = "testRequest2"
     ),
-    networkTimeout = 10.seconds,
-    retryDelay = 20.seconds,
+    lookupTimeout = 10.seconds,
     sendRequestInterval = 250.milliseconds
 )
 

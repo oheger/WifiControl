@@ -115,8 +115,7 @@ private fun createServiceData(vararg services: LookupService): ServiceData =
         services = services.map { lookupService ->
             PersistentService(
                 serviceDefinition = lookupService.service,
-                networkTimeout = null,
-                retryDelay = null,
+                lookupTimeout = null,
                 sendRequestInterval = null
             )
         },

@@ -35,7 +35,7 @@ class ServiceDataTest : WordSpec({
     "get" should {
         "return a LookupService if all lookup properties are defined" {
             val expectedLookupConfig = LookupConfig(
-                persistentService1.networkTimeout!!,
+                persistentService1.lookupTimeout!!,
                 persistentService1.sendRequestInterval!!
             )
             val data = createServiceData()
@@ -61,7 +61,7 @@ class ServiceDataTest : WordSpec({
 
         "return an existing LookupService by name" {
             val expectedLookupConfig = LookupConfig(
-                persistentService1.networkTimeout!!,
+                persistentService1.lookupTimeout!!,
                 persistentService1.sendRequestInterval!!
             )
             val data = createServiceData()
@@ -85,7 +85,7 @@ class ServiceDataTest : WordSpec({
     "getService" should {
         "return an existing service" {
             val expectedLookupConfig = LookupConfig(
-                persistentService1.networkTimeout!!,
+                persistentService1.lookupTimeout!!,
                 persistentService1.sendRequestInterval!!
             )
             val data = createServiceData()
@@ -172,8 +172,7 @@ class ServiceDataTest : WordSpec({
                     port = 7003,
                     requestCode = "code3"
                 ),
-                networkTimeout = 11.seconds,
-                retryDelay = null,
+                lookupTimeout = 11.seconds,
                 sendRequestInterval = 44.milliseconds
             )
             val data = createServiceData(current = 1)
@@ -377,16 +376,14 @@ private val service2 = ServiceDefinition(
 /** A test persistent service. */
 private val persistentService1 = PersistentService(
     serviceDefinition = service1,
-    networkTimeout = 53.seconds,
-    retryDelay = 28.seconds,
+    lookupTimeout = 53.seconds,
     sendRequestInterval = 111.milliseconds
 )
 
 /** Another test persistent service. */
 private val persistentService2 = PersistentService(
     serviceDefinition = service2,
-    networkTimeout = null,
-    retryDelay = null,
+    lookupTimeout = null,
     sendRequestInterval = null
 )
 
