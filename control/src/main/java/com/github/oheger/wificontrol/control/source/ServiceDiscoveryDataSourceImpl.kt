@@ -39,8 +39,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.transformWhile
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -78,24 +80,25 @@ class ServiceDiscoveryDataSourceImpl @Inject constructor(
     }
 
     /**
-     * A map storing the state flows for the services that have been queried via the [discoverService] function. This
+     * A cache storing the state flows for the services that have been queried via the [discoverService] function. This
      * allows direct access to the current state of the discovery operation (and potential updates) when a service is
      * queried later again. After the end of a discovery operation, the terminal state remains in the flow and is made
-     * available via the replay buffer.
-     *
-     * Note that no synchronization is required here, since all invocations of [discoverService] are expected to come
-     * from the main thread.
+     * available via the replay buffer. Using a [MutableStateFlow] for caching already requested services allows for
+     * thread-safe updates.
      */
-    private val discoveryFlows = mutableMapOf<String, Flow<LookupState>>()
+    private val discoveryFlows = MutableStateFlow(emptyMap<String, Flow<LookupState>>())
 
     override fun discoverService(
         serviceName: String,
         lookupServiceProvider: suspend () -> LookupService
-    ): Flow<LookupState> {
-        return discoveryFlows.getOrPut(serviceName) {
-            runDiscovery(serviceName, lookupServiceProvider)
-        }
-    }
+    ): Flow<LookupState> =
+        discoveryFlows.updateAndGet { currentFlows ->
+            if (serviceName !in currentFlows) {
+                currentFlows + (serviceName to runDiscovery(serviceName, lookupServiceProvider))
+            } else {
+                currentFlows
+            }
+        }.getValue(serviceName)
 
     /**
      * Start a new discovery operation for the service with the given [serviceName] making use of the provided
