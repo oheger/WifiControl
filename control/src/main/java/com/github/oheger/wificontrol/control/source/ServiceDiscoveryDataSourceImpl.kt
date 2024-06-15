@@ -36,6 +36,7 @@ import javax.inject.Inject
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -81,28 +82,31 @@ class ServiceDiscoveryDataSourceImpl @Inject constructor(
     }
 
     /**
-     * A cache storing the state flows for the services that have been queried via the [discoverService] function. This
-     * allows direct access to the current state of the discovery operation (and potential updates) when a service is
-     * queried later again. After the end of a discovery operation, the terminal state remains in the flow and is made
-     * available via the replay buffer. Using a [MutableStateFlow] for caching already requested services allows for
-     * thread-safe updates.
+     * A cache storing the discovery states for the services that have been queried via the [discoverService] function.
+     * This allows direct access to the current state of the discovery operation (and potential updates) when a service
+     * is queried later again. After the end of a discovery operation, the terminal state remains in the flow and is
+     * made available via the replay buffer. Using a [MutableStateFlow] for caching already requested services allows
+     * for thread-safe updates.
      */
-    private val discoveryFlows = MutableStateFlow(emptyMap<String, Flow<LookupState>>())
+    private val discoveryStates = MutableStateFlow(emptyMap<String, DiscoveryState>())
 
     override fun discoverService(
         serviceName: String,
         lookupServiceProvider: suspend () -> LookupService
     ): Flow<LookupState> =
-        discoveryFlows.updateAndGet { currentFlows ->
-            if (serviceName !in currentFlows) {
-                currentFlows + (serviceName to runDiscovery(serviceName, lookupServiceProvider))
+        discoveryStates.updateAndGet { currentStates ->
+            if (serviceName !in currentStates) {
+                currentStates + (serviceName to runDiscovery(serviceName, lookupServiceProvider))
             } else {
-                currentFlows
+                currentStates
             }
-        }.getValue(serviceName)
+        }.getValue(serviceName).stateFlow
 
     override fun refreshService(serviceName: String) {
-        discoveryFlows.update { currentFlows -> currentFlows - serviceName }
+        discoveryStates.update { currentFlows ->
+            currentFlows[serviceName]?.discoveryJob?.cancel()
+            currentFlows - serviceName
+        }
     }
 
     /**
@@ -112,10 +116,10 @@ class ServiceDiscoveryDataSourceImpl @Inject constructor(
     private fun runDiscovery(
         serviceName: String,
         lookupServiceProvider: suspend () -> LookupService
-    ): MutableSharedFlow<LookupState> {
+    ): DiscoveryState {
         val lookupFlow = MutableSharedFlow<LookupState>(replay = 1)
 
-        scope.launch {
+        val discoveryJob = scope.launch {
             runCatching {
                 val lookupService = lookupServiceProvider()
                 Log.i(TAG, "Starting service discovery for '$serviceName'.")
@@ -156,7 +160,12 @@ class ServiceDiscoveryDataSourceImpl @Inject constructor(
             }
         }
 
-        return lookupFlow
+        discoveryJob.invokeOnCompletion { cause ->
+            val causeStr = cause?.let { "exceptionally" } ?: "normally"
+            Log.i(TAG, "Service discovery job for '$serviceName' completed $causeStr.")
+        }
+
+        return DiscoveryState(discoveryJob, lookupFlow)
     }
 
     /**
@@ -211,3 +220,17 @@ class ServiceDiscoveryDataSourceImpl @Inject constructor(
         }
     }
 }
+
+/**
+ * An internal data class storing information about an ongoing service discovery operation.
+ */
+private data class DiscoveryState(
+    /**
+     * The job in which the discovery operation is running. This is recorded, so that the job can be canceled when the
+     * service is refreshed.
+     */
+    val discoveryJob: Job,
+
+    /** The flow for receiving status updates about the discovery operation. */
+    val stateFlow: MutableSharedFlow<LookupState>
+)

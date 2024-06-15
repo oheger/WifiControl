@@ -26,22 +26,26 @@ import com.github.oheger.wificontrol.domain.model.LookupState
 import com.github.oheger.wificontrol.domain.model.LookupSucceeded
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 
+import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.inspectors.forAll
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.comparables.shouldBeLessThan
 import io.kotest.matchers.ints.shouldBeGreaterThan
+import io.kotest.matchers.ints.shouldBeLessThan
 import io.kotest.matchers.shouldBe
 
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.MulticastSocket
 import java.net.ServerSocket
+import java.util.concurrent.atomic.AtomicInteger
 
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.nanoseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.times
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -49,6 +53,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.dropWhile
 import kotlinx.coroutines.flow.first
@@ -228,6 +233,28 @@ class ServiceDiscoveryDataSourceImplTest : WordSpec() {
                     resultState shouldBe LookupSucceeded(SERVER_URI)
                 }
             }
+
+            "cancel an ongoing service discovery job" {
+                val requestCounter = AtomicInteger()
+                val waitForIntervals = 5
+
+                withTestServer(requestCounter = requestCounter) { serviceDefinition ->
+                    val failedLookupService = createServiceForFailedLookup(
+                        serviceDefinition,
+                        timeout = 60.seconds,
+                        sendInterval = 3.milliseconds
+                    )
+                    val source = createSource()
+                    source.discoverService(SERVICE_NAME) { failedLookupService }
+                    eventually(duration = 1.seconds) { requestCounter.get() shouldBeGreaterThan 0 }
+
+                    source.refreshService(SERVICE_NAME)
+                    val numberOfRequests = requestCounter.get()
+
+                    delay(waitForIntervals * failedLookupService.lookupConfig.sendRequestInterval)
+                    requestCounter.get() shouldBeLessThan numberOfRequests + waitForIntervals
+                }
+            }
         }
     }
 }
@@ -290,7 +317,10 @@ private fun Flow<LookupState>.terminateAtEndState(): Flow<LookupState> =
  */
 private class UdpServer(
     /** The answer to be sent on incoming requests. */
-    private val answer: String
+    private val answer: String,
+
+    /** A counter for the number of requests received by this server. */
+    private val requestCounter: AtomicInteger
 ) {
     /** The socket the server is listening on. */
     private val multicastSocket: MulticastSocket = MulticastSocket(findUnusedPort())
@@ -317,6 +347,7 @@ private class UdpServer(
 
         do {
             multicastSocket.receive(packet)
+            requestCounter.incrementAndGet()
             val request = String(packet.data, 0, packet.length)
             exit = when (request.substringBeforeLast(':')) {
                 serviceDefinition.requestCode -> {
@@ -351,12 +382,17 @@ private class UdpServer(
 }
 
 /**
- * Launch a test UDP server that answers requests with the given [response]. Then execute [block], and finally
- * wait for the termination of the test server.
+ * Launch a test UDP server that answers requests with the given [response] and tracks the number of received
+ * requests using the given [requestCounter]. Then execute [block], and finally wait for the termination of the test
+ * server.
  */
-private suspend fun withTestServer(response: String = SERVER_URI, block: suspend (ServiceDefinition) -> Unit) {
+private suspend fun withTestServer(
+    response: String = SERVER_URI,
+    requestCounter: AtomicInteger = AtomicInteger(),
+    block: suspend (ServiceDefinition) -> Unit
+) {
     withContext(Dispatchers.IO) {
-        val (server, job) = startServer(response)
+        val (server, job) = startServer(response, requestCounter)
         try {
             block(server.serviceDefinition)
         } finally {
@@ -368,9 +404,10 @@ private suspend fun withTestServer(response: String = SERVER_URI, block: suspend
 
 /**
  * Create an instance of [UdpServer] and launch it in background. The server returns the given [response] when it
- * receives a valid request. Return the server object and the job that executes it.
+ * receives a valid request. The number of received requests is tracked using the given [requestCounter]. Return the
+ * server object and the job that executes it.
  */
-private fun CoroutineScope.startServer(response: String): Pair<UdpServer, Job> {
-    val server = UdpServer(response)
+private fun CoroutineScope.startServer(response: String, requestCounter: AtomicInteger): Pair<UdpServer, Job> {
+    val server = UdpServer(response, requestCounter)
     return server to launch(Dispatchers.IO) { server.start() }
 }
