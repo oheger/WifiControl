@@ -29,7 +29,10 @@ import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.collections.shouldContainExactly
 
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.runs
+import io.mockk.verify
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
@@ -72,6 +75,21 @@ class ServiceUriRepositoryImplTest : WordSpec({
             val sourceFlow = flowOf(LookupFailed, LookupInProgress(Clock.System.now(), 2))
 
             testLookupService(sourceFlow, listOf(LookupFailed))
+        }
+    }
+
+    "clearService" should {
+        "refresh the service in the data source" {
+            val source = mockk<ServiceDiscoveryDataSource> {
+                every { refreshService(SERVICE_NAME) } just runs
+            }
+
+            val repository = ServiceUriRepositoryImpl(source)
+            repository.clearService(SERVICE_NAME)
+
+            verify {
+                source.refreshService(SERVICE_NAME)
+            }
         }
     }
 })

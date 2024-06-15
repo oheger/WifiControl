@@ -40,4 +40,11 @@ interface ServiceUriRepository {
      * operation, the flow terminates.
      */
     fun lookupService(serviceName: String, lookupServiceProvider: suspend () -> LookupService): Flow<LookupState>
+
+    /**
+     * Clear any stored information about the service with the given [serviceName]. So, when calling [lookupService]
+     * for this service again, a full discovery operation is performed. This can be used to retry a failed discovery
+     * operation or to reset the discovery flow when the properties of the service have changed.
+     */
+    fun clearService(serviceName: String)
 }

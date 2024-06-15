@@ -48,4 +48,8 @@ class ServiceUriRepositoryImpl @Inject constructor(
             emit(state)
             state is LookupInProgress
         }
+
+    override fun clearService(serviceName: String) {
+        discoveryDataSource.refreshService(serviceName)
+    }
 }
