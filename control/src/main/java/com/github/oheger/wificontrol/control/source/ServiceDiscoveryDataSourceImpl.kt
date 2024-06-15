@@ -42,6 +42,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.transformWhile
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -99,6 +100,10 @@ class ServiceDiscoveryDataSourceImpl @Inject constructor(
                 currentFlows
             }
         }.getValue(serviceName)
+
+    override fun refreshService(serviceName: String) {
+        discoveryFlows.update { currentFlows -> currentFlows - serviceName }
+    }
 
     /**
      * Start a new discovery operation for the service with the given [serviceName] making use of the provided
