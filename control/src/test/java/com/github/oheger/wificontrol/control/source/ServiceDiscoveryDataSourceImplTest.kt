@@ -207,6 +207,28 @@ class ServiceDiscoveryDataSourceImplTest : WordSpec() {
                 cachedFlow.first() shouldBe LookupSucceeded(SERVER_URI)
             }
         }
+
+        "refreshService" should {
+            "remove a service from the cache" {
+                withTestServer { serviceDefinition ->
+                    val source = createSource()
+                    val failedLookupService = createServiceForFailedLookup(
+                        serviceDefinition,
+                        timeout = 10.milliseconds
+                    )
+                    val failedFlow = source.discoverService(SERVICE_NAME) { failedLookupService }
+                    failedFlow.dropWhile { it is LookupInProgress }.first()
+
+                    source.refreshService(SERVICE_NAME)
+
+                    val lookupService = LookupService(serviceDefinition, defaultLookupConfig)
+                    val stateFlow = source.discoverService(SERVICE_NAME) { lookupService }
+
+                    val resultState = stateFlow.dropWhile { it is LookupInProgress }.first()
+                    resultState shouldBe LookupSucceeded(SERVER_URI)
+                }
+            }
+        }
     }
 }
 

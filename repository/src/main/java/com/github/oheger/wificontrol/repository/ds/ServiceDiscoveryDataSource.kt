@@ -38,4 +38,11 @@ interface ServiceDiscoveryDataSource {
      * [LookupService] if a new discovery operation needs to be started.
      */
     fun discoverService(serviceName: String, lookupServiceProvider: suspend () -> LookupService): Flow<LookupState>
+
+    /**
+     * Notify this data source that the properties of the service with the given [serviceName] have changed or another
+     * attempt should be made to discover this service. This gives an implementation that uses caching the chance to
+     * invalidate its cache, so that a new discovery operation is started the next time [discoverService] is called.
+     */
+    fun refreshService(serviceName: String)
 }
