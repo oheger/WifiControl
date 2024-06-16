@@ -18,6 +18,8 @@
  */
 package com.github.oheger.wificontrol.domain.usecase
 
+import com.github.oheger.wificontrol.domain.model.LookupConfig
+import com.github.oheger.wificontrol.domain.model.LookupService
 import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
@@ -33,6 +35,9 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -42,35 +47,45 @@ class StoreServiceUseCaseTest : StringSpec({
         val serviceIndex = 1
         val modifiedService = mockk<PersistentService>()
         val originalName = "theOriginalServiceName"
+        val testServiceDefinition = ServiceDefinition(
+            name = originalName,
+            multicastAddress = "",
+            port = 0,
+            requestCode = ""
+        )
         val originalService = mockk<PersistentService> {
-            every { serviceDefinition } returns ServiceDefinition(
-                name = originalName,
-                multicastAddress = "",
-                port = 0,
-                requestCode = ""
-            )
+            every { serviceDefinition } returns testServiceDefinition
         }
 
         val serviceDataNew = mockk<ServiceData>()
         val serviceDataOrg = mockk<ServiceData> {
             every { updateService(originalName, modifiedService) } returns serviceDataNew
             every { services } returns listOf(mockk(), originalService, mockk())
+            every {
+                get(serviceIndex)
+            } returns LookupService(testServiceDefinition, LookupConfig(10.seconds, 100.milliseconds))
         }
 
-        val expectedInput = StoreServiceDataUseCase.Input(serviceDataNew)
+        val expectedStoreInput = StoreServiceDataUseCase.Input(serviceDataNew)
         val storeDataUseCase = mockk<StoreServiceDataUseCase> {
             every {
-                process(expectedInput)
+                process(expectedStoreInput)
             } returns flowOf(StoreServiceDataUseCase.Output)
         }
 
+        val expectedClearInput = ClearServiceUriUseCase.Input(originalName)
+        val clearUseCase = mockk<ClearServiceUriUseCase> {
+            every { process(expectedClearInput) } returns flowOf(ClearServiceUriUseCase.Output)
+        }
+
         val input = StoreServiceUseCase.Input(serviceDataOrg, modifiedService, serviceIndex)
-        val useCase = StoreServiceUseCase(useCaseConfig, storeDataUseCase)
+        val useCase = StoreServiceUseCase(useCaseConfig, storeDataUseCase, clearUseCase)
         val result = useCase.execute(input).first()
 
         result.shouldBeSuccess(StoreServiceUseCase.Output)
         verify {
-            storeDataUseCase.process(expectedInput)
+            storeDataUseCase.process(expectedStoreInput)
+            clearUseCase.process(expectedClearInput)
         }
     }
 
@@ -89,7 +104,7 @@ class StoreServiceUseCaseTest : StringSpec({
         }
 
         val input = StoreServiceUseCase.Input(serviceDataOrg, newService, ServiceData.NEW_SERVICE_INDEX)
-        val useCase = StoreServiceUseCase(useCaseConfig, storeDataUseCase)
+        val useCase = StoreServiceUseCase(useCaseConfig, storeDataUseCase, mockk())
         val result = useCase.execute(input).first()
 
         result.shouldBeSuccess(StoreServiceUseCase.Output)
@@ -102,7 +117,7 @@ class StoreServiceUseCaseTest : StringSpec({
         val serviceData = ServiceData(emptyList(), 0)
 
         val input = StoreServiceUseCase.Input(serviceData, mockk(), 1)
-        val useCase = StoreServiceUseCase(useCaseConfig, mockk())
+        val useCase = StoreServiceUseCase(useCaseConfig, mockk(), mockk())
         val result = useCase.execute(input).first()
 
         result.shouldBeFailure()
@@ -126,8 +141,44 @@ class StoreServiceUseCaseTest : StringSpec({
             every { process(any()) } throws expException
         }
 
+        val clearUseCase = mockk<ClearServiceUriUseCase> {
+            every { process(any()) } returns flowOf(ClearServiceUriUseCase.Output)
+        }
+
         val input = StoreServiceUseCase.Input(serviceData, service, 0)
-        val useCase = StoreServiceUseCase(useCaseConfig, storeDataUseCase)
+        val useCase = StoreServiceUseCase(useCaseConfig, storeDataUseCase, clearUseCase)
+        val result = useCase.execute(input).first()
+
+        result.shouldBeFailure { exception ->
+            exception should beInstanceOf(expException::class)
+            exception.message shouldBe expException.message
+        }
+    }
+
+    "An exception thrown by the clear URI use case is handled" {
+        val service = PersistentService(
+            serviceDefinition = ServiceDefinition(
+                name = "someService",
+                multicastAddress = "1.2.3.4",
+                port = 10000,
+                requestCode = "code"
+            ),
+            lookupTimeout = null,
+            sendRequestInterval = null
+        )
+        val serviceData = ServiceData(listOf(service), 0)
+
+        val expException = IllegalArgumentException("Could not store service data.")
+        val clearUseCase = mockk<ClearServiceUriUseCase> {
+            every { process(any()) } throws expException
+        }
+
+        val storeDataUseCase = mockk<StoreServiceDataUseCase> {
+            every { process(any()) } returns flowOf(StoreServiceDataUseCase.Output)
+        }
+
+        val input = StoreServiceUseCase.Input(serviceData, service, 0)
+        val useCase = StoreServiceUseCase(useCaseConfig, storeDataUseCase, clearUseCase)
         val result = useCase.execute(input).first()
 
         result.shouldBeFailure { exception ->

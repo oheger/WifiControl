@@ -27,6 +27,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 /**
@@ -38,10 +39,29 @@ class StoreServiceUseCase @Inject constructor(
     config: UseCaseConfig,
 
     /** The use case for storing the updated [ServiceData] object. */
-    private val storeDataUseCase: StoreServiceDataUseCase
+    private val storeDataUseCase: StoreServiceDataUseCase,
+
+    /** The use case for clearing the URI of the modified service. */
+    private val clearUriUseCase: ClearServiceUriUseCase
 ) : BaseUseCase<StoreServiceUseCase.Input, StoreServiceUseCase.Output>(config) {
     override fun process(input: Input): Flow<Output> =
-        updateFlow(input).flatMapConcat(storeDataUseCase::process).map { Output }
+        clearServiceUriFlow(input)
+            .flatMapConcat { updateFlow(input) }
+            .flatMapConcat(storeDataUseCase::process).map { Output }
+
+    /**
+     * Return a [Flow] that triggers an invocation of the use case to clear the URI of the modified service if
+     * necessary. This makes sure that a new discovery is performed for this service when some of its properties have
+     * changed.
+     */
+    private fun clearServiceUriFlow(input: Input): Flow<ClearServiceUriUseCase.Output> =
+        if (input.serviceIndex == NEW_SERVICE_INDEX) {
+            flowOf(ClearServiceUriUseCase.Output)
+        } else {
+            flow {
+                emit(ClearServiceUriUseCase.Input(input.data[input.serviceIndex].service.name))
+            }.flatMapConcat(clearUriUseCase::process)
+        }
 
     /**
      * Return a [Flow] that updates the current [ServiceData] in the given [Input] based on the specified parameters.
