@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -69,6 +70,7 @@ private val defaultFontSize = 20.sp
 private val iconWidth = 32.dp
 
 internal const val TAG_BTN_NAV_OVERVIEW = "ctrlBtnNavOverview"
+internal const val TAG_BTN_RETRY_LOOKUP = "ctrlBtnRetryLookup"
 internal const val TAG_CTRL_ERROR_DETAILS = "ctrlErrorDetails"
 internal const val TAG_CTRL_ERROR_HEADER = "ctrlErrorHeader"
 internal const val TAG_CTRL_ERROR_MESSAGE = "ctrlErrorMessage"
@@ -112,7 +114,8 @@ fun ControlScreen(
     ControlScreenForState(
         serviceName = controlArgs.serviceName,
         uiState = state,
-        onOverviewClick = { navController.navigate(Navigation.ServicesRoute.route) }
+        onOverviewClick = { navController.navigate(Navigation.ServicesRoute.route) },
+        onRetryClick = { viewModel.retryFailedLookup(controlArgs.serviceName) }
     )
 }
 
@@ -124,6 +127,7 @@ private fun ControlScreenForState(
     serviceName: String,
     uiState: ControlUiState,
     onOverviewClick: () -> Unit,
+    onRetryClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -144,7 +148,12 @@ private fun ControlScreenForState(
             is WiFiUnavailable -> NoWiFiAvailable(modifier = modifier.padding(innerPadding))
             is ControlError -> ControlErrorScreen(uiState, modifier = modifier.padding(innerPadding))
             is ServiceDiscovery -> LookingUpService(uiState, modifier = modifier.padding(innerPadding))
-            is ServiceDiscoveryFailed -> LookupFailedScreen(serviceName = serviceName, modifier = modifier)
+            is ServiceDiscoveryFailed -> LookupFailedScreen(
+                serviceName = serviceName,
+                onRetry = onRetryClick,
+                modifier = modifier
+            )
+
             is ServiceDiscoverySucceeded -> LookupSuccessScreen(uri = uiState.uri, modifier = modifier)
         }
     }
@@ -287,10 +296,11 @@ private fun LookingUpService(state: ServiceDiscovery, modifier: Modifier) {
 }
 
 /**
- * Render the UI to be displayed when a service could not be discovered in the Wi-Fi.
+ * Render the UI to be displayed when the service with the given [serviceName] could not be discovered in the Wi-Fi.
+ * Invoke the given [onRetry] callback when the user wants to restart the lookup process.
  */
 @Composable
-private fun LookupFailedScreen(serviceName: String, modifier: Modifier) {
+private fun LookupFailedScreen(serviceName: String, onRetry: () -> Unit, modifier: Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -323,6 +333,14 @@ private fun LookupFailedScreen(serviceName: String, modifier: Modifier) {
             },
             modifier = modifier
         )
+        Button(
+            onClick = onRetry, modifier = modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(top = 5.dp)
+                .testTag(TAG_BTN_RETRY_LOOKUP)
+        ) {
+            Text(text = stringResource(id = R.string.ctrl_btn_retry))
+        }
     }
 }
 
@@ -405,7 +423,7 @@ fun ControlScreenPreview(
     uiState: ControlUiState
 ) {
     WifiControlTheme {
-        ControlScreenForState(serviceName = "Test service", uiState = uiState, {})
+        ControlScreenForState(serviceName = "Test service", uiState = uiState, {}, {})
     }
 }
 

@@ -35,6 +35,7 @@ import com.github.oheger.wificontrol.domain.model.LookupInProgress
 import com.github.oheger.wificontrol.domain.model.LookupState
 import com.github.oheger.wificontrol.domain.model.LookupSucceeded
 import com.github.oheger.wificontrol.domain.model.WiFiState
+import com.github.oheger.wificontrol.domain.usecase.ClearServiceUriUseCase
 import com.github.oheger.wificontrol.domain.usecase.GetServiceUriUseCase
 import com.github.oheger.wificontrol.domain.usecase.GetWiFiStateUseCase
 
@@ -48,7 +49,9 @@ import io.mockk.verify
 
 import kotlin.time.Duration.Companion.seconds
 
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -72,6 +75,12 @@ class ControlUiTest {
     /** The flow used to inject the current lookup state into test cases. */
     private lateinit var lookupStateFlow: MutableSharedFlow<Result<GetServiceUriUseCase.Output>>
 
+    /** The use case triggering a service discovery operation. */
+    private lateinit var getServiceUriUseCase: GetServiceUriUseCase
+
+    /** The use case for clearing the discovery state of a service. */
+    private lateinit var clearServiceUriUseCase: ClearServiceUriUseCase
+
     /** A mock for a clock that is used to get deterministic time calculations. */
     private lateinit var testClock: Clock
 
@@ -83,15 +92,21 @@ class ControlUiTest {
         }
 
         lookupStateFlow = MutableSharedFlow()
-        val getServiceUriUseCase = mockk<GetServiceUriUseCase> {
+        getServiceUriUseCase = mockk<GetServiceUriUseCase> {
             every { execute(GetServiceUriUseCase.Input(SERVICE_NAME)) } returns lookupStateFlow
         }
 
+        clearServiceUriUseCase = mockk()
         navController = mockk()
         testClock = mockk()
         initTime(Clock.System.now())
 
-        val controlViewModel = ControlViewModel(getWiFiStateUseCase, getServiceUriUseCase, testClock)
+        val controlViewModel = ControlViewModel(
+            getWiFiStateUseCase,
+            getServiceUriUseCase,
+            clearServiceUriUseCase,
+            testClock
+        )
         composeTestRule.setContent {
             ControlScreen(
                 viewModel = controlViewModel,
@@ -128,6 +143,24 @@ class ControlUiTest {
      */
     private suspend fun updateLookupState(state: LookupState) {
         updateLookupStateResult(Result.success(state))
+    }
+
+    /**
+     * Prepare the use case to clear the discovery result to expect an invocation and return the given [resultFlow].
+     */
+    private fun prepareClearUseCaseFlow(resultFlow: Flow<Result<ClearServiceUriUseCase.Output>>) {
+        every { clearServiceUriUseCase.execute(ClearServiceUriUseCase.Input(SERVICE_NAME)) } returns resultFlow
+    }
+
+    /**
+     * Prepare the use case to clear the discovery result to expect an invocation and return the given [result].
+     */
+    private fun prepareClearUseCase(
+        result: Result<ClearServiceUriUseCase.Output> = Result.success(
+            ClearServiceUriUseCase.Output
+        )
+    ) {
+        prepareClearUseCaseFlow(flowOf(result))
     }
 
     /**
@@ -275,6 +308,66 @@ class ControlUiTest {
 
         composeTestRule.onNodeWithTag(TAG_SERVICE_URI).assertTextEquals(serviceUri)
         assertNotDisplayed(listOf(TAG_FAILED_LOOKUP_HEADER, TAG_LOOKUP_ATTEMPTS))
+    }
+
+    @Test
+    fun `A button should be displayed to retry a failed discovery operation`() = runTest {
+        updateWiFiState(WiFiState.WI_FI_AVAILABLE)
+        updateLookupState(LookupFailed)
+        prepareClearUseCase()
+
+        composeTestRule.onNodeWithTag(TAG_BTN_RETRY_LOOKUP).performClick()
+
+        verify(exactly = 2, timeout = 3000) {
+            getServiceUriUseCase.execute(GetServiceUriUseCase.Input(SERVICE_NAME))
+        }
+    }
+
+    @Test
+    fun `Collecting the lookup flow after a retry should stop when the Wi-Fi connection is lost`() = runTest {
+        updateWiFiState(WiFiState.WI_FI_AVAILABLE)
+        updateLookupState(LookupFailed)
+        prepareClearUseCase()
+        composeTestRule.onNodeWithTag(TAG_BTN_RETRY_LOOKUP).performClick()
+
+        val lookUpStartTime = Clock.System.now() - 10.seconds
+        updateLookupState(LookupInProgress(lookUpStartTime, 1))
+        composeTestRule.onNodeWithTag(textTag(TAG_LOOKUP_MESSAGE)).assertIsDisplayed()
+
+        updateWiFiState(WiFiState.WI_FI_UNAVAILABLE)
+        updateLookupState(LookupInProgress(lookUpStartTime, 2))
+
+        assertWiFiUnavailableUi()
+    }
+
+    @Test
+    fun `An error of the clear URI use case should be ignored`() = runTest {
+        updateWiFiState(WiFiState.WI_FI_AVAILABLE)
+        updateLookupState(LookupFailed)
+        prepareClearUseCase(Result.failure(IllegalArgumentException("Test exception")))
+
+        composeTestRule.onNodeWithTag(TAG_BTN_RETRY_LOOKUP).performClick()
+
+        verify(exactly = 2, timeout = 3000) {
+            getServiceUriUseCase.execute(GetServiceUriUseCase.Input(SERVICE_NAME))
+        }
+    }
+
+    @Test
+    fun `A failed lookup is retried only if there was no state change in the meantime`() = runTest {
+        val clearUseCaseFlow = MutableSharedFlow<Result<ClearServiceUriUseCase.Output>>()
+        updateWiFiState(WiFiState.WI_FI_AVAILABLE)
+        updateLookupState(LookupFailed)
+        prepareClearUseCaseFlow(clearUseCaseFlow)
+
+        composeTestRule.onNodeWithTag(TAG_BTN_RETRY_LOOKUP).performClick()
+        updateLookupState(LookupSucceeded("http://service.example.org/success"))
+        clearUseCaseFlow.emit(Result.success(ClearServiceUriUseCase.Output))
+
+        composeTestRule.onNodeWithTag(TAG_SERVICE_URI).assertIsDisplayed()
+        verify(exactly = 1) {
+            getServiceUriUseCase.execute(GetServiceUriUseCase.Input(SERVICE_NAME))
+        }
     }
 
     /**
