@@ -26,4 +26,5 @@
     <string name="ctrl_error_details_lookup">Während der Suche nach dem Dienst im Netzwerk ist ein Fehler aufgetreten.</string>
     <string name="ctrl_lookup_failed_header">Dienst nicht gefunden</string>
     <string name="ctrl_lookup_failed_details">Der Dienst \'%1s\' hat nicht innerhalt der konfigurierten Zeit auf Anfragen geantwortet.\n\nBitte überprüfen Sie die Konfiguration des Dienstes und stellen sicher, dass der Dienst wirklich im WLAN verfügbar ist.</string>
+    <string name="ctrl_btn_retry">Erneut versuchen</string>
 </resources>

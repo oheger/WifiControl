@@ -56,7 +56,7 @@ class ControlViewModelTest : StringSpec({
                 execute(GetWiFiStateUseCase.Input)
             } returns flowOf(Result.success(GetWiFiStateUseCase.Output(WiFiState.WI_FI_UNAVAILABLE)))
         }
-        val viewModel = ControlViewModel(wiFiStateUseCase, mockk())
+        val viewModel = ControlViewModel(wiFiStateUseCase, mockk(), mockk())
 
         viewModel.initControlState("someService")
         viewModel.uiStateFlow.first()

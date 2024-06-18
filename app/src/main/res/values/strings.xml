@@ -27,4 +27,5 @@
     <string name="ctrl_error_details_lookup">During the service discovery operation, an error occurred.</string>
     <string name="ctrl_lookup_failed_header">Service discovery failed</string>
     <string name="ctrl_lookup_failed_details">No response was received from service \'%1s\' within the configured timeout.\n\nPlease double-check the configuration of this service and make sure that it is actually running in the Wi-Fi network.</string>
+    <string name="ctrl_btn_retry">Try again</string>
 </resources>

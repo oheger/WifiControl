@@ -29,6 +29,7 @@ import com.github.oheger.wificontrol.domain.model.LookupInProgress
 import com.github.oheger.wificontrol.domain.model.LookupState
 import com.github.oheger.wificontrol.domain.model.LookupSucceeded
 import com.github.oheger.wificontrol.domain.model.WiFiState
+import com.github.oheger.wificontrol.domain.usecase.ClearServiceUriUseCase
 import com.github.oheger.wificontrol.domain.usecase.GetServiceUriUseCase
 import com.github.oheger.wificontrol.domain.usecase.GetWiFiStateUseCase
 
@@ -40,6 +41,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 
@@ -57,6 +59,9 @@ class ControlViewModel @Inject constructor(
 
     /** The use case for obtaining the URI for the service to control. */
     private val getServiceUriUseCase: GetServiceUriUseCase,
+
+    /** The use case to clear the URI of the service to control in order to retry the lookup operation. */
+    private val clearServiceUriUseCase: ClearServiceUriUseCase,
 
     /** The clock to be used for time calculations. */
     private val clock: Clock = Clock.System
@@ -105,6 +110,38 @@ class ControlViewModel @Inject constructor(
     }
 
     /**
+     * Trigger another lookup operation for the service with the given [serviceName] when the previous one has failed.
+     * This will lead to corresponding state updates.
+     */
+    fun retryFailedLookup(serviceName: String) {
+        viewModelScope.launch {
+            val clearResult = clearServiceUriUseCase.execute(ClearServiceUriUseCase.Input(serviceName)).first()
+            if (clearResult.isFailure) {
+                // No need for special error handling. If the service URI cannot be cleaned from the cache,
+                // the retry will fail immediately, and the UI enters the same state again.
+                Log.e(
+                    TAG,
+                    "Use case to clear the service URI failed with error: ${clearResult.exceptionOrNull()}"
+                )
+            }
+
+            // Only start a new discovery operation if there was no state change in the meantime.
+            if (mutableUiStateFlow.value == ServiceDiscoveryFailed) {
+                updateLookupStateTrackingJob(trackLookupState(serviceName))
+            }
+        }
+    }
+
+    /**
+     * Set the reference for the job that tracks a current lookup operation to the given [trackingJob]. Make sure that
+     * a currently running job is canceled.
+     */
+    private fun updateLookupStateTrackingJob(trackingJob: Job?) {
+        lookupStateTrackingJob?.cancel()
+        lookupStateTrackingJob = trackingJob
+    }
+
+    /**
      * Deal with a change in the Wi-Fi connection state for the service with the given [serviceName]. Depending on
      * the new [wiFiState], either start tracking of the service lookup state or cancel the tracking job.
      */
@@ -120,8 +157,7 @@ class ControlViewModel @Inject constructor(
 
             WiFiState.WI_FI_UNAVAILABLE -> {
                 mutableUiStateFlow.value = WiFiUnavailable
-                lookupStateTrackingJob?.cancel()
-                lookupStateTrackingJob = null
+                updateLookupStateTrackingJob(null)
             }
         }
     }
