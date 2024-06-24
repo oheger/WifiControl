@@ -93,7 +93,6 @@ private val persistentService2 = PersistentServiceDefinition.newBuilder()
 /** A persistent service data instance used by tests. */
 private val persistentServiceData = PersistentServiceData.newBuilder()
     .addAllServiceDefinitions(listOf(persistentService1, persistentService2))
-    .setCurrentIndex(1)
     .build()
 
 /** A service from the domain layer corresponding to the first persistent test service. */
@@ -121,6 +120,5 @@ private val modelService2 = PersistentService(
 
 /** A service data instance from the domain layer corresponding to the persistent service data. */
 private val modelServiceData = ServiceData(
-    services = listOf(modelService1, modelService2),
-    currentIndex = 1
+    services = listOf(modelService1, modelService2)
 )

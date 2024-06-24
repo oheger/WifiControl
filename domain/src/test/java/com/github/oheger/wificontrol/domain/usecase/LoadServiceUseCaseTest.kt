@@ -41,7 +41,7 @@ import kotlinx.coroutines.flow.flowOf
 class LoadServiceUseCaseTest : StringSpec({
     "A service should be loaded successfully" {
         val service = createService(1)
-        val serviceData = ServiceData(listOf(createService(0), service, createService(2)), 0)
+        val serviceData = ServiceData(listOf(createService(0), service, createService(2)))
         val loadDataUseCase = mockk<LoadServiceDataUseCase> {
             every {
                 process(LoadServiceDataUseCase.Input)
@@ -55,7 +55,7 @@ class LoadServiceUseCaseTest : StringSpec({
     }
 
     "The index for a new service should be handled correctly" {
-        val serviceData = ServiceData(listOf(createService(1), createService(2)), 0)
+        val serviceData = ServiceData(listOf(createService(1), createService(2)))
         val loadDataUseCase = mockk<LoadServiceDataUseCase> {
             every {
                 process(LoadServiceDataUseCase.Input)
@@ -77,7 +77,7 @@ class LoadServiceUseCaseTest : StringSpec({
 
     "A non existing service should cause a failure result" {
         val nonExistingIndex = 42
-        val serviceData = ServiceData(listOf(createService(1), createService(2)), 1)
+        val serviceData = ServiceData(listOf(createService(1), createService(2)))
         val loadDataUseCase = mockk<LoadServiceDataUseCase> {
             every {
                 process(LoadServiceDataUseCase.Input)

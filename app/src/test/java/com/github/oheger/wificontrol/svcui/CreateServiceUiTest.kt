@@ -82,7 +82,7 @@ class CreateServiceUiTest {
             lookupTimeout = null,
             sendRequestInterval = null
         )
-        serviceData = ServiceData(listOf(testService), 0)
+        serviceData = ServiceData(listOf(testService))
 
         val loadUseCase = mockk<LoadServiceUseCase> {
             every {

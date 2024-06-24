@@ -36,10 +36,7 @@ import kotlinx.coroutines.flow.flowOf
 class ServiceDataRepositoryImplTest : WordSpec({
     "getServiceData" should {
         "return a Flow with ServiceData objects from the data source" {
-            val serviceData = ServiceData(
-                services = listOf(mockk(), mockk()),
-                currentIndex = 1
-            )
+            val serviceData = ServiceData(services = listOf(mockk(), mockk()))
             val dataSource = mockk<ServicesDataSource> {
                 every { loadServiceData() } returns flowOf(serviceData)
             }

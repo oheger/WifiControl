@@ -54,7 +54,7 @@ class ServiceDetailsViewModelTest : StringSpec({
     "Data about the current service should only be loaded once" {
         val serviceIndex = 23
         val expectedInput = LoadServiceUseCase.Input(serviceIndex)
-        val loadResult = LoadServiceUseCase.Output(ServiceData(emptyList(), 0), mockk())
+        val loadResult = LoadServiceUseCase.Output(ServiceData(emptyList()), mockk())
         val loadUseCase = mockk<LoadServiceUseCase> {
             every { execute(expectedInput) } returns flowOf(Result.success(loadResult))
         }

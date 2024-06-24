@@ -114,7 +114,7 @@ class StoreServiceUseCaseTest : StringSpec({
     }
 
     "An exception thrown by the ServiceData is handled" {
-        val serviceData = ServiceData(emptyList(), 0)
+        val serviceData = ServiceData(emptyList())
 
         val input = StoreServiceUseCase.Input(serviceData, mockk(), 1)
         val useCase = StoreServiceUseCase(useCaseConfig, mockk(), mockk())
@@ -134,7 +134,7 @@ class StoreServiceUseCaseTest : StringSpec({
             lookupTimeout = null,
             sendRequestInterval = null
         )
-        val serviceData = ServiceData(listOf(service), 0)
+        val serviceData = ServiceData(listOf(service))
 
         val expException = IllegalArgumentException("Could not store service data.")
         val storeDataUseCase = mockk<StoreServiceDataUseCase> {
@@ -166,7 +166,7 @@ class StoreServiceUseCaseTest : StringSpec({
             lookupTimeout = null,
             sendRequestInterval = null
         )
-        val serviceData = ServiceData(listOf(service), 0)
+        val serviceData = ServiceData(listOf(service))
 
         val expException = IllegalArgumentException("Could not store service data.")
         val clearUseCase = mockk<ClearServiceUriUseCase> {

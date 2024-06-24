@@ -36,7 +36,6 @@ import com.github.oheger.wificontrol.domain.usecase.StoreServiceDataUseCase
 
 import io.kotest.inspectors.forAll
 import io.kotest.matchers.collections.shouldContainExactly
-import io.kotest.matchers.shouldBe
 
 import io.mockk.every
 import io.mockk.just
@@ -140,7 +139,6 @@ class ServicesOverviewUiTest {
             .performClick()
         val savedData = expectStoredData()
 
-        savedData.currentIndex shouldBe data.currentIndex
         savedData.services shouldContainExactly listOf(data.services[1], data.services[0])
     }
 
@@ -160,7 +158,6 @@ class ServicesOverviewUiTest {
             .performClick()
         val savedData = expectStoredData()
 
-        savedData.currentIndex shouldBe data.currentIndex
         savedData.services shouldContainExactly listOf(data.services[1], data.services[0])
     }
 
@@ -180,7 +177,6 @@ class ServicesOverviewUiTest {
             .performClick()
         val savedData = expectStoredData()
 
-        savedData.currentIndex shouldBe data.currentIndex
         savedData.services shouldContainExactly listOf(data.services[1], data.services[2])
     }
 
@@ -288,5 +284,5 @@ private fun createService(index: Int): PersistentService {
  */
 private fun createServiceData(serviceCount: Int): ServiceData {
     val services = (1..serviceCount).map(::createService)
-    return ServiceData(services, 0)
+    return ServiceData(services)
 }

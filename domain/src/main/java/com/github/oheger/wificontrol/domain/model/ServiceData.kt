@@ -24,10 +24,7 @@ package com.github.oheger.wificontrol.domain.model
  */
 data class ServiceData(
     /** A list with the persistent services managed by this class. */
-    val services: List<PersistentService>,
-
-    /** The index of the current service. This is the last service the user interacted with. */
-    val currentIndex: Int
+    val services: List<PersistentService>
 ) {
     companion object {
         /**
@@ -37,12 +34,6 @@ data class ServiceData(
          */
         const val NEW_SERVICE_INDEX = -1
     }
-
-    /**
-     * Return a [LookupService] object for the currently selected service or *null* if nothing is selected.
-     */
-    val current: LookupService?
-        get() = currentIndex.takeIf { it < services.size && it >= 0 }?.let(this::get)
 
     /**
      * Return a [LookupService] object for the managed service at the given [index].
@@ -103,9 +94,7 @@ data class ServiceData(
             "A service with the name '$serviceName' does not exist."
         }
 
-        val newCurrent = if (current?.service?.name == serviceName) 0 else currentIndex
-
-        return copy(services = newServices, currentIndex = newCurrent)
+        return copy(services = newServices)
     }
 
     /**
@@ -148,14 +137,6 @@ data class ServiceData(
         indexOfOrThrow(serviceName).takeIf { it < services.size - 1 }?.let { pos ->
             swapServices(pos, pos + 1)
         } ?: this
-
-    /**
-     * Return a new [ServiceData] instance that has the the service with the given [serviceName] selected as the
-     * current one. This is then the one which is displayed by the app. Throw an [IllegalArgumentException] if no
-     * service with this name exists.
-     */
-    fun makeCurrent(serviceName: String): ServiceData =
-        takeIf { current?.service?.name == serviceName } ?: copy(currentIndex = indexOfOrThrow(serviceName))
 
     /**
      * Return a new instance of [ServiceData] in which the services at the given positions [pos1] and [pos2] are
