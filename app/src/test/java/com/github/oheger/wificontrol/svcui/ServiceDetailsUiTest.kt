@@ -95,7 +95,7 @@ class ServiceDetailsUiTest {
      * load service use case.
      */
     private suspend fun initService(service: PersistentService): LoadServiceUseCase.Output {
-        val serviceData = ServiceData(listOf(service), 0)
+        val serviceData = ServiceData(listOf(service))
         val loadResult = LoadServiceUseCase.Output(serviceData, service)
 
         initLoadResult(Result.success(loadResult))

@@ -118,6 +118,5 @@ private fun createServiceData(vararg services: LookupService): ServiceData =
                 lookupTimeout = null,
                 sendRequestInterval = null
             )
-        },
-        0
+        }
     )

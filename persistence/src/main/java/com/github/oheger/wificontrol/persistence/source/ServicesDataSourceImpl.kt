@@ -41,8 +41,7 @@ class ServicesDataSourceImpl(
     override fun loadServiceData(): Flow<ServiceData> =
         dataStore.data.map { persistentData ->
             ServiceData(
-                services = persistentData.serviceDefinitionsList.map(::toDomainService),
-                currentIndex = persistentData.currentIndex
+                services = persistentData.serviceDefinitionsList.map(::toDomainService)
             )
         }
 
@@ -50,7 +49,6 @@ class ServicesDataSourceImpl(
         dataStore.updateData {
             val services = data.services.map(::toPersistentService)
             PersistentServiceData.newBuilder()
-                .setCurrentIndex(data.currentIndex)
                 .addAllServiceDefinitions(services)
                 .build()
         }

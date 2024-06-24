@@ -327,7 +327,7 @@ fun ServicesListPreview() {
         )
     )
     val state = ServicesOverviewState(
-        ServiceData(services, 0),
+        ServiceData(services),
         IllegalStateException("Error when saving services.")
     )
 
@@ -342,7 +342,7 @@ fun ServicesListPreview() {
 @Composable
 fun ServicesListEmptyPreview() {
     val state = ServicesOverviewState(
-        ServiceData(emptyList(), 0)
+        ServiceData(emptyList())
     )
 
     WifiControlTheme {

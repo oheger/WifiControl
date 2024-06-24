@@ -396,7 +396,7 @@ fun ViewServiceDetailsPreview() {
         lookupTimeout = null,
         sendRequestInterval = null
     )
-    val serviceData = ServiceData(emptyList(), 0)
+    val serviceData = ServiceData(emptyList())
     val state = ServicesUiStateLoaded(ServiceDetailsState(serviceData, 0, service, editMode = false))
 
     WifiControlTheme {
@@ -417,7 +417,7 @@ fun EditServiceDetailsPreview() {
         lookupTimeout = null,
         sendRequestInterval = null
     )
-    val serviceData = ServiceData(emptyList(), 0)
+    val serviceData = ServiceData(emptyList())
     val saveException = IllegalStateException("Could not save service.")
     val detailsState = ServiceDetailsState(serviceData, 0, service, editMode = true, saveException)
     val state = ServicesUiStateLoaded(detailsState)

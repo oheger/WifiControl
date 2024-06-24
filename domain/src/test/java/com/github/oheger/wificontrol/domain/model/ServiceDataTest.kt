@@ -129,26 +129,6 @@ class ServiceDataTest : WordSpec({
         }
     }
 
-    "current" should {
-        "return null if the selected index is larger than the number of services" {
-            val data = ServiceData(emptyList(), 0)
-
-            data.current should beNull()
-        }
-
-        "return null if the selected index is less than zero" {
-            val data = createServiceData(current = -1)
-
-            data.current should beNull()
-        }
-
-        "return the service at the current index" {
-            val data = createServiceData(1)
-
-            data.current shouldBe data[1]
-        }
-    }
-
     "contains" should {
         "return true for an existing service" {
             val data = createServiceData()
@@ -175,12 +155,11 @@ class ServiceDataTest : WordSpec({
                 lookupTimeout = 11.seconds,
                 sendRequestInterval = 44.milliseconds
             )
-            val data = createServiceData(current = 1)
+            val data = createServiceData()
 
             val newData = data.addService(newService)
 
             newData.services[2] shouldBe newService
-            newData.currentIndex shouldBe data.currentIndex
         }
 
         "throw an exception if there is a service with the given name" {
@@ -199,7 +178,6 @@ class ServiceDataTest : WordSpec({
 
             val newData = data.removeService(service2.name)
 
-            newData.currentIndex shouldBe data.currentIndex
             newData.services shouldContainExactly listOf(persistentService1)
         }
 
@@ -211,14 +189,6 @@ class ServiceDataTest : WordSpec({
                 data.removeService(nonExistingService)
             }
             exception.message shouldContain nonExistingService
-        }
-
-        "reset the current index if the current service is removed" {
-            val data = createServiceData(current = 1)
-
-            val newData = data.removeService(service2.name)
-
-            newData.currentIndex shouldBe 0
         }
     }
 
@@ -327,34 +297,6 @@ class ServiceDataTest : WordSpec({
             newData should beTheSameInstanceAs(data)
         }
     }
-
-    "makeCurrent" should {
-        "correctly set the current index" {
-            val data = createServiceData(current = 1)
-
-            val newData = data.makeCurrent(service1.name)
-
-            newData.currentIndex shouldBe 0
-        }
-
-        "throw an exception if no service with this name exists" {
-            val nonExistingService = "thisServiceCannotBeTheCurrentOne"
-            val data = createServiceData()
-
-            val exception = shouldThrow<IllegalArgumentException> {
-                data.makeCurrent(nonExistingService)
-            }
-            exception.message shouldContain nonExistingService
-        }
-
-        "return the same instance if the service is already the current one" {
-            val data = createServiceData(current = 0)
-
-            val newData = data.makeCurrent(service1.name)
-
-            newData should beTheSameInstanceAs(data)
-        }
-    }
 })
 
 /** A test service definition. */
@@ -388,10 +330,7 @@ private val persistentService2 = PersistentService(
 )
 
 /**
- * Create a [ServiceData] instance with the test services and the given [current] index.
+ * Create a [ServiceData] instance with test services.
  */
-private fun createServiceData(current: Int = 0): ServiceData =
-    ServiceData(
-        services = listOf(persistentService1, persistentService2),
-        currentIndex = current
-    )
+private fun createServiceData(): ServiceData =
+    ServiceData(services = listOf(persistentService1, persistentService2))

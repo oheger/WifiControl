@@ -29,7 +29,6 @@ class PersistentServiceDataSerializerTest : StringSpec({
         val defaultServiceData = PersistentServiceDataSerializer.defaultValue
 
         defaultServiceData.serviceDefinitionsCount shouldBe 0
-        defaultServiceData.currentIndex shouldBe 0
     }
 
     "A round-trip with serialization and deserialization should work" {
@@ -49,7 +48,6 @@ class PersistentServiceDataSerializerTest : StringSpec({
             .build()
         val data = PersistentServiceData.newBuilder()
             .addAllServiceDefinitions(listOf(service1, service2))
-            .setCurrentIndex(1)
             .build()
 
         val bos = ByteArrayOutputStream()
