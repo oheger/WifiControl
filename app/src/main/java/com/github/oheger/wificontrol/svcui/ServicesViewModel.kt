@@ -21,7 +21,9 @@ package com.github.oheger.wificontrol.svcui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 
+import com.github.oheger.wificontrol.domain.model.DefinedCurrentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
+import com.github.oheger.wificontrol.domain.usecase.LoadCurrentServiceUseCase
 import com.github.oheger.wificontrol.domain.usecase.LoadServiceDataUseCase
 import com.github.oheger.wificontrol.domain.usecase.StoreServiceDataUseCase
 import com.github.oheger.wificontrol.svcui.ServicesUiState.Companion.combineState
@@ -31,8 +33,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 
 import javax.inject.Inject
 
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 
 /**
@@ -61,13 +68,19 @@ class ServicesViewModel @Inject constructor(
     private val loadServicesUseCase: LoadServiceDataUseCase,
 
     /** The use case to store the [ServiceData] instance after it has been modified. */
-    private val storeServicesUseCase: StoreServiceDataUseCase
+    private val storeServicesUseCase: StoreServiceDataUseCase,
+
+    /** The use case for loading the current service to be controlled. */
+    private val loadCurrentServiceUseCase: LoadCurrentServiceUseCase
 ) : ViewModel() {
     /** The flow to manage the current UI state. */
     private val mutableUiStateFlow = MutableStateFlow<ServicesUiState<ServicesOverviewState>>(ServicesUiStateLoading)
 
     /** A flow to keep track on errors that occur during saving of service data. */
     private val saveErrorFlow = MutableStateFlow<Throwable?>(null)
+
+    /** A flow to notify the UI when the last current service was loaded. */
+    private val mutableCurrentServiceFlow = MutableSharedFlow<DefinedCurrentService>()
 
     /**
      * A flag to control that data about services is loaded only once. During recomposition, the [loadServices]
@@ -81,13 +94,30 @@ class ServicesViewModel @Inject constructor(
         state.copy(updateError = error)
     }
 
+    /**
+     * A flow to notify the UI that the last current service has been loaded from the preferences. Then the control
+     * UI for this service should be opened.
+     */
+    val currentServiceFlow = mutableCurrentServiceFlow.asSharedFlow()
+
     fun loadServices() {
         if (!servicesLoaded) {
             servicesLoaded = true
+
             viewModelScope.launch {
                 loadServicesUseCase.execute(LoadServiceDataUseCase.Input)
                     .mapResultFlow { result -> ServicesOverviewState(result.data) }
                     .collect { state -> mutableUiStateFlow.value = state }
+            }
+
+            viewModelScope.launch {
+                loadCurrentServiceUseCase.execute(LoadCurrentServiceUseCase.Input)
+                    .mapNotNull { result -> result.getOrNull() }
+                    .map { it.currentService }
+                    .filterIsInstance<DefinedCurrentService>()
+                    .collect { currentService ->
+                        mutableCurrentServiceFlow.emit(currentService)
+                    }
             }
         }
     }

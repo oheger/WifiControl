@@ -28,9 +28,12 @@ import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
+import com.github.oheger.wificontrol.domain.model.DefinedCurrentService
 import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
+import com.github.oheger.wificontrol.domain.model.UndefinedCurrentService
+import com.github.oheger.wificontrol.domain.usecase.LoadCurrentServiceUseCase
 import com.github.oheger.wificontrol.domain.usecase.LoadServiceDataUseCase
 import com.github.oheger.wificontrol.domain.usecase.StoreServiceDataUseCase
 
@@ -61,6 +64,9 @@ class ServicesOverviewUiTest {
     /** The flow used to inject data into the view model under test. */
     private lateinit var dataFlow: MutableSharedFlow<Result<LoadServiceDataUseCase.Output>>
 
+    /** The flow used to simulate loading of the current service. */
+    private lateinit var currentServiceFlow: MutableSharedFlow<Result<LoadCurrentServiceUseCase.Output>>
+
     /** A view model to serve the UI function. */
     private lateinit var servicesViewModel: ServicesViewModel
 
@@ -79,7 +85,13 @@ class ServicesOverviewUiTest {
 
         storeDataUseCase = mockk()
         every { storeDataUseCase.execute(any()) } returns flowOf(Result.success(StoreServiceDataUseCase.Output))
-        servicesViewModel = ServicesViewModel(loadUseCase, storeDataUseCase)
+
+        currentServiceFlow = MutableSharedFlow()
+        val loadCurrentServiceUseCase = mockk<LoadCurrentServiceUseCase> {
+            every { execute(LoadCurrentServiceUseCase.Input) } returns currentServiceFlow
+        }
+
+        servicesViewModel = ServicesViewModel(loadUseCase, storeDataUseCase, loadCurrentServiceUseCase)
 
         navController = mockk {
             every { navigate(any<String>(), any<NavOptions>()) } just runs
@@ -104,6 +116,14 @@ class ServicesOverviewUiTest {
      */
     private suspend fun initLoadResult(result: Result<LoadServiceDataUseCase.Output>) {
         dataFlow.emit(result)
+    }
+
+    /**
+     * Emit the given [result] to the flow returned by the use case to load the current service. With this function it
+     * can be checked whether navigation to the control UI works when a current service is available.
+     */
+    private suspend fun initLoadCurrentServiceResult(result: Result<LoadCurrentServiceUseCase.Output>) {
+        currentServiceFlow.emit(result)
     }
 
     /**
@@ -253,6 +273,40 @@ class ServicesOverviewUiTest {
 
         verify {
             navController.navigate("control/${service.serviceDefinition.name}")
+        }
+    }
+
+    @Test
+    fun `The control UI of the latest current service should be reopened`() = runTest {
+        val currentServiceName = serviceName(42)
+        initLoadCurrentServiceResult(
+            Result.success(LoadCurrentServiceUseCase.Output(DefinedCurrentService(currentServiceName)))
+        )
+
+        verify {
+            navController.navigate("control/$currentServiceName")
+        }
+    }
+
+    @Test
+    fun `An undefined current service should be handled`() = runTest {
+        initLoadCurrentServiceResult(
+            Result.success(LoadCurrentServiceUseCase.Output(UndefinedCurrentService))
+        )
+
+        verify(exactly = 0) {
+            navController.navigate(any<String>())
+        }
+    }
+
+    @Test
+    fun `A failure when loading the current service should be ignored`() = runTest {
+        initLoadCurrentServiceResult(
+            Result.failure(IllegalArgumentException("Test exception: Current Service could not be loaded."))
+        )
+
+        verify(exactly = 0) {
+            navController.navigate(any<String>())
         }
     }
 }

@@ -57,7 +57,7 @@ class ServicesViewModelTest : StringSpec({
                 execute(LoadServiceDataUseCase.Input)
             } returns flowOf(Result.success(LoadServiceDataUseCase.Output(ServiceData(emptyList()))))
         }
-        val viewModel = ServicesViewModel(loadUseCase, mockk())
+        val viewModel = ServicesViewModel(loadUseCase, mockk(), mockk())
 
         viewModel.loadServices()
         viewModel.uiStateFlow.first()
