@@ -21,7 +21,10 @@ package com.github.oheger.wificontrol.persistence.di
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.dataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 
+import com.github.oheger.wificontrol.persistence.source.CurrentServiceDataSourceImpl
 import com.github.oheger.wificontrol.persistence.source.PersistentServiceData
 import com.github.oheger.wificontrol.persistence.source.PersistentServiceDataSerializer
 import com.github.oheger.wificontrol.persistence.source.ServicesDataSourceImpl
@@ -44,6 +47,11 @@ private val Context.serviceDataStore: DataStore<PersistentServiceData> by dataSt
 )
 
 /**
+ * Extension property to obtain the data store for preferences.
+ */
+private val Context.preferencesDataStore: DataStore<Preferences> by preferencesDataStore(name = "WiFiControlSettings")
+
+/**
  * Hilt module that provides the dependencies for data source implementations.
  */
 @Module
@@ -52,4 +60,8 @@ class PersistenceModule {
     @Provides
     fun servicesDataSourceImpl(@ApplicationContext context: Context): ServicesDataSourceImpl =
         ServicesDataSourceImpl(context.serviceDataStore)
+
+    @Provides
+    fun currentServiceDataSourceImpl(@ApplicationContext context: Context): CurrentServiceDataSourceImpl =
+        CurrentServiceDataSourceImpl(context.preferencesDataStore)
 }

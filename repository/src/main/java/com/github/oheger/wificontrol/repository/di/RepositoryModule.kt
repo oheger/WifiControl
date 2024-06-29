@@ -18,9 +18,11 @@
  */
 package com.github.oheger.wificontrol.repository.di
 
+import com.github.oheger.wificontrol.domain.repo.CurrentServiceRepository
 import com.github.oheger.wificontrol.domain.repo.ServiceDataRepository
 import com.github.oheger.wificontrol.domain.repo.ServiceUriRepository
 import com.github.oheger.wificontrol.domain.repo.WiFiStateRepository
+import com.github.oheger.wificontrol.repository.impl.CurrentServiceRepositoryImpl
 import com.github.oheger.wificontrol.repository.impl.ServiceDataRepositoryImpl
 import com.github.oheger.wificontrol.repository.impl.ServiceUriRepositoryImpl
 import com.github.oheger.wificontrol.repository.impl.WiFiStateRepositoryImpl
@@ -38,6 +40,11 @@ import dagger.hilt.components.SingletonComponent
 abstract class RepositoryModule {
     @Binds
     abstract fun serviceDataRepository(serviceDataRepository: ServiceDataRepositoryImpl): ServiceDataRepository
+
+    @Binds
+    abstract fun currentServiceRepository(
+        currentServiceRepositoryImpl: CurrentServiceRepositoryImpl
+    ): CurrentServiceRepository
 
     @Binds
     abstract fun wiFiStateRepository(stateRepository: WiFiStateRepositoryImpl): WiFiStateRepository

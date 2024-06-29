@@ -18,7 +18,9 @@
  */
 package com.github.oheger.wificontrol.persistence.di
 
+import com.github.oheger.wificontrol.persistence.source.CurrentServiceDataSourceImpl
 import com.github.oheger.wificontrol.persistence.source.ServicesDataSourceImpl
+import com.github.oheger.wificontrol.repository.ds.CurrentServiceDataSource
 import com.github.oheger.wificontrol.repository.ds.ServicesDataSource
 
 import dagger.Binds
@@ -34,4 +36,9 @@ import dagger.hilt.components.SingletonComponent
 abstract class DataSourceModule {
     @Binds
     abstract fun servicesDataSource(servicesDataSourceImpl: ServicesDataSourceImpl): ServicesDataSource
+
+    @Binds
+    abstract fun currentServiceDataSource(
+        currentServiceDataSourceImpl: CurrentServiceDataSourceImpl
+    ): CurrentServiceDataSource
 }
