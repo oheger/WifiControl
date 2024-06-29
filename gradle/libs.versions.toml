@@ -48,6 +48,7 @@ androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", versi
 androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "composeUi" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "androidXDataStore" }
+androidx-datastore-pref = { module = "androidx.datastore:datastore-preferences", version.ref = "androidXDataStore" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycleRuntime" }
 androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycleRuntime" }
 androidx-test-espresso = { module = "androidx.test.espresso:espresso-core", version.ref = "testEspresso" }
