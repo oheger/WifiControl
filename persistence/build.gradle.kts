@@ -95,6 +95,7 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore)
+    implementation(libs.androidx.datastore.pref)
     implementation(libs.hilt.android)
     implementation(libs.protobufJavaLite)
 
