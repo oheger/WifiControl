@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -85,6 +86,14 @@ fun ServicesOverviewScreen(viewModel: ServicesViewModel, navController: NavContr
     val state: ServicesUiState<ServicesOverviewState> by viewModel.uiStateFlow.collectAsStateWithLifecycle(
         ServicesUiStateLoading
     )
+
+    LaunchedEffect(Unit) {
+        viewModel.currentServiceFlow.collect { currentService ->
+            navController.navigate(
+                Navigation.ControlServiceRoute.forArguments(Navigation.ControlServiceArgs(currentService.serviceName))
+            )
+        }
+    }
 
     ServicesOverviewScreenForState(
         state = state,
