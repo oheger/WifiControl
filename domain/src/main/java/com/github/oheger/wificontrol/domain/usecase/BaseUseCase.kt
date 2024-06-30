@@ -35,12 +35,17 @@ abstract class BaseUseCase<in I : BaseUseCase.Input, out O : BaseUseCase.Output>
     /** The configuration for this use case. */
     private val config: UseCaseConfig
 ) {
+    companion object {
+        /** A tag for logging information related to use cases. */
+        const val TAG = "UseCase"
+    }
+
     /**
      * Execute this use case with the given [input]. Return a [Flow] with the resulting data wrapped in a [Result].
      */
     fun execute(input: I): Flow<Result<O>> {
         Log.i(
-            "UseCase",
+            TAG,
             "Executing use case ${this::class.simpleName} with input $input on " +
                     "${Thread.currentThread().name}."
         )
@@ -50,8 +55,9 @@ abstract class BaseUseCase<in I : BaseUseCase.Input, out O : BaseUseCase.Output>
                 Result.success(result)
             }
             .flowOn(config.dispatcher)
-            .catch {
-                emit(Result.failure(it))
+            .catch { exception ->
+                Log.e(TAG, "Error when executing use case ${this::class.simpleName}.", exception)
+                emit(Result.failure(exception))
             }
     }
 
