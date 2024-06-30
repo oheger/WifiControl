@@ -23,8 +23,10 @@ import androidx.lifecycle.viewModelScope
 
 import com.github.oheger.wificontrol.domain.model.DefinedCurrentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
+import com.github.oheger.wificontrol.domain.model.UndefinedCurrentService
 import com.github.oheger.wificontrol.domain.usecase.LoadCurrentServiceUseCase
 import com.github.oheger.wificontrol.domain.usecase.LoadServiceDataUseCase
+import com.github.oheger.wificontrol.domain.usecase.StoreCurrentServiceUseCase
 import com.github.oheger.wificontrol.domain.usecase.StoreServiceDataUseCase
 import com.github.oheger.wificontrol.svcui.ServicesUiState.Companion.combineState
 import com.github.oheger.wificontrol.svcui.ServicesUiState.Companion.mapResultFlow
@@ -40,6 +42,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 
 /**
@@ -71,7 +74,10 @@ class ServicesViewModel @Inject constructor(
     private val storeServicesUseCase: StoreServiceDataUseCase,
 
     /** The use case for loading the current service to be controlled. */
-    private val loadCurrentServiceUseCase: LoadCurrentServiceUseCase
+    private val loadCurrentServiceUseCase: LoadCurrentServiceUseCase,
+
+    /** The use case for storing the current service. */
+    private val storeCurrentServiceUseCase: StoreCurrentServiceUseCase
 ) : ViewModel() {
     /** The flow to manage the current UI state. */
     private val mutableUiStateFlow = MutableStateFlow<ServicesUiState<ServicesOverviewState>>(ServicesUiStateLoading)
@@ -121,12 +127,17 @@ class ServicesViewModel @Inject constructor(
 
             viewModelScope.launch {
                 loadCurrentServiceUseCase.execute(LoadCurrentServiceUseCase.Input)
+                    .take(1)
                     .mapNotNull { result -> result.getOrNull() }
                     .map { it.currentService }
                     .filterIsInstance<DefinedCurrentService>()
                     .collect { currentService ->
                         mutableCurrentServiceFlow.emit(currentService)
                     }
+
+                // Can only be done after the previous current service was loaded and processed.
+                storeCurrentServiceUseCase.execute(StoreCurrentServiceUseCase.Input(UndefinedCurrentService))
+                    .collect {}
             }
         }
     }

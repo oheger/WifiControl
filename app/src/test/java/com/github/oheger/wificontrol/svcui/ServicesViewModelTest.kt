@@ -19,7 +19,10 @@
 package com.github.oheger.wificontrol.svcui
 
 import com.github.oheger.wificontrol.domain.model.ServiceData
+import com.github.oheger.wificontrol.domain.model.UndefinedCurrentService
+import com.github.oheger.wificontrol.domain.usecase.LoadCurrentServiceUseCase
 import com.github.oheger.wificontrol.domain.usecase.LoadServiceDataUseCase
+import com.github.oheger.wificontrol.domain.usecase.StoreCurrentServiceUseCase
 
 import io.kotest.core.spec.style.StringSpec
 
@@ -57,14 +60,28 @@ class ServicesViewModelTest : StringSpec({
                 execute(LoadServiceDataUseCase.Input)
             } returns flowOf(Result.success(LoadServiceDataUseCase.Output(ServiceData(emptyList()))))
         }
-        val viewModel = ServicesViewModel(loadUseCase, mockk(), mockk())
+        val loadCurrentServiceUseCase = mockk<LoadCurrentServiceUseCase> {
+            every { execute(LoadCurrentServiceUseCase.Input) } returns flowOf()
+        }
+        val storeCurrentServiceUseCase = mockk<StoreCurrentServiceUseCase> {
+            every {
+                execute(StoreCurrentServiceUseCase.Input(UndefinedCurrentService))
+            } returns flowOf(Result.failure(IllegalArgumentException("Test exception: Storing current service.")))
+        }
+        val viewModel = ServicesViewModel(loadUseCase, mockk(), loadCurrentServiceUseCase, storeCurrentServiceUseCase)
 
         viewModel.loadServices()
         viewModel.uiStateFlow.first()
+        verify(timeout = 3000) {
+            storeCurrentServiceUseCase.execute(StoreCurrentServiceUseCase.Input(UndefinedCurrentService))
+        }
+
         viewModel.loadServices()
 
         verify(exactly = 1, timeout = 3000) {
             loadUseCase.execute(LoadServiceDataUseCase.Input)
+            loadCurrentServiceUseCase.execute(any())
+            storeCurrentServiceUseCase.execute(any())
         }
     }
 })
