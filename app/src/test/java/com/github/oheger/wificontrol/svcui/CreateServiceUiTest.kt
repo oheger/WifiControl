@@ -91,7 +91,7 @@ class CreateServiceUiTest {
         }
         storeUseCase = mockk()
         navController = mockk()
-        val viewModel = ServiceDetailsViewModel(loadUseCase, storeUseCase)
+        val viewModel = ServiceDetailsViewModel(loadUseCase, storeUseCase, mockk(relaxed = true))
 
         composeTestRule.setContent {
             ServiceDetailsScreen(

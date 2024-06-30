@@ -26,17 +26,21 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.navigation.NavController
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.github.oheger.wificontrol.Navigation
 
+import com.github.oheger.wificontrol.Navigation
 import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
+import com.github.oheger.wificontrol.domain.model.UndefinedCurrentService
 import com.github.oheger.wificontrol.domain.usecase.LoadServiceUseCase
+import com.github.oheger.wificontrol.domain.usecase.StoreCurrentServiceUseCase
 import com.github.oheger.wificontrol.domain.usecase.StoreServiceUseCase
 import com.github.oheger.wificontrol.performSafeClick
 import com.github.oheger.wificontrol.setText
 
+import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.inspectors.forAll
+import io.kotest.matchers.shouldBe
 
 import io.mockk.every
 import io.mockk.just
@@ -44,7 +48,12 @@ import io.mockk.mockk
 import io.mockk.runs
 import io.mockk.verify
 
+import java.util.concurrent.atomic.AtomicInteger
+
+import kotlin.time.Duration.Companion.seconds
+
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 
@@ -70,6 +79,9 @@ class ServiceDetailsUiTest {
     /** Mock for the [NavController] to check the correct navigation. */
     private lateinit var navController: NavController
 
+    /** A counter to check whether the current service name has been reset. */
+    private val storeCurrentServiceCounter = AtomicInteger()
+
     @Before
     fun setUp() {
         dataFlow = MutableSharedFlow()
@@ -78,9 +90,15 @@ class ServiceDetailsUiTest {
             every { execute(loadUseCaseInput) } returns dataFlow
         }
 
+        val storeCurrentServiceUseCase = mockk<StoreCurrentServiceUseCase> {
+            every { execute(StoreCurrentServiceUseCase.Input(UndefinedCurrentService)) } returns flow {
+                storeCurrentServiceCounter.incrementAndGet()
+            }
+        }
+
         storeUseCase = mockk()
         navController = mockk()
-        detailsViewModel = ServiceDetailsViewModel(loadUseCase, storeUseCase)
+        detailsViewModel = ServiceDetailsViewModel(loadUseCase, storeUseCase, storeCurrentServiceUseCase)
         composeTestRule.setContent {
             ServiceDetailsScreen(
                 viewModel = detailsViewModel,
@@ -250,6 +268,13 @@ class ServiceDetailsUiTest {
 
         verify {
             navController.navigate("control/${service.serviceDefinition.name}")
+        }
+    }
+
+    @Test
+    fun `The name of the current service should be cleared`() = runTest {
+        eventually(3.seconds) {
+            storeCurrentServiceCounter.get() shouldBe 1
         }
     }
 }
