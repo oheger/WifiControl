@@ -25,7 +25,9 @@ import com.github.oheger.wificontrol.Navigation
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
+import com.github.oheger.wificontrol.domain.model.UndefinedCurrentService
 import com.github.oheger.wificontrol.domain.usecase.LoadServiceUseCase
+import com.github.oheger.wificontrol.domain.usecase.StoreCurrentServiceUseCase
 import com.github.oheger.wificontrol.domain.usecase.StoreServiceUseCase
 import com.github.oheger.wificontrol.svcui.ServicesUiState.Companion.combineState
 import com.github.oheger.wificontrol.svcui.ServicesUiState.Companion.mapResultFlow
@@ -71,7 +73,10 @@ class ServiceDetailsViewModel @Inject constructor(
     private val loadServiceUseCase: LoadServiceUseCase,
 
     /** The use case for storing a service after it has been edited. */
-    private val storeServiceUseCase: StoreServiceUseCase
+    private val storeServiceUseCase: StoreServiceUseCase,
+
+    /** The use case for storing the name of the current service. */
+    private val storeCurrentServiceUseCase: StoreCurrentServiceUseCase
 ) : ViewModel() {
     /** The mutable flow to manage the current UI state. */
     private val mutableUiStateFlow = MutableStateFlow<ServicesUiState<ServiceDetailsState>>(ServicesUiStateLoading)
@@ -101,10 +106,16 @@ class ServiceDetailsViewModel @Inject constructor(
     fun loadService(serviceIndex: Int) {
         if (!serviceLoaded) {
             serviceLoaded = true
+
             viewModelScope.launch {
                 loadServiceUseCase.execute(LoadServiceUseCase.Input(serviceIndex)).mapResultFlow { result ->
                     ServiceDetailsState(result.serviceData, serviceIndex, result.service, editMode = false)
                 }.collect { state -> mutableUiStateFlow.value = state }
+            }
+
+            viewModelScope.launch {
+                storeCurrentServiceUseCase.execute(StoreCurrentServiceUseCase.Input(UndefinedCurrentService))
+                    .collect {}
             }
         }
     }
