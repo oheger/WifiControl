@@ -90,6 +90,10 @@ class ServicesViewModel @Inject constructor(
      */
     private var servicesLoaded = false
 
+    /**
+     * A flow that is monitored by the UI in order to receive the most recent UI state. The UI then updates itself
+     * accordingly.
+     */
     val uiStateFlow = mutableUiStateFlow.asStateFlow().combineState(saveErrorFlow) { state, error ->
         state.copy(updateError = error)
     }
@@ -100,6 +104,11 @@ class ServicesViewModel @Inject constructor(
      */
     val currentServiceFlow = mutableCurrentServiceFlow.asSharedFlow()
 
+    /**
+     * Trigger loading of the data that is managed by this view model. This function is called by the UI. It triggers
+     * operations to obtain the services to be displayed. The results are then available via the flows exposed by this
+     * view model.
+     */
     fun loadServices() {
         if (!servicesLoaded) {
             servicesLoaded = true
@@ -122,14 +131,23 @@ class ServicesViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Move the service with the given [serviceName] one position down in the list of services.
+     */
     fun moveServiceDown(serviceName: String) {
         modifyAndSaveData { it.moveDown(serviceName) }
     }
 
+    /**
+     * Move the service with the given [serviceName] one position up in the list of services.
+     */
     fun moveServiceUp(serviceName: String) {
         modifyAndSaveData { it.moveUp(serviceName) }
     }
 
+    /**
+     * Remove the service with the given [serviceName] from the list of services.
+     */
     fun removeService(serviceName: String) {
         modifyAndSaveData { it.removeService(serviceName) }
     }
