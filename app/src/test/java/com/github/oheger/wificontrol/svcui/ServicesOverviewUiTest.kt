@@ -35,10 +35,12 @@ import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.domain.model.UndefinedCurrentService
 import com.github.oheger.wificontrol.domain.usecase.LoadCurrentServiceUseCase
 import com.github.oheger.wificontrol.domain.usecase.LoadServiceDataUseCase
+import com.github.oheger.wificontrol.domain.usecase.StoreCurrentServiceUseCase
 import com.github.oheger.wificontrol.domain.usecase.StoreServiceDataUseCase
 
 import io.kotest.inspectors.forAll
 import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.shouldBe
 
 import io.mockk.every
 import io.mockk.just
@@ -46,8 +48,12 @@ import io.mockk.mockk
 import io.mockk.runs
 import io.mockk.slot
 import io.mockk.verify
+import io.mockk.verifyOrder
+
+import java.util.concurrent.atomic.AtomicInteger
 
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 
@@ -73,6 +79,15 @@ class ServicesOverviewUiTest {
     /** A mock for the use case to store the modified data instance. */
     private lateinit var storeDataUseCase: StoreServiceDataUseCase
 
+    /** A mock for the use case to load the current service. */
+    private lateinit var loadCurrentServiceUseCase: LoadCurrentServiceUseCase
+
+    /** A mock for the use case to store the current service on opening the screen. */
+    private lateinit var storeCurrentServiceUseCase: StoreCurrentServiceUseCase
+
+    /** A counter to check whether the use case to store the current service was correctly executed. */
+    private lateinit var storeCurrentServiceCounter: AtomicInteger
+
     /** A mock for the [NavController]. */
     private lateinit var navController: NavController
 
@@ -83,15 +98,29 @@ class ServicesOverviewUiTest {
             every { execute(LoadServiceDataUseCase.Input) } returns dataFlow
         }
 
-        storeDataUseCase = mockk()
-        every { storeDataUseCase.execute(any()) } returns flowOf(Result.success(StoreServiceDataUseCase.Output))
+        storeDataUseCase = mockk {
+            every { execute(any()) } returns flowOf(Result.success(StoreServiceDataUseCase.Output))
+        }
+
+        storeCurrentServiceCounter = AtomicInteger()
+        storeCurrentServiceUseCase = mockk {
+            every { execute(any()) } returns flow {
+                storeCurrentServiceCounter.incrementAndGet()
+                emit(Result.success(StoreCurrentServiceUseCase.Output))
+            }
+        }
 
         currentServiceFlow = MutableSharedFlow()
-        val loadCurrentServiceUseCase = mockk<LoadCurrentServiceUseCase> {
+        loadCurrentServiceUseCase = mockk<LoadCurrentServiceUseCase> {
             every { execute(LoadCurrentServiceUseCase.Input) } returns currentServiceFlow
         }
 
-        servicesViewModel = ServicesViewModel(loadUseCase, storeDataUseCase, loadCurrentServiceUseCase)
+        servicesViewModel = ServicesViewModel(
+            loadUseCase,
+            storeDataUseCase,
+            loadCurrentServiceUseCase,
+            storeCurrentServiceUseCase
+        )
 
         navController = mockk {
             every { navigate(any<String>(), any<NavOptions>()) } just runs
@@ -308,6 +337,19 @@ class ServicesOverviewUiTest {
         verify(exactly = 0) {
             navController.navigate(any<String>())
         }
+    }
+
+    @Test
+    fun `The name of the current service should be removed`() = runTest {
+        initLoadCurrentServiceResult(
+            Result.success(LoadCurrentServiceUseCase.Output(UndefinedCurrentService))
+        )
+
+        verifyOrder {
+            loadCurrentServiceUseCase.execute(LoadCurrentServiceUseCase.Input)
+            storeCurrentServiceUseCase.execute(StoreCurrentServiceUseCase.Input(UndefinedCurrentService))
+        }
+        storeCurrentServiceCounter.get() shouldBe 1
     }
 }
 
