@@ -18,11 +18,11 @@
  */
 package com.github.oheger.wificontrol.svcui
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
-import com.github.oheger.wificontrol.Navigation
 
+import com.github.oheger.wificontrol.Navigation
+import com.github.oheger.wificontrol.domain.model.CurrentService
 import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.UndefinedCurrentService
@@ -31,6 +31,7 @@ import com.github.oheger.wificontrol.domain.usecase.StoreCurrentServiceUseCase
 import com.github.oheger.wificontrol.domain.usecase.StoreServiceUseCase
 import com.github.oheger.wificontrol.svcui.ServicesUiState.Companion.combineState
 import com.github.oheger.wificontrol.svcui.ServicesUiState.Companion.mapResultFlow
+import com.github.oheger.wificontrol.ui.BaseViewModel
 
 import dagger.hilt.android.lifecycle.HiltViewModel
 
@@ -76,8 +77,8 @@ class ServiceDetailsViewModel @Inject constructor(
     private val storeServiceUseCase: StoreServiceUseCase,
 
     /** The use case for storing the name of the current service. */
-    private val storeCurrentServiceUseCase: StoreCurrentServiceUseCase
-) : ViewModel() {
+    storeCurrentServiceUseCase: StoreCurrentServiceUseCase
+) : BaseViewModel<ServiceDetailsViewModel.Parameters>(storeCurrentServiceUseCase) {
     /** The mutable flow to manage the current UI state. */
     private val mutableUiStateFlow = MutableStateFlow<ServicesUiState<ServiceDetailsState>>(ServicesUiStateLoading)
 
@@ -86,9 +87,6 @@ class ServiceDetailsViewModel @Inject constructor(
 
     /** A flow controlling whether edit mode is enabled or not. */
     private val editModeFlow = MutableStateFlow(false)
-
-    /** A flag that prevents multiple executions of the use case to load the current service. */
-    private var serviceLoaded = false
 
     /** The flow providing the current state of the service details UI. */
     val uiStateFlow: Flow<ServicesUiState<ServiceDetailsState>> =
@@ -100,24 +98,18 @@ class ServiceDetailsViewModel @Inject constructor(
         }
 
     /**
-     * Load the current state of the service details UI for the service with the given [serviceIndex]. This will
+     * Load the current state of the service details UI for the service specified in the given [parameters]. This will
      * trigger [uiStateFlow] when the data is available.
      */
-    fun loadService(serviceIndex: Int) {
-        if (!serviceLoaded) {
-            serviceLoaded = true
-
-            viewModelScope.launch {
-                loadServiceUseCase.execute(LoadServiceUseCase.Input(serviceIndex)).mapResultFlow { result ->
-                    ServiceDetailsState(result.serviceData, serviceIndex, result.service, editMode = false)
+    override fun performLoad(parameters: Parameters): CurrentService {
+        viewModelScope.launch {
+            loadServiceUseCase.execute(LoadServiceUseCase.Input(parameters.serviceIndex))
+                .mapResultFlow { result ->
+                    ServiceDetailsState(result.serviceData, parameters.serviceIndex, result.service, editMode = false)
                 }.collect { state -> mutableUiStateFlow.value = state }
-            }
-
-            viewModelScope.launch {
-                storeCurrentServiceUseCase.execute(StoreCurrentServiceUseCase.Input(UndefinedCurrentService))
-                    .collect {}
-            }
         }
+
+        return UndefinedCurrentService
     }
 
     /**
@@ -159,4 +151,12 @@ class ServiceDetailsViewModel @Inject constructor(
             }
         }
     }
+
+    /**
+     * A data class defining the parameter type of this view model.
+     */
+    data class Parameters(
+        /** The index of the service to be presented by the UI. */
+        val serviceIndex: Int
+    ) : BaseViewModel.Parameters
 }
