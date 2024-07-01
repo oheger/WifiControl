@@ -90,7 +90,7 @@ fun ServiceDetailsScreen(
     serviceDetailsArgs: Navigation.ServiceDetailsArgs,
     navController: NavController
 ) {
-    viewModel.loadService(serviceDetailsArgs.serviceIndex)
+    viewModel.loadUiState(ServiceDetailsViewModel.Parameters(serviceDetailsArgs.serviceIndex))
     val state: ServicesUiState<ServiceDetailsState> by
     viewModel.uiStateFlow.collectAsStateWithLifecycle(ServicesUiStateLoading)
 
