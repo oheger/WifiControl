@@ -82,7 +82,7 @@ internal fun serviceTag(serviceName: String, subTag: String): String = "${servic
  */
 @Composable
 fun ServicesOverviewScreen(viewModel: ServicesViewModel, navController: NavController) {
-    viewModel.loadServices()
+    viewModel.loadUiState(ServicesViewModel.Parameters)
     val state: ServicesUiState<ServicesOverviewState> by viewModel.uiStateFlow.collectAsStateWithLifecycle(
         ServicesUiStateLoading
     )

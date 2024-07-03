@@ -70,13 +70,13 @@ class ServicesViewModelTest : StringSpec({
         }
         val viewModel = ServicesViewModel(loadUseCase, mockk(), loadCurrentServiceUseCase, storeCurrentServiceUseCase)
 
-        viewModel.loadServices()
+        viewModel.loadUiState(ServicesViewModel.Parameters)
         viewModel.uiStateFlow.first()
         verify(timeout = 3000) {
             storeCurrentServiceUseCase.execute(StoreCurrentServiceUseCase.Input(UndefinedCurrentService))
         }
 
-        viewModel.loadServices()
+        viewModel.loadUiState(ServicesViewModel.Parameters)
 
         verify(exactly = 1, timeout = 3000) {
             loadUseCase.execute(LoadServiceDataUseCase.Input)
