@@ -18,9 +18,9 @@
  */
 package com.github.oheger.wificontrol.svcui
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 
+import com.github.oheger.wificontrol.domain.model.CurrentService
 import com.github.oheger.wificontrol.domain.model.DefinedCurrentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.UndefinedCurrentService
@@ -30,6 +30,7 @@ import com.github.oheger.wificontrol.domain.usecase.StoreCurrentServiceUseCase
 import com.github.oheger.wificontrol.domain.usecase.StoreServiceDataUseCase
 import com.github.oheger.wificontrol.svcui.ServicesUiState.Companion.combineState
 import com.github.oheger.wificontrol.svcui.ServicesUiState.Companion.mapResultFlow
+import com.github.oheger.wificontrol.ui.BaseViewModel
 
 import dagger.hilt.android.lifecycle.HiltViewModel
 
@@ -77,8 +78,8 @@ class ServicesViewModel @Inject constructor(
     private val loadCurrentServiceUseCase: LoadCurrentServiceUseCase,
 
     /** The use case for storing the current service. */
-    private val storeCurrentServiceUseCase: StoreCurrentServiceUseCase
-) : ViewModel() {
+    storeCurrentServiceUseCase: StoreCurrentServiceUseCase
+) : BaseViewModel<ServicesViewModel.Parameters>(storeCurrentServiceUseCase) {
     /** The flow to manage the current UI state. */
     private val mutableUiStateFlow = MutableStateFlow<ServicesUiState<ServicesOverviewState>>(ServicesUiStateLoading)
 
@@ -87,14 +88,6 @@ class ServicesViewModel @Inject constructor(
 
     /** A flow to notify the UI when the last current service was loaded. */
     private val mutableCurrentServiceFlow = MutableSharedFlow<DefinedCurrentService>()
-
-    /**
-     * A flag to control that data about services is loaded only once. During recomposition, the [loadServices]
-     * function can be called multiple times. Since there is only a single flow with data, it does not make sense to
-     * execute the load use case multiple times.
-     * Note: As all invocations happen on the main dispatcher, there is no need for synchronization.
-     */
-    private var servicesLoaded = false
 
     /**
      * A flow that is monitored by the UI in order to receive the most recent UI state. The UI then updates itself
@@ -110,36 +103,28 @@ class ServicesViewModel @Inject constructor(
      */
     val currentServiceFlow = mutableCurrentServiceFlow.asSharedFlow()
 
-    /**
-     * Trigger loading of the data that is managed by this view model. This function is called by the UI. It triggers
-     * operations to obtain the services to be displayed. The results are then available via the flows exposed by this
-     * view model.
-     */
-    fun loadServices() {
-        if (!servicesLoaded) {
-            servicesLoaded = true
-
-            viewModelScope.launch {
-                loadServicesUseCase.execute(LoadServiceDataUseCase.Input)
-                    .mapResultFlow { result -> ServicesOverviewState(result.data) }
-                    .collect { state -> mutableUiStateFlow.value = state }
-            }
-
-            viewModelScope.launch {
-                loadCurrentServiceUseCase.execute(LoadCurrentServiceUseCase.Input)
-                    .take(1)
-                    .mapNotNull { result -> result.getOrNull() }
-                    .map { it.currentService }
-                    .filterIsInstance<DefinedCurrentService>()
-                    .collect { currentService ->
-                        mutableCurrentServiceFlow.emit(currentService)
-                    }
-
-                // Can only be done after the previous current service was loaded and processed.
-                storeCurrentServiceUseCase.execute(StoreCurrentServiceUseCase.Input(UndefinedCurrentService))
-                    .collect {}
-            }
+    override fun performLoad(parameters: Parameters): CurrentService? {
+        viewModelScope.launch {
+            loadServicesUseCase.execute(LoadServiceDataUseCase.Input)
+                .mapResultFlow { result -> ServicesOverviewState(result.data) }
+                .collect { state -> mutableUiStateFlow.value = state }
         }
+
+        viewModelScope.launch {
+            loadCurrentServiceUseCase.execute(LoadCurrentServiceUseCase.Input)
+                .take(1)
+                .mapNotNull { result -> result.getOrNull() }
+                .map { it.currentService }
+                .filterIsInstance<DefinedCurrentService>()
+                .collect { currentService ->
+                    mutableCurrentServiceFlow.emit(currentService)
+                }
+
+            // Can only be done after the previous current service was loaded and processed.
+            storeCurrentService(UndefinedCurrentService)
+        }
+
+        return null
     }
 
     /**
@@ -176,4 +161,10 @@ class ServicesViewModel @Inject constructor(
             }
         }
     }
+
+    /**
+     * The type of parameters expected by this view model. The services overview screen does not require any
+     * parameters.
+     */
+    data object Parameters : BaseViewModel.Parameters
 }
