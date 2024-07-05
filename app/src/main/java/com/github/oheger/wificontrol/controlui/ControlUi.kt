@@ -108,7 +108,7 @@ fun ControlScreen(
     controlArgs: Navigation.ControlServiceArgs,
     navController: NavController
 ) {
-    viewModel.initControlState(controlArgs.serviceName)
+    viewModel.loadUiState(ControlViewModel.Parameters(controlArgs.serviceName))
     val state: ControlUiState by viewModel.uiStateFlow.collectAsStateWithLifecycle(WiFiUnavailable)
 
     ControlScreenForState(

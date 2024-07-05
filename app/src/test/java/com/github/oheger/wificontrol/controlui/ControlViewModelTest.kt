@@ -18,10 +18,13 @@
  */
 package com.github.oheger.wificontrol.controlui
 
+import com.github.oheger.wificontrol.domain.model.DefinedCurrentService
 import com.github.oheger.wificontrol.domain.model.WiFiState
 import com.github.oheger.wificontrol.domain.usecase.GetWiFiStateUseCase
+import com.github.oheger.wificontrol.domain.usecase.StoreCurrentServiceUseCase
 
 import io.kotest.core.spec.style.StringSpec
+
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -51,19 +54,27 @@ class ControlViewModelTest : StringSpec({
     }
 
     "The use case to monitor the Wi-Fi connectivity state should be executed only once" {
+        val serviceName = "someServiceToControl"
+        val parameters = ControlViewModel.Parameters(serviceName)
         val wiFiStateUseCase = mockk<GetWiFiStateUseCase> {
             every {
                 execute(GetWiFiStateUseCase.Input)
             } returns flowOf(Result.success(GetWiFiStateUseCase.Output(WiFiState.WI_FI_UNAVAILABLE)))
         }
-        val viewModel = ControlViewModel(wiFiStateUseCase, mockk(), mockk())
+        val storeCurrentServiceUseCase = mockk<StoreCurrentServiceUseCase> {
+            every {
+                execute(StoreCurrentServiceUseCase.Input(DefinedCurrentService(serviceName)))
+            } returns flowOf(Result.failure(IllegalStateException("Test exception: Store current service")))
+        }
+        val viewModel = ControlViewModel(wiFiStateUseCase, mockk(), mockk(), storeCurrentServiceUseCase)
 
-        viewModel.initControlState("someService")
+        viewModel.loadUiState(parameters)
         viewModel.uiStateFlow.first()
-        viewModel.initControlState("someService")
+        viewModel.loadUiState(parameters)
 
         verify(exactly = 1, timeout = 3000) {
             wiFiStateUseCase.execute(GetWiFiStateUseCase.Input)
+            storeCurrentServiceUseCase.execute(StoreCurrentServiceUseCase.Input(DefinedCurrentService(serviceName)))
         }
     }
 })

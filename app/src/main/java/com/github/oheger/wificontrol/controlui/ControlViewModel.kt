@@ -24,6 +24,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 
 import com.github.oheger.wificontrol.R
+import com.github.oheger.wificontrol.domain.model.CurrentService
+import com.github.oheger.wificontrol.domain.model.DefinedCurrentService
 import com.github.oheger.wificontrol.domain.model.LookupFailed
 import com.github.oheger.wificontrol.domain.model.LookupInProgress
 import com.github.oheger.wificontrol.domain.model.LookupState
@@ -32,6 +34,8 @@ import com.github.oheger.wificontrol.domain.model.WiFiState
 import com.github.oheger.wificontrol.domain.usecase.ClearServiceUriUseCase
 import com.github.oheger.wificontrol.domain.usecase.GetServiceUriUseCase
 import com.github.oheger.wificontrol.domain.usecase.GetWiFiStateUseCase
+import com.github.oheger.wificontrol.domain.usecase.StoreCurrentServiceUseCase
+import com.github.oheger.wificontrol.ui.BaseViewModel
 
 import dagger.hilt.android.lifecycle.HiltViewModel
 
@@ -63,9 +67,12 @@ class ControlViewModel @Inject constructor(
     /** The use case to clear the URI of the service to control in order to retry the lookup operation. */
     private val clearServiceUriUseCase: ClearServiceUriUseCase,
 
+    /** The use case for storing the name of the currently controlled service. */
+    storeCurrentServiceUseCase: StoreCurrentServiceUseCase,
+
     /** The clock to be used for time calculations. */
     private val clock: Clock = Clock.System
-) : ViewModel() {
+) : BaseViewModel<ControlViewModel.Parameters>(storeCurrentServiceUseCase) {
     companion object {
         private const val TAG = "ControlViewModel"
     }
@@ -82,31 +89,19 @@ class ControlViewModel @Inject constructor(
      */
     private var lookupStateTrackingJob: Job? = null
 
-    /**
-     * A flag whether this model has already been initialized. This is used to prevent multiple use case
-     * invocations during recomposition of the UI.
-     */
-    private var initialized = false
-
-    /**
-     * Trigger the initialization of the [ControlUiState] for the service with the given [serviceName]. Changes in the
-     * state can then be tracked via the [uiStateFlow] property.
-     */
-    fun initControlState(serviceName: String) {
-        if (!initialized) {
-            initialized = true
-
-            viewModelScope.launch {
-                getWiFiStateUseCase.execute(GetWiFiStateUseCase.Input)
-                    .collect { wiFiStateResult ->
-                        wiFiStateResult.onSuccess { output ->
-                            handleWiFiStateUpdate(serviceName, output.wiFiState)
-                        }.onFailure { exception ->
-                            mutableUiStateFlow.value = ControlError(R.string.ctrl_error_details_wifi, exception)
-                        }
+    override fun performLoad(parameters: Parameters): CurrentService {
+        viewModelScope.launch {
+            getWiFiStateUseCase.execute(GetWiFiStateUseCase.Input)
+                .collect { wiFiStateResult ->
+                    wiFiStateResult.onSuccess { output ->
+                        handleWiFiStateUpdate(parameters.serviceName, output.wiFiState)
+                    }.onFailure { exception ->
+                        mutableUiStateFlow.value = ControlError(R.string.ctrl_error_details_wifi, exception)
                     }
-            }
+                }
         }
+
+        return DefinedCurrentService(parameters.serviceName)
     }
 
     /**
@@ -192,4 +187,13 @@ class ControlViewModel @Inject constructor(
             is LookupSucceeded ->
                 ServiceDiscoverySucceeded(lookupState.serviceUri)
         }
+
+    /**
+     * A data class defining the parameters used by this view model. Here the name of the service to be controlled
+     * is provided.
+     */
+    data class Parameters(
+        /** The name of the current service. */
+        val serviceName: String
+    ) : BaseViewModel.Parameters
 }
