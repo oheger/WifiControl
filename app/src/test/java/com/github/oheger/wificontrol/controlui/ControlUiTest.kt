@@ -30,6 +30,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 
 import com.github.oheger.wificontrol.Navigation
 import com.github.oheger.wificontrol.R
+import com.github.oheger.wificontrol.domain.model.DefinedCurrentService
 import com.github.oheger.wificontrol.domain.model.LookupFailed
 import com.github.oheger.wificontrol.domain.model.LookupInProgress
 import com.github.oheger.wificontrol.domain.model.LookupState
@@ -38,8 +39,11 @@ import com.github.oheger.wificontrol.domain.model.WiFiState
 import com.github.oheger.wificontrol.domain.usecase.ClearServiceUriUseCase
 import com.github.oheger.wificontrol.domain.usecase.GetServiceUriUseCase
 import com.github.oheger.wificontrol.domain.usecase.GetWiFiStateUseCase
+import com.github.oheger.wificontrol.domain.usecase.StoreCurrentServiceUseCase
 
+import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.inspectors.forAll
+import io.kotest.matchers.shouldBe
 
 import io.mockk.every
 import io.mockk.just
@@ -47,10 +51,13 @@ import io.mockk.mockk
 import io.mockk.runs
 import io.mockk.verify
 
+import java.util.concurrent.atomic.AtomicInteger
+
 import kotlin.time.Duration.Companion.seconds
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
@@ -84,6 +91,9 @@ class ControlUiTest {
     /** A mock for a clock that is used to get deterministic time calculations. */
     private lateinit var testClock: Clock
 
+    /** A counter to check whether the current service name has been saved. */
+    private val storeCurrentServiceCounter = AtomicInteger()
+
     @Before
     fun setUp() {
         wiFiStateFlow = MutableSharedFlow()
@@ -96,6 +106,12 @@ class ControlUiTest {
             every { execute(GetServiceUriUseCase.Input(SERVICE_NAME)) } returns lookupStateFlow
         }
 
+        val storeCurrentServiceUseCase = mockk<StoreCurrentServiceUseCase> {
+            every { execute(StoreCurrentServiceUseCase.Input(DefinedCurrentService(SERVICE_NAME))) } returns flow {
+                storeCurrentServiceCounter.incrementAndGet()
+            }
+        }
+
         clearServiceUriUseCase = mockk()
         navController = mockk()
         testClock = mockk()
@@ -105,6 +121,7 @@ class ControlUiTest {
             getWiFiStateUseCase,
             getServiceUriUseCase,
             clearServiceUriUseCase,
+            storeCurrentServiceUseCase,
             testClock
         )
         composeTestRule.setContent {
@@ -367,6 +384,13 @@ class ControlUiTest {
         composeTestRule.onNodeWithTag(TAG_SERVICE_URI).assertIsDisplayed()
         verify(exactly = 1) {
             getServiceUriUseCase.execute(GetServiceUriUseCase.Input(SERVICE_NAME))
+        }
+    }
+
+    @Test
+    fun `The name of the current service should be saved`() = runTest {
+        eventually(3.seconds) {
+            storeCurrentServiceCounter.get() shouldBe 1
         }
     }
 
