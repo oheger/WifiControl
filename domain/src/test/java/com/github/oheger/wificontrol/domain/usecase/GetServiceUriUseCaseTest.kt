@@ -73,7 +73,7 @@ class GetServiceUriUseCaseTest : StringSpec({
         )
         val loadServiceUseCase = mockk<LoadServiceByNameUseCase> {
             every { process(LoadServiceByNameUseCase.Input(SERVICE_NAME)) } returns flowOf(
-                LoadServiceByNameUseCase.Output(lookupService)
+                LoadServiceByNameUseCase.Output(mockk(), lookupService)
             )
         }
 

@@ -19,27 +19,24 @@
 package com.github.oheger.wificontrol.domain.usecase
 
 import com.github.oheger.wificontrol.domain.model.LookupService
+import com.github.oheger.wificontrol.domain.model.ServiceData
 
 import javax.inject.Inject
 
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-
 /**
  * A use case for loading a specific [LookupService] by name. This is used in cases where services are
- * referenced by their names, especially in the control UI.
+ * referenced by their names, especially in the control UI. The central [ServiceData] object is contained in the
+ * resulting output as well.
  */
 class LoadServiceByNameUseCase @Inject constructor(
     config: UseCaseConfig,
-
-    /** The use case for loading the whole data about services. */
-    private val loadServiceDataUseCase: LoadServiceDataUseCase
-) : BaseUseCase<LoadServiceByNameUseCase.Input, LoadServiceByNameUseCase.Output>(config) {
-
-    override fun process(input: Input): Flow<Output> =
-        loadServiceDataUseCase.process(LoadServiceDataUseCase.Input).map { loadResult ->
-            Output(loadResult.data.getService(input.serviceName))
-        }
+    loadServiceDataUseCase: LoadServiceDataUseCase
+) : BaseServiceDataProcessorUseCase<LoadServiceByNameUseCase.Input, LoadServiceByNameUseCase.Output>(
+    config,
+    loadServiceDataUseCase
+) {
+    override fun processServiceData(input: Input, data: ServiceData): Output =
+        Output(data, data.getService(input.serviceName))
 
     /**
      * The input type of this use case. Here the service to be loaded is specified.
@@ -53,6 +50,9 @@ class LoadServiceByNameUseCase @Inject constructor(
      * The output type of this use case. Here the service that was loaded is returned.
      */
     data class Output(
+        /** The object containing all services. */
+        val serviceData: ServiceData,
+
         /** The service that was loaded by this use case. */
         val service: LookupService
     ) : BaseUseCase.Output

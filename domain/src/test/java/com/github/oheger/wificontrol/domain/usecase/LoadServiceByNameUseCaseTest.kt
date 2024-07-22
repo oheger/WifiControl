@@ -52,7 +52,7 @@ class LoadServiceByNameUseCaseTest : StringSpec({
         val useCase = LoadServiceByNameUseCase(useCaseConfig, loadDataUseCase)
         val resultFlow = useCase.execute(LoadServiceByNameUseCase.Input(serviceName))
 
-        resultFlow.first().shouldBeSuccess(LoadServiceByNameUseCase.Output(service))
+        resultFlow.first().shouldBeSuccess(LoadServiceByNameUseCase.Output(serviceData, service))
     }
 
     "A non existing service should cause a failure result" {
