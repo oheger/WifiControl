@@ -24,9 +24,6 @@ import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 
 import javax.inject.Inject
 
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-
 /**
  * A use case for loading a specific [PersistentService]. The service to be loaded is identified by its index in
  * the global [ServiceData] object. This is sufficient to identify the service uniquely, since it remains constant
@@ -36,10 +33,11 @@ import kotlinx.coroutines.flow.map
  */
 class LoadServiceUseCase @Inject constructor(
     config: UseCaseConfig,
-
-    /** The use case for loading the whole data about services. */
-    private val loadServiceDataUseCase: LoadServiceDataUseCase
-) : BaseUseCase<LoadServiceUseCase.Input, LoadServiceUseCase.Output>(config) {
+    loadServiceDataUseCase: LoadServiceDataUseCase
+) : BaseServiceDataProcessorUseCase<LoadServiceUseCase.Input, LoadServiceUseCase.Output>(
+    config,
+    loadServiceDataUseCase
+) {
     companion object {
         /** A service object with empty properties that is used when a new service is to be created. */
         private val newService = PersistentService(
@@ -54,16 +52,15 @@ class LoadServiceUseCase @Inject constructor(
         )
     }
 
-    override fun process(input: Input): Flow<Output> =
-        loadServiceDataUseCase.process(LoadServiceDataUseCase.Input).map { output ->
-            val serviceData = output.data
-            val service = if (input.serviceIndex == ServiceData.NEW_SERVICE_INDEX) {
-                newService
-            } else {
-                serviceData.services[input.serviceIndex]
-            }
-            Output(serviceData, service)
+    override fun processServiceData(input: Input, data: ServiceData): Output {
+        val service = if (input.serviceIndex == ServiceData.NEW_SERVICE_INDEX) {
+            newService
+        } else {
+            data.services[input.serviceIndex]
         }
+
+        return Output(data, service)
+    }
 
     /**
      * The input type of this use case. Here the name of the service to be loaded is expected.
