@@ -121,7 +121,8 @@ class ControlViewModel @Inject constructor(
             }
 
             // Only start a new discovery operation if there was no state change in the meantime.
-            if (mutableUiStateFlow.value == ServiceDiscoveryFailed) {
+            val currentState = mutableUiStateFlow.value
+            if (currentState is ShowService && currentState.discoveryState == ServiceDiscoveryFailed) {
                 updateLookupStateTrackingJob(trackLookupState(serviceName))
             }
         }
@@ -176,8 +177,8 @@ class ControlViewModel @Inject constructor(
     /**
      * Return a [ControlUiState] to represent the given [lookupState]. Based on this, the control UI is rendered.
      */
-    private fun uiStateFromLookupState(lookupState: LookupState): ControlUiState =
-        when (lookupState) {
+    private fun uiStateFromLookupState(lookupState: LookupState): ControlUiState {
+        val discoveryState =  when (lookupState) {
             is LookupInProgress ->
                 ServiceDiscovery(lookupState.attempts, clock.now() - lookupState.startTime)
 
@@ -187,6 +188,9 @@ class ControlViewModel @Inject constructor(
             is LookupSucceeded ->
                 ServiceDiscoverySucceeded(lookupState.serviceUri)
         }
+
+        return ShowService(discoveryState)
+    }
 
     /**
      * A data class defining the parameters used by this view model. Here the name of the service to be controlled

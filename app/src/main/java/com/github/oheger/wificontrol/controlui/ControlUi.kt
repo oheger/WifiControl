@@ -147,14 +147,12 @@ private fun ControlScreenForState(
         when (uiState) {
             is WiFiUnavailable -> NoWiFiAvailable(modifier = modifier.padding(innerPadding))
             is ControlError -> ControlErrorScreen(uiState, modifier = modifier.padding(innerPadding))
-            is ServiceDiscovery -> LookingUpService(uiState, modifier = modifier.padding(innerPadding))
-            is ServiceDiscoveryFailed -> LookupFailedScreen(
+            is ShowService -> DisplayService(
+                state = uiState,
                 serviceName = serviceName,
-                onRetry = onRetryClick,
-                modifier = modifier
+                onRetryClick = onRetryClick,
+                modifier = modifier.padding(innerPadding)
             )
-
-            is ServiceDiscoverySucceeded -> LookupSuccessScreen(uri = uiState.uri, modifier = modifier)
         }
     }
 }
@@ -229,6 +227,28 @@ private fun ControlErrorScreen(state: ControlError, modifier: Modifier) {
             fontStyle = FontStyle.Italic,
             modifier = modifier.testTag(TAG_CTRL_ERROR_MESSAGE)
         )
+    }
+}
+
+/**
+ * Render the UI if information about the current service is available. Display correct screens based on the
+ * [ControlDiscoveryState] of the given [state].
+ */
+@Composable
+private fun DisplayService(
+    state: ShowService,
+    serviceName: String,
+    onRetryClick: () -> Unit,
+    modifier: Modifier
+) {
+    when(val discoveryState = state.discoveryState) {
+        is ServiceDiscovery -> LookingUpService(discoveryState, modifier = modifier)
+        is ServiceDiscoveryFailed -> LookupFailedScreen(
+            serviceName = serviceName,
+            onRetry = onRetryClick,
+            modifier = modifier
+        )
+        is ServiceDiscoverySucceeded -> LookupSuccessScreen(uri = discoveryState.uri, modifier = modifier)
     }
 }
 
@@ -435,8 +455,8 @@ class ControlUiStatePreviewProvider : PreviewParameterProvider<ControlUiState> {
         get() = sequenceOf(
             WiFiUnavailable,
             ControlError(R.string.ctrl_error_details_wifi, IllegalArgumentException("Wi-Fi state failed.")),
-            ServiceDiscovery(3, 23.seconds),
-            ServiceDiscoveryFailed,
-            ServiceDiscoverySucceeded("http://192.168.0.17/test-service/control.html")
+            ShowService(ServiceDiscovery(3, 23.seconds)),
+            ShowService(ServiceDiscoveryFailed),
+            ShowService(ServiceDiscoverySucceeded("http://192.168.0.17/test-service/control.html"))
         )
 }
