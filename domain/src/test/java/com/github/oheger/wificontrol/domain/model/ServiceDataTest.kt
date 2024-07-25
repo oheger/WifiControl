@@ -297,6 +297,57 @@ class ServiceDataTest : WordSpec({
             newData should beTheSameInstanceAs(data)
         }
     }
+
+    "getPreviousAndNext" should {
+        "return a fully defined pair if a previous and a next service exist" {
+            val service3 = service2.copy(name = "testService3")
+            val persistentService3 = persistentService2.copy(serviceDefinition = service3)
+
+            val data = ServiceData(listOf(persistentService1, persistentService2, persistentService3))
+            val (previous, next) = data.getPreviousAndNext(service2.name)
+
+            previous shouldBe service1.name
+            next shouldBe service3.name
+        }
+
+        "return null as previous service for the first service" {
+            val data = createServiceData()
+
+            val (previous, next) = data.getPreviousAndNext(service1.name)
+
+            previous should beNull()
+            next shouldBe service2.name
+        }
+
+        "return null as next service for the last service" {
+            val data = createServiceData()
+
+            val (previous, next) = data.getPreviousAndNext(service2.name)
+
+            previous shouldBe service1.name
+            next should beNull()
+        }
+
+        "return a pair with null values for the only service in the data object" {
+            val data = ServiceData(listOf(persistentService1))
+
+            val (previous, next) = data.getPreviousAndNext(service1.name)
+
+            previous should beNull()
+            next should beNull()
+        }
+
+        "throw an exception if the service name cannot be resolved" {
+            val serviceName = "nonExistingService"
+            val data = createServiceData()
+
+            val exception = shouldThrow<IllegalArgumentException> {
+                data.getPreviousAndNext(serviceName)
+            }
+
+            exception.message shouldContain serviceName
+        }
+    }
 })
 
 /** A test service definition. */
