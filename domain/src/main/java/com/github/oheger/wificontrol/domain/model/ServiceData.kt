@@ -73,6 +73,19 @@ data class ServiceData(
         services[indexOfOrThrow(serviceName)]
 
     /**
+     * Return a [Pair] with the names of previous and next services in the list for the service with the given
+     * [serviceName] (if they exist). This is useful for a quick navigation through the ordered list of services.
+     * In the special case that the [serviceName] cannot be resolved, an [IllegalArgumentException] is thrown.
+     */
+    fun getPreviousAndNext(serviceName: String): Pair<String?, String?> {
+        val serviceIndex = indexOfOrThrow(serviceName)
+        val previous = (serviceIndex - 1).takeIf { it >= 0 }?.let(this::get)?.service?.name
+        val next = (serviceIndex + 1).takeIf { it < services.size }?.let(this::get)?.service?.name
+
+        return previous to next
+    }
+
+    /**
      * Return a new [ServiceData] instance with the given [service] added as the last element in the list of services.
      * Throw an [IllegalArgumentException] if there is already a service with the given name.
      */
