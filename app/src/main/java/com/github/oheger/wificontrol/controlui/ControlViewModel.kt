@@ -34,6 +34,7 @@ import com.github.oheger.wificontrol.domain.model.WiFiState
 import com.github.oheger.wificontrol.domain.usecase.ClearServiceUriUseCase
 import com.github.oheger.wificontrol.domain.usecase.GetServiceUriUseCase
 import com.github.oheger.wificontrol.domain.usecase.GetWiFiStateUseCase
+import com.github.oheger.wificontrol.domain.usecase.LoadServiceByNameUseCase
 import com.github.oheger.wificontrol.domain.usecase.StoreCurrentServiceUseCase
 import com.github.oheger.wificontrol.ui.BaseViewModel
 
@@ -41,10 +42,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 
 import javax.inject.Inject
 
+import kotlin.time.Duration.Companion.seconds
+
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
@@ -67,6 +71,9 @@ class ControlViewModel @Inject constructor(
     /** The use case to clear the URI of the service to control in order to retry the lookup operation. */
     private val clearServiceUriUseCase: ClearServiceUriUseCase,
 
+    /** The use case for loading the current service by name. */
+    private val loadServiceUseCase: LoadServiceByNameUseCase,
+
     /** The use case for storing the name of the currently controlled service. */
     storeCurrentServiceUseCase: StoreCurrentServiceUseCase,
 
@@ -75,13 +82,44 @@ class ControlViewModel @Inject constructor(
 ) : BaseViewModel<ControlViewModel.Parameters>(storeCurrentServiceUseCase) {
     companion object {
         private const val TAG = "ControlViewModel"
+
+        /** Constant for an initial service discovery state. */
+        private val initialDiscoveryState = ServiceDiscovery(0, 0.seconds)
+
+        /** Constant for the UI state that is set at the beginning of a discovery operation. */
+        private val initialShowServiceState = ShowService(initialDiscoveryState)
     }
 
     /** The internal flow for managing the UI state. */
     private val mutableUiStateFlow = MutableStateFlow<ControlUiState>(WiFiUnavailable)
 
+    /** The internal flow to track the state of loading the current service. */
+    private val mutableLoadStateFlow = MutableStateFlow<ServiceLoadState>(ServiceLoading)
+
+    /** The internal flow to track the state of the current service discovery operation. */
+    private val mutableDiscoveryStateFlow = MutableStateFlow<ControlDiscoveryState>(initialDiscoveryState)
+
+    /** A flow that combines the current UI state with the state of the discovery operation. */
+    private val discoveryUiStateFlow = mutableUiStateFlow
+        .combine(mutableDiscoveryStateFlow) { uiState, discoveryState ->
+            when (uiState) {
+                is ShowService -> uiState.copy(discoveryState = discoveryState)
+                else -> uiState
+            }
+        }
+
     /** The flow providing the current state of the Service Control UI for the current service. */
-    val uiStateFlow: Flow<ControlUiState> = mutableUiStateFlow
+    val uiStateFlow: Flow<ControlUiState> = discoveryUiStateFlow
+        .combine(mutableLoadStateFlow) { uiState, loadState ->
+            when (uiState) {
+                is ShowService -> {
+                    val (prev, next) = loadState.getNavigationServiceNames()
+                    uiState.copy(previousServiceName = prev, nextServiceName = next)
+                }
+
+                else -> uiState
+            }
+        }
 
     /**
      * Stores the job for tracking the service lookup state. This is needed to cancel the job again when the Wi-Fi
@@ -99,6 +137,11 @@ class ControlViewModel @Inject constructor(
                         mutableUiStateFlow.value = ControlError(R.string.ctrl_error_details_wifi, exception)
                     }
                 }
+        }
+
+        viewModelScope.launch {
+            loadServiceUseCase.execute(LoadServiceByNameUseCase.Input(parameters.serviceName))
+                .collect { result -> mutableLoadStateFlow.value = ServiceLoadResult(result) }
         }
 
         return DefinedCurrentService(parameters.serviceName)
@@ -122,7 +165,7 @@ class ControlViewModel @Inject constructor(
 
             // Only start a new discovery operation if there was no state change in the meantime.
             val currentState = mutableUiStateFlow.value
-            if (currentState is ShowService && currentState.discoveryState == ServiceDiscoveryFailed) {
+            if (currentState is ShowService && mutableDiscoveryStateFlow.value == ServiceDiscoveryFailed) {
                 updateLookupStateTrackingJob(trackLookupState(serviceName))
             }
         }
@@ -166,19 +209,25 @@ class ControlViewModel @Inject constructor(
     private fun CoroutineScope.trackLookupState(serviceName: String): Job =
         launch {
             Log.i(TAG, "Starting a job to watch service discovery for '$serviceName'.")
+            mutableDiscoveryStateFlow.value = initialDiscoveryState
+            mutableUiStateFlow.value = initialShowServiceState
+
             getServiceUriUseCase.execute(GetServiceUriUseCase.Input(serviceName))
                 .collect { lookStateResult ->
-                    val uiState = lookStateResult.map { uiStateFromLookupState(it.lookupState) }
-                        .getOrElse { exception -> ControlError(R.string.ctrl_error_details_lookup, exception) }
-                    mutableUiStateFlow.value = uiState
+                    lookStateResult.map { uiStateFromLookupState(it.lookupState) }
+                        .onSuccess { discoveryState -> mutableDiscoveryStateFlow.value = discoveryState }
+                        .onFailure { exception ->
+                            mutableUiStateFlow.value = ControlError(R.string.ctrl_error_details_lookup, exception)
+                        }
                 }
         }
 
     /**
-     * Return a [ControlUiState] to represent the given [lookupState]. Based on this, the control UI is rendered.
+     * Return a [ControlDiscoveryState] to represent the given [lookupState]. Based on this, the control UI is
+     * rendered.
      */
-    private fun uiStateFromLookupState(lookupState: LookupState): ControlUiState {
-        val discoveryState =  when (lookupState) {
+    private fun uiStateFromLookupState(lookupState: LookupState): ControlDiscoveryState =
+        when (lookupState) {
             is LookupInProgress ->
                 ServiceDiscovery(lookupState.attempts, clock.now() - lookupState.startTime)
 
@@ -188,9 +237,6 @@ class ControlViewModel @Inject constructor(
             is LookupSucceeded ->
                 ServiceDiscoverySucceeded(lookupState.serviceUri)
         }
-
-        return ShowService(discoveryState)
-    }
 
     /**
      * A data class defining the parameters used by this view model. Here the name of the service to be controlled

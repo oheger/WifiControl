@@ -21,6 +21,7 @@ package com.github.oheger.wificontrol.controlui
 import com.github.oheger.wificontrol.domain.model.DefinedCurrentService
 import com.github.oheger.wificontrol.domain.model.WiFiState
 import com.github.oheger.wificontrol.domain.usecase.GetWiFiStateUseCase
+import com.github.oheger.wificontrol.domain.usecase.LoadServiceByNameUseCase
 import com.github.oheger.wificontrol.domain.usecase.StoreCurrentServiceUseCase
 
 import io.kotest.core.spec.style.StringSpec
@@ -53,7 +54,7 @@ class ControlViewModelTest : StringSpec({
         Dispatchers.resetMain()
     }
 
-    "The use case to monitor the Wi-Fi connectivity state should be executed only once" {
+    "Initialization should be executed only once" {
         val serviceName = "someServiceToControl"
         val parameters = ControlViewModel.Parameters(serviceName)
         val wiFiStateUseCase = mockk<GetWiFiStateUseCase> {
@@ -61,12 +62,23 @@ class ControlViewModelTest : StringSpec({
                 execute(GetWiFiStateUseCase.Input)
             } returns flowOf(Result.success(GetWiFiStateUseCase.Output(WiFiState.WI_FI_UNAVAILABLE)))
         }
+        val loadServiceUseCase = mockk<LoadServiceByNameUseCase> {
+            every {
+                execute(LoadServiceByNameUseCase.Input(serviceName))
+            } returns flowOf(Result.failure(IllegalStateException("Test exception: Load current service.")))
+        }
         val storeCurrentServiceUseCase = mockk<StoreCurrentServiceUseCase> {
             every {
                 execute(StoreCurrentServiceUseCase.Input(DefinedCurrentService(serviceName)))
             } returns flowOf(Result.failure(IllegalStateException("Test exception: Store current service")))
         }
-        val viewModel = ControlViewModel(wiFiStateUseCase, mockk(), mockk(), storeCurrentServiceUseCase)
+        val viewModel = ControlViewModel(
+            wiFiStateUseCase,
+            mockk(),
+            mockk(),
+            loadServiceUseCase,
+            storeCurrentServiceUseCase
+        )
 
         viewModel.loadUiState(parameters)
         viewModel.uiStateFlow.first()
@@ -74,6 +86,7 @@ class ControlViewModelTest : StringSpec({
 
         verify(exactly = 1, timeout = 3000) {
             wiFiStateUseCase.execute(GetWiFiStateUseCase.Input)
+            loadServiceUseCase.execute(LoadServiceByNameUseCase.Input(serviceName))
             storeCurrentServiceUseCase.execute(StoreCurrentServiceUseCase.Input(DefinedCurrentService(serviceName)))
         }
     }
