@@ -38,10 +38,13 @@ import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -69,7 +72,9 @@ private val defaultFontSize = 20.sp
 /** The width to be used for icons. */
 private val iconWidth = 32.dp
 
+internal const val TAG_BTN_NAV_NEXT = "ctrlBtnNavNext"
 internal const val TAG_BTN_NAV_OVERVIEW = "ctrlBtnNavOverview"
+internal const val TAG_BTN_NAV_PREVIOUS = "ctrlBtnNavPrevious"
 internal const val TAG_BTN_RETRY_LOOKUP = "ctrlBtnRetryLookup"
 internal const val TAG_CTRL_ERROR_DETAILS = "ctrlErrorDetails"
 internal const val TAG_CTRL_ERROR_HEADER = "ctrlErrorHeader"
@@ -108,6 +113,12 @@ fun ControlScreen(
     controlArgs: Navigation.ControlServiceArgs,
     navController: NavController
 ) {
+    fun navigateToService(serviceName: String) {
+        navController.navigate(
+            Navigation.ControlServiceRoute.forArguments(Navigation.ControlServiceArgs(serviceName))
+        )
+    }
+
     viewModel.loadUiState(ControlViewModel.Parameters(controlArgs.serviceName))
     val state: ControlUiState by viewModel.uiStateFlow.collectAsStateWithLifecycle(WiFiUnavailable)
 
@@ -115,7 +126,8 @@ fun ControlScreen(
         serviceName = controlArgs.serviceName,
         uiState = state,
         onOverviewClick = { navController.navigate(Navigation.ServicesRoute.route) },
-        onRetryClick = { viewModel.retryFailedLookup(controlArgs.serviceName) }
+        onRetryClick = { viewModel.retryFailedLookup(controlArgs.serviceName) },
+        onNavigationClick = ::navigateToService,
     )
 }
 
@@ -128,6 +140,7 @@ private fun ControlScreenForState(
     uiState: ControlUiState,
     onOverviewClick: () -> Unit,
     onRetryClick: () -> Unit,
+    onNavigationClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -140,6 +153,9 @@ private fun ControlScreenForState(
                     IconButton(onClick = onOverviewClick, modifier = modifier.testTag(TAG_BTN_NAV_OVERVIEW)) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                     }
+                },
+                actions = {
+                    NavigationActions(uiState, onNavigationClick, modifier)
                 }
             )
         }
@@ -153,6 +169,53 @@ private fun ControlScreenForState(
                 onRetryClick = onRetryClick,
                 modifier = modifier.padding(innerPadding)
             )
+        }
+    }
+}
+
+/**
+ * Render the actions to navigate to the previous and next service if they are available for the given [uiState].
+ * Link them to the given [onNavigationClick] callback function.
+ */
+@Composable
+private fun NavigationActions(
+    uiState: ControlUiState,
+    onNavigationClick: (String) -> Unit,
+    modifier: Modifier
+) {
+    if (uiState is ShowService) {
+        NavigationAction(
+            serviceName = uiState.previousServiceName,
+            vector = Icons.Filled.KeyboardArrowDown,
+            onClick = onNavigationClick,
+            tag = TAG_BTN_NAV_PREVIOUS,
+            modifier = modifier
+        )
+        NavigationAction(
+            serviceName = uiState.nextServiceName,
+            vector = Icons.Filled.KeyboardArrowUp,
+            onClick = onNavigationClick,
+            tag = TAG_BTN_NAV_NEXT,
+            modifier = modifier
+        )
+    }
+}
+
+/**
+ * Render an action to navigate to the service with the given [serviceName] if it is not *null*. Use the given
+ * [vector] for the icon and connect the click event to the given [onClick] callback. Set the given test [tag].
+ */
+@Composable
+private fun NavigationAction(
+    serviceName: String?,
+    vector: ImageVector,
+    onClick: (String) -> Unit,
+    tag: String,
+    modifier: Modifier
+) {
+    if (serviceName != null) {
+        IconButton(onClick = { onClick(serviceName) }, modifier = modifier.testTag(tag)) {
+            Icon(imageVector = vector, contentDescription = null)
         }
     }
 }
@@ -241,13 +304,14 @@ private fun DisplayService(
     onRetryClick: () -> Unit,
     modifier: Modifier
 ) {
-    when(val discoveryState = state.discoveryState) {
+    when (val discoveryState = state.discoveryState) {
         is ServiceDiscovery -> LookingUpService(discoveryState, modifier = modifier)
         is ServiceDiscoveryFailed -> LookupFailedScreen(
             serviceName = serviceName,
             onRetry = onRetryClick,
             modifier = modifier
         )
+
         is ServiceDiscoverySucceeded -> LookupSuccessScreen(uri = discoveryState.uri, modifier = modifier)
     }
 }
@@ -443,7 +507,7 @@ fun ControlScreenPreview(
     uiState: ControlUiState
 ) {
     WifiControlTheme {
-        ControlScreenForState(serviceName = "Test service", uiState = uiState, {}, {})
+        ControlScreenForState(serviceName = "Test service", uiState = uiState, {}, {}, {})
     }
 }
 
@@ -455,8 +519,8 @@ class ControlUiStatePreviewProvider : PreviewParameterProvider<ControlUiState> {
         get() = sequenceOf(
             WiFiUnavailable,
             ControlError(R.string.ctrl_error_details_wifi, IllegalArgumentException("Wi-Fi state failed.")),
-            ShowService(ServiceDiscovery(3, 23.seconds)),
+            ShowService(ServiceDiscovery(3, 23.seconds), "previous", "next"),
             ShowService(ServiceDiscoveryFailed),
-            ShowService(ServiceDiscoverySucceeded("http://192.168.0.17/test-service/control.html"))
+            ShowService(ServiceDiscoverySucceeded("http://192.168.0.17/test-service/control.html"), "previous", "next")
         )
 }

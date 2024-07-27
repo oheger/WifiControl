@@ -35,10 +35,14 @@ import com.github.oheger.wificontrol.domain.model.LookupFailed
 import com.github.oheger.wificontrol.domain.model.LookupInProgress
 import com.github.oheger.wificontrol.domain.model.LookupState
 import com.github.oheger.wificontrol.domain.model.LookupSucceeded
+import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceData
+import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.domain.model.WiFiState
 import com.github.oheger.wificontrol.domain.usecase.ClearServiceUriUseCase
 import com.github.oheger.wificontrol.domain.usecase.GetServiceUriUseCase
 import com.github.oheger.wificontrol.domain.usecase.GetWiFiStateUseCase
+import com.github.oheger.wificontrol.domain.usecase.LoadServiceByNameUseCase
 import com.github.oheger.wificontrol.domain.usecase.StoreCurrentServiceUseCase
 
 import io.kotest.assertions.nondeterministic.eventually
@@ -82,6 +86,9 @@ class ControlUiTest {
     /** The flow used to inject the current lookup state into test cases. */
     private lateinit var lookupStateFlow: MutableSharedFlow<Result<GetServiceUriUseCase.Output>>
 
+    /** The flow used to inject data about the current service into test cases. */
+    private lateinit var loadServiceFlow: MutableSharedFlow<Result<LoadServiceByNameUseCase.Output>>
+
     /** The use case triggering a service discovery operation. */
     private lateinit var getServiceUriUseCase: GetServiceUriUseCase
 
@@ -112,6 +119,11 @@ class ControlUiTest {
             }
         }
 
+        loadServiceFlow = MutableSharedFlow()
+        val loadServiceUseCase = mockk<LoadServiceByNameUseCase> {
+            every { execute(LoadServiceByNameUseCase.Input(SERVICE_NAME)) } returns loadServiceFlow
+        }
+
         clearServiceUriUseCase = mockk()
         navController = mockk()
         testClock = mockk()
@@ -121,6 +133,7 @@ class ControlUiTest {
             getWiFiStateUseCase,
             getServiceUriUseCase,
             clearServiceUriUseCase,
+            loadServiceUseCase,
             storeCurrentServiceUseCase,
             testClock
         )
@@ -188,6 +201,20 @@ class ControlUiTest {
         every { testClock.now() } returns time
     }
 
+    /**
+     * Prepare the mock for the [NavController] to expect a navigation request.
+     */
+    private fun expectNavigation() {
+        every { navController.navigate(any<String>()) } just runs
+    }
+
+    /**
+     * Emit the given [result] to the flow returned by the [LoadServiceByNameUseCase].
+     */
+    private suspend fun updateLoadServiceResult(result: Result<LoadServiceByNameUseCase.Output>) {
+        loadServiceFlow.emit(result)
+    }
+
     @Test
     fun `The Wi-Fi state unavailable should be assumed initially`() {
         composeTestRule.onNodeWithTag(textTag(TAG_WIFI_UNAVAILABLE)).assertIsDisplayed()
@@ -202,7 +229,7 @@ class ControlUiTest {
 
     @Test
     fun `Navigation to the services overview UI should be possible`() {
-        every { navController.navigate(any<String>()) } just runs
+        expectNavigation()
 
         composeTestRule.onNodeWithTag(TAG_BTN_NAV_OVERVIEW).performClick()
 
@@ -239,10 +266,11 @@ class ControlUiTest {
     }
 
     @Test
-    fun `The Wi-Fi unavailable UI should be shown before a lookup state is received`() = runTest {
+    fun `An initial lookup state should be shown before a lookup state is received`() = runTest {
         updateWiFiState(WiFiState.WI_FI_AVAILABLE)
 
-        assertWiFiUnavailableUi()
+        composeTestRule.onNodeWithTag(TAG_LOOKUP_ATTEMPTS).assertTextContains("0")
+        composeTestRule.onNodeWithTag(TAG_LOOKUP_TIME).assertTextContains("0")
     }
 
     @Test
@@ -394,6 +422,92 @@ class ControlUiTest {
         }
     }
 
+    @Test
+    fun `A button to navigate forward is displayed if there is a next service`() = runTest {
+        expectNavigation()
+
+        composeTestRule.onNodeWithTag(TAG_BTN_NAV_NEXT).assertDoesNotExist()
+        updateWiFiState(WiFiState.WI_FI_AVAILABLE)
+        composeTestRule.onNodeWithTag(TAG_BTN_NAV_NEXT).assertDoesNotExist()
+
+        val nextService = createService("nextService")
+        val serviceData = ServiceData(listOf(currentService, nextService))
+        updateLoadServiceResult(Result.success(LoadServiceByNameUseCase.Output(serviceData, serviceData[0])))
+
+        composeTestRule.onNodeWithTag(TAG_BTN_NAV_PREVIOUS).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TAG_BTN_NAV_NEXT).performClick()
+
+        verify {
+            navController.navigate(
+                Navigation.ControlServiceRoute.forArguments(
+                    Navigation.ControlServiceArgs(
+                        nextService.serviceDefinition.name
+                    )
+                )
+            )
+        }
+    }
+
+    @Test
+    fun `A button to navigate backward is displayed if there is a previous service`() = runTest {
+        expectNavigation()
+
+        composeTestRule.onNodeWithTag(TAG_BTN_NAV_PREVIOUS).assertDoesNotExist()
+        updateWiFiState(WiFiState.WI_FI_AVAILABLE)
+        composeTestRule.onNodeWithTag(TAG_BTN_NAV_PREVIOUS).assertDoesNotExist()
+        updateLookupState(LookupSucceeded("https://found-service.example.org/index.html"))
+        composeTestRule.onNodeWithTag(TAG_BTN_NAV_PREVIOUS).assertDoesNotExist()
+
+        val previousService = createService("prevService")
+        val serviceData = ServiceData(listOf(previousService, currentService))
+        updateLoadServiceResult(Result.success(LoadServiceByNameUseCase.Output(serviceData, serviceData[1])))
+
+        composeTestRule.onNodeWithTag(TAG_BTN_NAV_NEXT).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TAG_BTN_NAV_PREVIOUS).performClick()
+
+        verify {
+            navController.navigate(
+                Navigation.ControlServiceRoute.forArguments(
+                    Navigation.ControlServiceArgs(
+                        previousService.serviceDefinition.name
+                    )
+                )
+            )
+        }
+    }
+
+    @Test
+    fun `No navigation buttons should be displayed if the service could not be retrieved`() = runTest {
+        updateWiFiState(WiFiState.WI_FI_AVAILABLE)
+        updateLoadServiceResult(Result.failure(IllegalStateException("Test exception: Could not load service.")))
+
+        composeTestRule.onNodeWithTag(TAG_BTN_NAV_PREVIOUS).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TAG_BTN_NAV_NEXT).assertDoesNotExist()
+    }
+
+    @Test
+    fun `No navigation buttons should be displayed if there is no Wi-Fi connection`() = runTest {
+        val serviceData = ServiceData(listOf(createService("prev"), currentService, createService("next")))
+        updateLoadServiceResult(Result.success(LoadServiceByNameUseCase.Output(serviceData, serviceData[1])))
+
+        updateWiFiState(WiFiState.WI_FI_UNAVAILABLE)
+
+        composeTestRule.onNodeWithTag(TAG_BTN_NAV_PREVIOUS).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TAG_BTN_NAV_NEXT).assertDoesNotExist()
+    }
+
+    @Test
+    fun `No navigation buttons should be displayed if there is an error in the control UI`() = runTest {
+        updateWiFiState(WiFiState.WI_FI_AVAILABLE)
+
+        updateLookupStateResult(Result.failure(IllegalArgumentException("Test lookup exception")))
+        val serviceData = ServiceData(listOf(createService("prev"), currentService, createService("next")))
+        updateLoadServiceResult(Result.success(LoadServiceByNameUseCase.Output(serviceData, serviceData[1])))
+
+        composeTestRule.onNodeWithTag(TAG_BTN_NAV_PREVIOUS).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TAG_BTN_NAV_NEXT).assertDoesNotExist()
+    }
+
     /**
      * Check that none of the elements assigned to the given [tags] exists. This is used to verify the elements are
      * not visible that are not needed for a specific state of the UI.
@@ -419,6 +533,13 @@ private val dataTags = buildList {
     add(TAG_SERVICE_URI)
 }
 
+/** The data of the test service. */
+private val currentService = PersistentService(
+    serviceDefinition = ServiceDefinition(SERVICE_NAME, "231.0.0.7", 8765, "code"),
+    lookupTimeout = null,
+    sendRequestInterval = null
+)
+
 /**
  * Generate a collection with text and icon tags derived from the given [tags] collection.
  */
@@ -431,3 +552,9 @@ private fun iconTextTags(tags: Collection<String>): Collection<String> {
 
     return derivedTags
 }
+
+/**
+ * Create a new [PersistentService] as a copy of [currentService] with the given [name].
+ */
+private fun createService(name: String): PersistentService =
+    currentService.copy(serviceDefinition = currentService.serviceDefinition.copy(name = name))

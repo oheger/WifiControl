@@ -18,6 +18,7 @@
  */
 package com.github.oheger.wificontrol.controlui
 
+import com.github.oheger.wificontrol.domain.usecase.LoadServiceByNameUseCase
 import kotlin.time.Duration
 
 /**
@@ -52,6 +53,45 @@ data class ServiceDiscoverySucceeded(
     /** The URI under which the UI of the service can be reached. */
     val uri: String
 ) : ControlDiscoveryState
+
+/**
+ * Root of a hierarchy of classes that represent the state of loading the current service in the Control UI.
+ * Dependent on the concrete subclass, more or less information is available in the UI.
+ */
+sealed interface ServiceLoadState {
+    companion object {
+        /** Constant for a [Pair] to be used if no navigation to other services is available. */
+        val NAVIGATION_UNAVAILABLE: Pair<String?, String?> = Pair(null, null)
+    }
+
+    /**
+     * Return a [Pair] with the names of the previous and next services for fast navigation in the UI. If one of the
+     * names is defined, the UI displays a corresponding navigation action button. Concrete subclasses provide an
+     * implementation that is suitable for the represented load state.
+     */
+    fun getNavigationServiceNames(): Pair<String?, String?>
+}
+
+/**
+ * An object representing the state that information about the current service is not yet available. The load
+ * operation is still ongoing.
+ */
+data object ServiceLoading : ServiceLoadState {
+    override fun getNavigationServiceNames(): Pair<String?, String?> = ServiceLoadState.NAVIGATION_UNAVAILABLE
+}
+
+/**
+ * A data class representing the state that the load operation for the current service has finished - either successful
+ * or in failure state.
+ */
+data class ServiceLoadResult(
+    /** The result of the load operation. */
+    val loadResult: Result<LoadServiceByNameUseCase.Output>
+) : ServiceLoadState {
+    override fun getNavigationServiceNames(): Pair<String?, String?> =
+        loadResult.map { it.serviceData.getPreviousAndNext(it.service.service.name) }
+            .getOrElse { ServiceLoadState.NAVIGATION_UNAVAILABLE }
+}
 
 /**
  * Root of a class hierarchy to represent the state of the UI that allows controlling services.
