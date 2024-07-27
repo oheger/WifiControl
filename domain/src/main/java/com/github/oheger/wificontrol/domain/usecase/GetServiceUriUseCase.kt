@@ -25,7 +25,6 @@ import com.github.oheger.wificontrol.domain.repo.ServiceUriRepository
 import javax.inject.Inject
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 /**
@@ -37,30 +36,22 @@ class GetServiceUriUseCase @Inject constructor(
     config: UseCaseConfig,
 
     /** The repository for looking up the service URI. */
-    private val serviceUriRepository: ServiceUriRepository,
-
-    /** The use case for loading the lookup-related properties of the affected service. */
-    private val loadServiceByNameUseCase: LoadServiceByNameUseCase
+    private val serviceUriRepository: ServiceUriRepository
 ) : BaseUseCase<GetServiceUriUseCase.Input, GetServiceUriUseCase.Output>(config) {
     override fun process(input: Input): Flow<Output> {
-        return serviceUriRepository.lookupService(input.serviceName) {
-            fetchLookupService(input)
-        }.map { state -> Output(state) }
+        return serviceUriRepository.lookupService(input.serviceName, input.lookupServiceProvider)
+            .map { state -> Output(state) }
     }
-
-    /**
-     * Obtain the [LookupService] instance for the service specified by [input] by invoking the use case to obtain a
-     * service by its name.
-     */
-    private suspend fun fetchLookupService(input: Input): LookupService =
-        loadServiceByNameUseCase.process(LoadServiceByNameUseCase.Input(input.serviceName)).first().service
 
     /**
      * The input type of this use case. Here the name of the desired service must be provided.
      */
     data class Input(
         /** The name of the service for which the URI should be retrieved. */
-        val serviceName: String
+        val serviceName: String,
+
+        /** The function to obtain the [LookupService] if a new lookup operation needs to be started. */
+        val lookupServiceProvider: suspend () -> LookupService
     ) : BaseUseCase.Input
 
     /**
