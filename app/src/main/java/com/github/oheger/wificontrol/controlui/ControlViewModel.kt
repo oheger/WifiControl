@@ -28,6 +28,7 @@ import com.github.oheger.wificontrol.domain.model.CurrentService
 import com.github.oheger.wificontrol.domain.model.DefinedCurrentService
 import com.github.oheger.wificontrol.domain.model.LookupFailed
 import com.github.oheger.wificontrol.domain.model.LookupInProgress
+import com.github.oheger.wificontrol.domain.model.LookupService
 import com.github.oheger.wificontrol.domain.model.LookupState
 import com.github.oheger.wificontrol.domain.model.LookupSucceeded
 import com.github.oheger.wificontrol.domain.model.WiFiState
@@ -49,6 +50,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
@@ -212,7 +214,7 @@ class ControlViewModel @Inject constructor(
             mutableDiscoveryStateFlow.value = initialDiscoveryState
             mutableUiStateFlow.value = initialShowServiceState
 
-            getServiceUriUseCase.execute(GetServiceUriUseCase.Input(serviceName))
+            getServiceUriUseCase.execute(GetServiceUriUseCase.Input(serviceName) { provideLookupService() })
                 .collect { lookStateResult ->
                     lookStateResult.map { uiStateFromLookupState(it.lookupState) }
                         .onSuccess { discoveryState -> mutableDiscoveryStateFlow.value = discoveryState }
@@ -237,6 +239,14 @@ class ControlViewModel @Inject constructor(
             is LookupSucceeded ->
                 ServiceDiscoverySucceeded(lookupState.serviceUri)
         }
+
+    /**
+     * A function that returns the [LookupService] for the current service in case this is needed for starting a new
+     * discovery operation. This information can be obtained from the use case that loads the service.
+     */
+    private suspend fun provideLookupService(): LookupService =
+        mutableLoadStateFlow.filterIsInstance<ServiceLoadResult>().first().loadResult
+            .map(LoadServiceByNameUseCase.Output::service).getOrThrow()
 
     /**
      * A data class defining the parameters used by this view model. Here the name of the service to be controlled

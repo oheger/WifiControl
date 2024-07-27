@@ -31,8 +31,10 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.github.oheger.wificontrol.Navigation
 import com.github.oheger.wificontrol.R
 import com.github.oheger.wificontrol.domain.model.DefinedCurrentService
+import com.github.oheger.wificontrol.domain.model.LookupConfig
 import com.github.oheger.wificontrol.domain.model.LookupFailed
 import com.github.oheger.wificontrol.domain.model.LookupInProgress
+import com.github.oheger.wificontrol.domain.model.LookupService
 import com.github.oheger.wificontrol.domain.model.LookupState
 import com.github.oheger.wificontrol.domain.model.LookupSucceeded
 import com.github.oheger.wificontrol.domain.model.PersistentService
@@ -53,6 +55,7 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
+import io.mockk.slot
 import io.mockk.verify
 
 import java.util.concurrent.atomic.AtomicInteger
@@ -110,7 +113,7 @@ class ControlUiTest {
 
         lookupStateFlow = MutableSharedFlow()
         getServiceUriUseCase = mockk<GetServiceUriUseCase> {
-            every { execute(GetServiceUriUseCase.Input(SERVICE_NAME)) } returns lookupStateFlow
+            every { execute(any()) } returns lookupStateFlow
         }
 
         val storeCurrentServiceUseCase = mockk<StoreCurrentServiceUseCase> {
@@ -356,6 +359,29 @@ class ControlUiTest {
     }
 
     @Test
+    fun `The correct LookupService should be passed to the discovery use case`() = runTest {
+        val lookupService = LookupService(
+            service = ServiceDefinition(SERVICE_NAME, "231.0.0.1", 4444, "code"),
+            lookupConfig = LookupConfig(30.seconds, 1.seconds)
+        )
+        val persistentService = PersistentService(
+            serviceDefinition = lookupService.service,
+            lookupTimeout = lookupService.lookupConfig.lookupTimeout,
+            sendRequestInterval = lookupService.lookupConfig.sendRequestInterval
+        )
+        val serviceLoadResult = LoadServiceByNameUseCase.Output(ServiceData(listOf(persistentService)), lookupService)
+
+        updateWiFiState(WiFiState.WI_FI_AVAILABLE)
+        updateLoadServiceResult(Result.success(serviceLoadResult))
+
+        val slotInput = slot<GetServiceUriUseCase.Input>()
+        verify {
+            getServiceUriUseCase.execute(capture(slotInput))
+        }
+        slotInput.captured.lookupServiceProvider() shouldBe lookupService
+    }
+
+    @Test
     fun `A button should be displayed to retry a failed discovery operation`() = runTest {
         updateWiFiState(WiFiState.WI_FI_AVAILABLE)
         updateLookupState(LookupFailed)
@@ -363,8 +389,12 @@ class ControlUiTest {
 
         composeTestRule.onNodeWithTag(TAG_BTN_RETRY_LOOKUP).performClick()
 
+        val slotInputs = mutableListOf<GetServiceUriUseCase.Input>()
         verify(exactly = 2, timeout = 3000) {
-            getServiceUriUseCase.execute(GetServiceUriUseCase.Input(SERVICE_NAME))
+            getServiceUriUseCase.execute(capture(slotInputs))
+        }
+        slotInputs.forAll {
+            it.serviceName shouldBe SERVICE_NAME
         }
     }
 
@@ -394,7 +424,7 @@ class ControlUiTest {
         composeTestRule.onNodeWithTag(TAG_BTN_RETRY_LOOKUP).performClick()
 
         verify(exactly = 2, timeout = 3000) {
-            getServiceUriUseCase.execute(GetServiceUriUseCase.Input(SERVICE_NAME))
+            getServiceUriUseCase.execute(any())
         }
     }
 
@@ -411,7 +441,7 @@ class ControlUiTest {
 
         composeTestRule.onNodeWithTag(TAG_SERVICE_URI).assertIsDisplayed()
         verify(exactly = 1) {
-            getServiceUriUseCase.execute(GetServiceUriUseCase.Input(SERVICE_NAME))
+            getServiceUriUseCase.execute(any())
         }
     }
 

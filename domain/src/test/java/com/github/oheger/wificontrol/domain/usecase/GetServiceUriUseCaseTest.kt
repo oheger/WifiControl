@@ -50,8 +50,12 @@ class GetServiceUriUseCaseTest : StringSpec({
             every { lookupService(SERVICE_NAME, any()) } returns flowOf(state1, state2)
         }
 
-        val useCase = GetServiceUriUseCase(useCaseConfig, repository, mockk())
-        val stateFlow = useCase.execute(GetServiceUriUseCase.Input(SERVICE_NAME))
+        val useCase = GetServiceUriUseCase(useCaseConfig, repository)
+        val input = GetServiceUriUseCase.Input(
+            serviceName = SERVICE_NAME,
+            lookupServiceProvider = { throw UnsupportedOperationException("Unexpected call.") }
+        )
+        val stateFlow = useCase.execute(input)
 
         stateFlow.toList() shouldContainInOrder listOf(
             Result.success(GetServiceUriUseCase.Output(state1)),
@@ -71,14 +75,10 @@ class GetServiceUriUseCaseTest : StringSpec({
             service = ServiceDefinition("test", "231.1.1.1", 10000, "code"),
             lookupConfig = lookupConfig
         )
-        val loadServiceUseCase = mockk<LoadServiceByNameUseCase> {
-            every { process(LoadServiceByNameUseCase.Input(SERVICE_NAME)) } returns flowOf(
-                LoadServiceByNameUseCase.Output(mockk(), lookupService)
-            )
-        }
+        val lookupServiceProvider: suspend () -> LookupService = { lookupService }
 
-        val useCase = GetServiceUriUseCase(useCaseConfig, repository, loadServiceUseCase)
-        useCase.execute(GetServiceUriUseCase.Input(SERVICE_NAME)).first()
+        val useCase = GetServiceUriUseCase(useCaseConfig, repository)
+        useCase.execute(GetServiceUriUseCase.Input(SERVICE_NAME, lookupServiceProvider)).first()
 
         val slotCallback = slot<suspend () -> LookupService>()
         verify {
