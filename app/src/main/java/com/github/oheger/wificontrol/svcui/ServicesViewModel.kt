@@ -111,6 +111,8 @@ class ServicesViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            val currentServiceFlow = MutableStateFlow<CurrentService>(UndefinedCurrentService)
+
             loadCurrentServiceUseCase.execute(LoadCurrentServiceUseCase.Input)
                 .take(1)
                 .mapNotNull { result -> result.getOrNull() }
@@ -118,10 +120,15 @@ class ServicesViewModel @Inject constructor(
                 .filterIsInstance<DefinedCurrentService>()
                 .collect { currentService ->
                     mutableCurrentServiceFlow.emit(currentService)
+                    currentServiceFlow.value = currentService
                 }
 
             // Can only be done after the previous current service was loaded and processed.
-            storeCurrentService(UndefinedCurrentService)
+            // An update of the current service must not be done if a defined service was loaded; then the
+            // view logic navigates to the corresponding UI which also stores the current service.
+            if (currentServiceFlow.value == UndefinedCurrentService) {
+                storeCurrentService(UndefinedCurrentService)
+            }
         }
 
         return null
