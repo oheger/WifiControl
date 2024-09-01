@@ -219,14 +219,31 @@ class ServicesOverviewUiTest {
     }
 
     @Test
-    fun `An action to delete a service is available`() = runTest {
+    fun `An action to delete a service is available with a confirmation dialog`() = runTest {
         val data = initServiceData(createServiceData(3))
 
         composeTestRule.onNodeWithTag(serviceTag(data.services[0].serviceDefinition.name, TAG_ACTION_REMOVE))
             .performClick()
-        val savedData = expectStoredData()
+        composeTestRule.onNodeWithTag(TAG_BTN_DELETE_CONFIRM).performClick()
 
+        val savedData = expectStoredData()
         savedData.services shouldContainExactly listOf(data.services[1], data.services[2])
+
+        composeTestRule.onNodeWithTag(TAG_BTN_DELETE_CONFIRM).assertDoesNotExist()
+    }
+
+    @Test
+    fun `The action to delete a service can be canceled in the confirmation dialog`() = runTest {
+        val data = initServiceData(createServiceData(3))
+
+        composeTestRule.onNodeWithTag(serviceTag(data.services[0].serviceDefinition.name, TAG_ACTION_REMOVE))
+            .performClick()
+        composeTestRule.onNodeWithTag(TAG_BTN_DELETE_CANCEL).performClick()
+
+        composeTestRule.onNodeWithTag(TAG_BTN_DELETE_CANCEL).assertDoesNotExist()
+        verify(exactly = 0) {
+            storeDataUseCase.execute(any())
+        }
     }
 
     @Test
@@ -274,6 +291,7 @@ class ServicesOverviewUiTest {
 
         composeTestRule.onNodeWithTag(serviceTag(data.services[0].serviceDefinition.name, TAG_ACTION_REMOVE))
             .performClick()
+        composeTestRule.onNodeWithTag(TAG_BTN_DELETE_CONFIRM).performClick()
         expectStoredData()
 
         composeTestRule.onNodeWithTag(TAG_SAVE_ERROR).assertIsDisplayed()

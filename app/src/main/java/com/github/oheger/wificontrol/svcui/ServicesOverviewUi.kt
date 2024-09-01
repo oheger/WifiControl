@@ -30,11 +30,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
+import androidx.compose.material.TextButton
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -45,6 +47,8 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -69,6 +73,8 @@ internal const val TAG_ACTION_DETAILS = "actDetails"
 internal const val TAG_ACTION_DOWN = "actDown"
 internal const val TAG_ACTION_REMOVE = "actRemove"
 internal const val TAG_ACTION_UP = "actUp"
+internal const val TAG_BTN_DELETE_CONFIRM = "svcBtnDeleteConfirm"
+internal const val TAG_BTN_DELETE_CANCEL = "svcBtnDeleteCancel"
 
 /**
  * Generate the tag for an UI element related to the service with the given [serviceName]. The element is identified
@@ -202,48 +208,63 @@ fun ServicesList(
     onRemoveClick: (String) -> Unit,
     modifier: Modifier
 ) {
-    if (services.isEmpty()) {
-        Text(
-            text = stringResource(id = R.string.svc_no_services),
-            fontSize = 16.sp,
-            modifier = modifier.testTag(TAG_NO_SERVICES_MSG)
+    val confirmDeleteService = remember { mutableStateOf<String?>(null) }
+    val deleteServiceName = confirmDeleteService.value
+    if (deleteServiceName != null) {
+        ServiceDeleteConfirmation(
+            deleteServiceName,
+            onConfirm = {
+                onRemoveClick(deleteServiceName)
+                confirmDeleteService.value = null
+            },
+            onCancel = { confirmDeleteService.value = null },
+            modifier = modifier
         )
-    }
+    } else {
 
-    LazyColumn(modifier = modifier.fillMaxWidth()) {
-        items(services.withIndex().toList()) { (index, service) ->
-            val color = if (index % 2 == 0) MaterialTheme.colors.surface else MaterialTheme.colors.secondary
-            Row(
-                modifier = modifier
-                    .background(color)
-                    .padding(top = 8.dp, bottom = 8.dp)
-            ) {
-                Text(
-                    text = service.serviceDefinition.name,
-                    fontSize = 24.sp,
-                    modifier = Modifier
-                        .clickable { onServiceClick(service.serviceDefinition.name) }
-                        .testTag(serviceTag(service.serviceDefinition.name, TAG_SERVICE_NAME))
-                )
-                Spacer(modifier = modifier.weight(1f))
-                ServiceActions(
-                    service.serviceDefinition.name,
-                    index,
-                    index == 0,
-                    index >= services.size - 1,
-                    onDetailsClick,
-                    onMoveUpClick,
-                    onMoveDownClick,
-                    onRemoveClick,
-                    modifier
-                )
-            }
+        if (services.isEmpty()) {
+            Text(
+                text = stringResource(id = R.string.svc_no_services),
+                fontSize = 16.sp,
+                modifier = modifier.testTag(TAG_NO_SERVICES_MSG)
+            )
         }
 
-        // Add space at the bottom of the list to prevent that the floating button blocks the actions of the last
-        // list elements. With this space, the elements can be scrolled until they are above the button.
-        item {
-            Spacer(modifier = modifier.height(54.dp))
+        LazyColumn(modifier = modifier.fillMaxWidth()) {
+            items(services.withIndex().toList()) { (index, service) ->
+                val color = if (index % 2 == 0) MaterialTheme.colors.surface else MaterialTheme.colors.secondary
+                Row(
+                    modifier = modifier
+                        .background(color)
+                        .padding(top = 8.dp, bottom = 8.dp)
+                ) {
+                    Text(
+                        text = service.serviceDefinition.name,
+                        fontSize = 24.sp,
+                        modifier = Modifier
+                            .clickable { onServiceClick(service.serviceDefinition.name) }
+                            .testTag(serviceTag(service.serviceDefinition.name, TAG_SERVICE_NAME))
+                    )
+                    Spacer(modifier = modifier.weight(1f))
+                    ServiceActions(
+                        service.serviceDefinition.name,
+                        index,
+                        index == 0,
+                        index >= services.size - 1,
+                        onDetailsClick,
+                        onMoveUpClick,
+                        onMoveDownClick,
+                        onRemoveClick = { confirmDeleteService.value = it },
+                        modifier
+                    )
+                }
+            }
+
+            // Add space at the bottom of the list to prevent that the floating button blocks the actions of the last
+            // list elements. With this space, the elements can be scrolled until they are above the button.
+            item {
+                Spacer(modifier = modifier.height(54.dp))
+            }
         }
     }
 }
@@ -312,6 +333,39 @@ private fun ServiceAction(image: ImageVector, onClick: () -> Unit, tag: String, 
             .testTag(tag)
             .size(34.dp)
             .clickable(onClick = onClick)
+    )
+}
+
+/**
+ * Generate a dialog asking the user for confirmation to delete the service with the given [serviceName]. Connect the
+ * given [onConfirm] and [onCancel] callbacks to the corresponding buttons of the dialog.
+ */
+@Composable
+private fun ServiceDeleteConfirmation(
+    serviceName: String,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = {
+            Text(stringResource(R.string.svc_del_conf_title))
+        },
+        text = {
+            Text(stringResource(R.string.svc_del_conf_text, serviceName))
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm, modifier = modifier.testTag(TAG_BTN_DELETE_CONFIRM)) {
+                Text(stringResource(R.string.svc_del_conf_btn_delete))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel, modifier = modifier.testTag(TAG_BTN_DELETE_CANCEL)) {
+                Text(stringResource(R.string.svc_del_conf_btn_cancel))
+            }
+        },
+        modifier = modifier
     )
 }
 
