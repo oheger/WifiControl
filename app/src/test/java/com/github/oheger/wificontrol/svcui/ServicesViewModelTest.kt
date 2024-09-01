@@ -18,6 +18,7 @@
  */
 package com.github.oheger.wificontrol.svcui
 
+import com.github.oheger.wificontrol.domain.model.DefinedCurrentService
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.UndefinedCurrentService
 import com.github.oheger.wificontrol.domain.usecase.LoadCurrentServiceUseCase
@@ -81,6 +82,33 @@ class ServicesViewModelTest : StringSpec({
         verify(exactly = 1, timeout = 3000) {
             loadUseCase.execute(LoadServiceDataUseCase.Input)
             loadCurrentServiceUseCase.execute(any())
+            storeCurrentServiceUseCase.execute(any())
+        }
+    }
+
+    "The current service should only be stored if no current service was loaded" {
+        val loadUseCase = mockk<LoadServiceDataUseCase> {
+            every {
+                execute(LoadServiceDataUseCase.Input)
+            } returns flowOf(Result.success(LoadServiceDataUseCase.Output(ServiceData(emptyList()))))
+        }
+        val loadCurrentServiceUseCase = mockk<LoadCurrentServiceUseCase> {
+            every {
+                execute(LoadCurrentServiceUseCase.Input)
+            } returns flowOf(
+                Result.success(LoadCurrentServiceUseCase.Output(DefinedCurrentService("someCurrentService")))
+            )
+        }
+        val storeCurrentServiceUseCase = mockk<StoreCurrentServiceUseCase>()
+        val viewModel = ServicesViewModel(loadUseCase, mockk(), loadCurrentServiceUseCase, storeCurrentServiceUseCase)
+
+        viewModel.loadUiState(ServicesViewModel.Parameters)
+        viewModel.uiStateFlow.first()
+
+        verify(timeout = 3000) {
+            loadCurrentServiceUseCase.execute(any())
+        }
+        verify(exactly = 0, timeout = 1000) {
             storeCurrentServiceUseCase.execute(any())
         }
     }
