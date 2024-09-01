@@ -28,4 +28,8 @@
     <string name="ctrl_lookup_failed_header">Service discovery failed</string>
     <string name="ctrl_lookup_failed_details">No response was received from service \'%1s\' within the configured timeout.\n\nPlease double-check the configuration of this service and make sure that it is actually running in the Wi-Fi network.</string>
     <string name="ctrl_btn_retry">Try again</string>
+    <string name="svc_del_conf_title">Delete service</string>
+    <string name="svc_del_conf_text">Do you really want to delete the service \'%1s\'?</string>
+    <string name="svc_del_conf_btn_delete">Delete</string>
+    <string name="svc_del_conf_btn_cancel">Cancel</string>
 </resources>

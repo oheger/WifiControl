@@ -27,4 +27,8 @@
     <string name="ctrl_lookup_failed_header">Dienst nicht gefunden</string>
     <string name="ctrl_lookup_failed_details">Der Dienst \'%1s\' hat nicht innerhalb der konfigurierten Zeit auf Anfragen geantwortet.\n\nBitte überprüfen Sie die Konfiguration des Dienstes und stellen sicher, dass der Dienst wirklich im WLAN verfügbar ist.</string>
     <string name="ctrl_btn_retry">Erneut versuchen</string>
+    <string name="svc_del_conf_title">Dienst löschen</string>
+    <string name="svc_del_conf_text">Wollen Sie den Dienst \'%1s\' wirklich löschen?</string>
+    <string name="svc_del_conf_btn_delete">Löschen</string>
+    <string name="svc_del_conf_btn_cancel">Abbrechen</string>
 </resources>
