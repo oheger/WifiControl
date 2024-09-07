@@ -32,4 +32,8 @@
     <string name="svc_del_conf_text">Do you really want to delete the service \'%1s\'?</string>
     <string name="svc_del_conf_btn_delete">Delete</string>
     <string name="svc_del_conf_btn_cancel">Cancel</string>
+    <string name="svc_name_invalid">The service name must be a non-empty string without leading or trailing whitespace.</string>
+    <string name="svc_address_invalid">This must be a valid IP address, e.g. 231.1.120.17.</string>
+    <string name="svc_port_invalid">This must be a valid port number in the range of 0 to 65535.</string>
+    <string name="svc_code_invalid">The request code must be a non-empty string without leading or trailing whitespace.</string>
 </resources>

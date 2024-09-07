@@ -19,9 +19,9 @@
 package com.github.oheger.wificontrol.svcui
 
 import android.content.Context
+
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.navigation.NavController
@@ -104,9 +104,10 @@ class CreateServiceUiTest {
 
     @Test
     fun `An empty form is displayed initially`() {
-        listOf(TAG_EDIT_NAME, TAG_EDIT_MULTICAST, TAG_EDIT_PORT, TAG_EDIT_CODE).forAll { tag ->
+        listOf(TAG_EDIT_NAME, TAG_EDIT_MULTICAST, TAG_EDIT_CODE).forAll { tag ->
             composeTestRule.onNodeWithTag(tag).assertTextEquals("")
         }
+        composeTestRule.onNodeWithTag(TAG_EDIT_PORT).assertTextEquals("0")
     }
 
     @Test
@@ -121,8 +122,9 @@ class CreateServiceUiTest {
         every { storeUseCase.execute(any()) } returns flowOf(Result.success(StoreServiceUseCase.Output))
         expectNavigation()
 
-        composeTestRule.enterServiceProperties()
+        composeTestRule.enterServiceProperties(service)
 
+        composeTestRule.assertNoValidationErrors()
         val expectedInput = StoreServiceUseCase.Input(
             data = serviceData,
             service = service,
@@ -151,7 +153,7 @@ class CreateServiceUiTest {
         val exception = IllegalStateException("Test exception: Could not save new service.")
         every { storeUseCase.execute(any()) } returns flowOf(Result.failure(exception))
 
-        composeTestRule.enterServiceProperties()
+        composeTestRule.enterServiceProperties(service)
 
         composeTestRule.onNodeWithTag(TAG_SAVE_ERROR).assertExists()
         composeTestRule.onNodeWithTag(TAG_SAVE_ERROR_MSG)
@@ -163,6 +165,21 @@ class CreateServiceUiTest {
         verify(exactly = 0) {
             navController.navigate(any<String>())
         }
+    }
+
+    @Test
+    fun `Invalid input is detected and reported`() {
+        composeTestRule.enterServiceProperties(errorService, save = false)
+
+        composeTestRule.assertAllValidationErrors()
+    }
+
+    @Test
+    fun `Clicking the save button performs a validation`() {
+        composeTestRule.onNodeWithTag(TAG_EDIT_PORT).setText("70000")
+        composeTestRule.saveForm()
+
+        composeTestRule.assertAllValidationErrors()
     }
 
     /**
@@ -184,14 +201,3 @@ private val service = PersistentService(
     lookupTimeout = null,
     sendRequestInterval = null
 )
-
-/**
- * Populate the edit fields of the form with the properties of the new test service.
- */
-private fun ComposeTestRule.enterServiceProperties() {
-    onNodeWithTag(TAG_EDIT_NAME).setText(service.serviceDefinition.name)
-    onNodeWithTag(TAG_EDIT_MULTICAST).setText(service.serviceDefinition.multicastAddress)
-    onNodeWithTag(TAG_EDIT_PORT).setText(service.serviceDefinition.port.toString())
-    onNodeWithTag(TAG_EDIT_CODE).setText(service.serviceDefinition.requestCode)
-    onNodeWithTag(TAG_BTN_EDIT_SAVE).performSafeClick()
-}

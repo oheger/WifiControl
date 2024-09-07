@@ -31,4 +31,8 @@
     <string name="svc_del_conf_text">Wollen Sie den Dienst \'%1s\' wirklich löschen?</string>
     <string name="svc_del_conf_btn_delete">Löschen</string>
     <string name="svc_del_conf_btn_cancel">Abbrechen</string>
+    <string name="svc_name_invalid">Der Name des Dienstes muss ein nicht leerer Text ohne führende und schließende Leerzeichen sein.</string>
+    <string name="svc_address_invalid">Dies muss eine gültige IP-Adresse sein, wie z.B. 231.1.120.17.</string>
+    <string name="svc_port_invalid">Dies muss eine gültige Port-Nummer im Bereich von 0 bis 65535 sein.</string>
+    <string name="svc_code_invalid">Der Request Code muss ein nicht leerer Text ohne führende und schließende Leerzeichen sein.</string>
 </resources>
