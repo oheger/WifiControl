@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
 import androidx.compose.material.Icon
@@ -43,6 +44,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -263,6 +265,7 @@ private fun EditServiceDetails(
     ) {
         EditServiceProperty(
             labelRes = R.string.svc_lab_name,
+            keyboardOptions = KeyboardOptions.Default,
             value = editModel.serviceName,
             updateValue = { editModel.serviceName = it },
             errorRes = R.string.svc_name_invalid.takeUnless { editModel.serviceNameValid },
@@ -271,6 +274,7 @@ private fun EditServiceDetails(
         )
         EditServiceProperty(
             labelRes = R.string.svc_lab_multicast,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             value = editModel.multicastAddress,
             updateValue = { editModel.multicastAddress = it },
             errorRes = R.string.svc_address_invalid.takeUnless { editModel.multicastAddressValid },
@@ -279,6 +283,7 @@ private fun EditServiceDetails(
         )
         EditServiceProperty(
             labelRes = R.string.svc_lab_port,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             value = editModel.port,
             updateValue = { editModel.port = it },
             errorRes = R.string.svc_port_invalid.takeUnless { editModel.portValid },
@@ -287,6 +292,7 @@ private fun EditServiceDetails(
         )
         EditServiceProperty(
             labelRes = R.string.svc_lab_code,
+            keyboardOptions = KeyboardOptions.Default,
             value = editModel.code,
             updateValue = { editModel.code = it },
             errorRes = R.string.svc_code_invalid.takeUnless { editModel.codeValid },
@@ -341,12 +347,14 @@ private fun ServiceProperty(labelRes: Int, value: String, tag: String, modifier:
 /**
  * Generate the UI to edit a single property of a service. This contains a label with the given
  * [resource ID][labelRes], and a text field displaying the given [value] and using the [updateValue] function to
- * propagate changes. If the user input is invalid, a resource ID with a corresponding error message is provided in
- * [errorRes]; then display this message. Assign the given [tag] to the edit text field.
+ * propagate changes. The input can be edited with a keyboard corresponding to the provided [keyboardOptions]. If the
+ * user input is invalid, a resource ID with a corresponding error message is provided in [errorRes]; then display this
+ * message. Assign the given [tag] to the edit text field.
  */
 @Composable
 private fun EditServiceProperty(
     labelRes: Int,
+    keyboardOptions: KeyboardOptions,
     value: String,
     updateValue: (String) -> Unit,
     errorRes: Int?,
@@ -362,6 +370,7 @@ private fun EditServiceProperty(
         TextField(
             value = value,
             onValueChange = updateValue,
+            keyboardOptions = keyboardOptions,
             modifier = modifier
                 .testTag(tag)
                 .padding(start = PROPERTY_INDENT.dp)
