@@ -170,6 +170,7 @@ class ServiceDetailsUiTest {
         composeTestRule.onNodeWithTag(TAG_EDIT_MULTICAST).assertTextEquals(service.serviceDefinition.multicastAddress)
         composeTestRule.onNodeWithTag(TAG_EDIT_PORT).assertTextEquals(service.serviceDefinition.port.toString())
         composeTestRule.onNodeWithTag(TAG_EDIT_CODE).assertTextEquals(service.serviceDefinition.requestCode)
+        composeTestRule.assertNoValidationErrors()
 
         listOf(
             TAG_SHOW_NAME,
@@ -213,11 +214,7 @@ class ServiceDetailsUiTest {
         )
 
         composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SERVICE).performClick()
-        composeTestRule.onNodeWithTag(TAG_EDIT_NAME).setText(editedService.serviceDefinition.name)
-        composeTestRule.onNodeWithTag(TAG_EDIT_MULTICAST).setText(editedService.serviceDefinition.multicastAddress)
-        composeTestRule.onNodeWithTag(TAG_EDIT_PORT).setText(editedService.serviceDefinition.port.toString())
-        composeTestRule.onNodeWithTag(TAG_EDIT_CODE).setText(editedService.serviceDefinition.requestCode)
-        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SAVE).performSafeClick()
+        composeTestRule.enterServiceProperties(editedService)
 
         val expectedInput = StoreServiceUseCase.Input(
             data = loadOutput.serviceData,
@@ -228,6 +225,16 @@ class ServiceDetailsUiTest {
             storeUseCase.execute(expectedInput)
             navController.navigate(Navigation.ServicesRoute.route)
         }
+    }
+
+    @Test
+    fun `Clicking the save button performs a validation`() = runTest {
+        initService(service)
+        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SERVICE).performClick()
+
+        composeTestRule.enterServiceProperties(errorService)
+
+        composeTestRule.assertAllValidationErrors()
     }
 
     @Test

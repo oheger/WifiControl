@@ -97,6 +97,9 @@ class ServiceDetailsViewModel @Inject constructor(
             state.copy(saveError = error)
         }
 
+    /** A special model object for editing the current service. */
+    internal lateinit var editModel: ServiceEditModel
+
     /**
      * Load the current state of the service details UI for the service specified in the given [parameters]. This will
      * trigger [uiStateFlow] when the data is available.
@@ -106,7 +109,10 @@ class ServiceDetailsViewModel @Inject constructor(
             loadServiceUseCase.execute(LoadServiceUseCase.Input(parameters.serviceIndex))
                 .mapResultFlow { result ->
                     ServiceDetailsState(result.serviceData, parameters.serviceIndex, result.service, editMode = false)
-                }.collect { state -> mutableUiStateFlow.value = state }
+                }.collect { state ->
+                    (state as? ServicesUiStateLoaded)?.let { editModel = ServiceEditModel(it.data.service) }
+                    mutableUiStateFlow.value = state
+                }
         }
 
         return UndefinedCurrentService

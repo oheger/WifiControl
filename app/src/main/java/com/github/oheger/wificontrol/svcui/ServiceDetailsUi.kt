@@ -28,6 +28,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
@@ -37,9 +38,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -80,6 +78,11 @@ internal const val TAG_SVC_TITLE = "svcDetailsTitle"
 internal const val PROPERTY_INDENT = 10
 
 /**
+ * Generate the tag for an error text associated for the input field with the given [tag].
+ */
+internal fun errorTag(tag: String): String = "${tag}Error"
+
+/**
  * Generate the screen showing the details of a specific service, which also allows editing the service. Use the given
  * [viewModel] to load and access the data to be displayed. Process the service identified by the given
  * [serviceDetailsArgs]. Use the given [navController] for navigation to other screens if required.
@@ -96,6 +99,7 @@ fun ServiceDetailsScreen(
 
     ServiceDetailsScreenForState(
         state = state,
+        editModelFunc = { viewModel.editModel },
         onEditClick = viewModel::editService,
         onControlClick = { navController.navigateControl(state) },
         onSaveClick = { service -> viewModel.saveService(service, navController) },
@@ -106,11 +110,13 @@ fun ServiceDetailsScreen(
 
 /**
  * Generate the screen for the details of a service based on the given [state]. Use the given callback functions to
- * propagate user interaction.
+ * propagate user interaction. Use the given [editModelFunc] to obtain a model for editing the current service on
+ * demand.
  */
 @Composable
 private fun ServiceDetailsScreenForState(
     state: ServicesUiState<ServiceDetailsState>,
+    editModelFunc: () -> ServiceEditModel,
     onEditClick: () -> Unit,
     onControlClick: () -> Unit,
     onSaveClick: (PersistentService) -> Unit,
@@ -158,6 +164,7 @@ private fun ServiceDetailsScreenForState(
         ) { innerPadding ->
             ServiceDetails(
                 state = detailsState,
+                editModelFunc = editModelFunc,
                 onSaveClick = onSaveClick,
                 onCancelClick = onCancelClick,
                 modifier = modifier.padding(innerPadding)
@@ -168,11 +175,13 @@ private fun ServiceDetailsScreenForState(
 
 /**
  * Generate the screen for the details of a service either in view or edit mode, depending on the given [state].
- * Use the given callback functions to propagate user interaction.
+ * In case of edit mode, use the given [editModelFunc] to obtain a model to track and validate user input. Use the
+ * given callback functions* to propagate user interaction.
  */
 @Composable
 private fun ServiceDetails(
     state: ServiceDetailsState,
+    editModelFunc: () -> ServiceEditModel,
     onSaveClick: (PersistentService) -> Unit,
     onCancelClick: () -> Unit,
     modifier: Modifier
@@ -184,7 +193,7 @@ private fun ServiceDetails(
             modifier = modifier
         ) {
             EditServiceDetails(
-                service = state.service,
+                editModelFunc = editModelFunc,
                 onSaveClick = onSaveClick,
                 onCancelClick = onCancelClick,
                 modifier = modifier
@@ -234,35 +243,18 @@ private fun ViewServiceDetails(service: PersistentService, modifier: Modifier) {
 }
 
 /**
- * Generate the UI to edit the properties of the given [service]. Use the [onSaveClick] and [onCancelClick] callbacks
- * to report that the user clicked on the save or cancel button respectively.
+ * Generate the UI to edit the properties of the current service using a [ServiceEditModel] that can be obtained via
+ * the given [editModelFunc] function. Use the [onSaveClick] and [onCancelClick] callbacks to report that the user
+ * clicked on the save or cancel button respectively.
  */
 @Composable
 private fun EditServiceDetails(
-    service: PersistentService,
+    editModelFunc: () -> ServiceEditModel,
     onSaveClick: (PersistentService) -> Unit,
     onCancelClick: () -> Unit,
     modifier: Modifier
 ) {
-    var name by rememberSaveable { mutableStateOf(service.serviceDefinition.name) }
-    var multicast by rememberSaveable { mutableStateOf(service.serviceDefinition.multicastAddress) }
-    var port by rememberSaveable {
-        mutableStateOf(service.serviceDefinition.port.takeIf { it > 0 }?.toString().orEmpty())
-    }
-    var code by rememberSaveable { mutableStateOf(service.serviceDefinition.requestCode) }
-
-    fun createEditedService(): PersistentService =
-        PersistentService(
-            serviceDefinition = ServiceDefinition(
-                name = name,
-                multicastAddress = multicast,
-                port = port.toInt(),
-                requestCode = code
-            ),
-            lookupTimeout = null,
-            sendRequestInterval = null
-        )
-
+    val editModel = editModelFunc()
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -271,29 +263,33 @@ private fun EditServiceDetails(
     ) {
         EditServiceProperty(
             labelRes = R.string.svc_lab_name,
-            value = name,
-            updateValue = { name = it },
+            value = editModel.serviceName,
+            updateValue = { editModel.serviceName = it },
+            errorRes = R.string.svc_name_invalid.takeUnless { editModel.serviceNameValid },
             tag = TAG_EDIT_NAME,
             modifier = modifier
         )
         EditServiceProperty(
             labelRes = R.string.svc_lab_multicast,
-            value = multicast,
-            updateValue = { multicast = it },
+            value = editModel.multicastAddress,
+            updateValue = { editModel.multicastAddress = it },
+            errorRes = R.string.svc_address_invalid.takeUnless { editModel.multicastAddressValid },
             tag = TAG_EDIT_MULTICAST,
             modifier = modifier
         )
         EditServiceProperty(
             labelRes = R.string.svc_lab_port,
-            value = port,
-            updateValue = { port = it },
+            value = editModel.port,
+            updateValue = { editModel.port = it },
+            errorRes = R.string.svc_port_invalid.takeUnless { editModel.portValid },
             tag = TAG_EDIT_PORT,
             modifier = modifier
         )
         EditServiceProperty(
             labelRes = R.string.svc_lab_code,
-            value = code,
-            updateValue = { code = it },
+            value = editModel.code,
+            updateValue = { editModel.code = it },
+            errorRes = R.string.svc_code_invalid.takeUnless { editModel.codeValid },
             tag = TAG_EDIT_CODE,
             modifier = modifier
         )
@@ -305,7 +301,11 @@ private fun EditServiceDetails(
                 .fillMaxWidth()
         ) {
             Button(
-                onClick = { onSaveClick(createEditedService()) },
+                onClick = {
+                    if (editModel.validate()) {
+                        onSaveClick(editModel.editedService())
+                    }
+                },
                 modifier = modifier.testTag(TAG_BTN_EDIT_SAVE)
             ) {
                 Text(text = stringResource(id = R.string.svc_btn_save))
@@ -341,13 +341,15 @@ private fun ServiceProperty(labelRes: Int, value: String, tag: String, modifier:
 /**
  * Generate the UI to edit a single property of a service. This contains a label with the given
  * [resource ID][labelRes], and a text field displaying the given [value] and using the [updateValue] function to
- * propagate changes. Assign the given [tag] to the edit text field.
+ * propagate changes. If the user input is invalid, a resource ID with a corresponding error message is provided in
+ * [errorRes]; then display this message. Assign the given [tag] to the edit text field.
  */
 @Composable
 private fun EditServiceProperty(
     labelRes: Int,
     value: String,
     updateValue: (String) -> Unit,
+    errorRes: Int?,
     tag: String,
     modifier: Modifier
 ) {
@@ -364,6 +366,14 @@ private fun EditServiceProperty(
                 .testTag(tag)
                 .padding(start = PROPERTY_INDENT.dp)
         )
+        errorRes?.let { id ->
+            Text(
+                text = stringResource(id),
+                color = MaterialTheme.colors.error,
+                modifier = modifier.testTag(errorTag(tag))
+                    .padding(start = PROPERTY_INDENT.dp, top = 8.dp)
+            )
+        }
     }
 }
 
@@ -397,10 +407,11 @@ fun ViewServiceDetailsPreview() {
         sendRequestInterval = null
     )
     val serviceData = ServiceData(emptyList())
+    val editModel = ServiceEditModel(service)
     val state = ServicesUiStateLoaded(ServiceDetailsState(serviceData, 0, service, editMode = false))
 
     WifiControlTheme {
-        ServiceDetailsScreenForState(state = state, {}, {}, {}, {}, {})
+        ServiceDetailsScreenForState(state = state, { editModel }, {}, {}, {}, {}, {})
     }
 }
 
@@ -409,8 +420,8 @@ fun ViewServiceDetailsPreview() {
 fun EditServiceDetailsPreview() {
     val service = PersistentService(
         serviceDefinition = ServiceDefinition(
-            name = "Video Service",
-            multicastAddress = "231.4.3.2",
+            name = "Video Service ",
+            multicastAddress = "231.4.3.2.5",
             port = 8888,
             requestCode = "Find_Video_Service"
         ),
@@ -418,11 +429,13 @@ fun EditServiceDetailsPreview() {
         sendRequestInterval = null
     )
     val serviceData = ServiceData(emptyList())
+    val editModel = ServiceEditModel(service)
+    editModel.validate()
     val saveException = IllegalStateException("Could not save service.")
     val detailsState = ServiceDetailsState(serviceData, 0, service, editMode = true, saveException)
     val state = ServicesUiStateLoaded(detailsState)
 
     WifiControlTheme {
-        ServiceDetailsScreenForState(state = state, {}, {}, {}, {}, {})
+        ServiceDetailsScreenForState(state = state, { editModel }, {}, {}, {}, {}, {})
     }
 }
