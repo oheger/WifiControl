@@ -24,6 +24,9 @@ import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.shouldBe
 
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+
 class ServiceEditModelTest : WordSpec({
     "service name" should {
         "be correctly initialized" {
@@ -211,6 +214,118 @@ class ServiceEditModelTest : WordSpec({
         }
     }
 
+    "lookup timeout" should {
+        "be correctly initialized if the default value is used" {
+            val model = ServiceEditModel(service)
+
+            model.lookupTimeoutSec shouldBe ""
+            model.lookupTimeoutDefault shouldBe true
+            model.lookupTimeoutValid shouldBe true
+        }
+
+        "be correctly initialized if a custom value is used" {
+            val testService = service.copy(lookupTimeout = 60.seconds)
+            val model = ServiceEditModel(testService)
+
+            model.lookupTimeoutSec shouldBe testService.lookupTimeout!!.inWholeSeconds.toString()
+            model.lookupTimeoutDefault shouldBe false
+            model.lookupTimeoutValid shouldBe true
+        }
+
+        "be correctly validated" {
+            val model = ServiceEditModel(service)
+
+            model.lookupTimeoutSec = "not a value in seconds"
+            model.lookupTimeoutDefault = false
+            model.lookupTimeoutValid shouldBe false
+        }
+
+        "be ignored during validation if the default value is selected" {
+            val model = ServiceEditModel(service)
+
+            model.lookupTimeoutSec = "not a value in seconds"
+            model.lookupTimeoutValid shouldBe true
+        }
+
+        "not be marked as invalid initially" {
+            val invalidService = service.copy(lookupTimeout = 0.seconds)
+
+            val model = ServiceEditModel(invalidService)
+
+            model.lookupTimeoutValid shouldBe true
+        }
+
+        "be handled correctly by validate" {
+            val invalidService = service.copy(lookupTimeout = 0.seconds)
+
+            val model = ServiceEditModel(invalidService)
+            model.validate() shouldBe false
+
+            model.lookupTimeoutValid shouldBe false
+        }
+    }
+
+    "validateDuration" should {
+        "return false for a negative number" {
+            ServiceEditModel.validateDuration("-1") shouldBe false
+        }
+
+        "return false for a non-numeric input" {
+            ServiceEditModel.validateDuration("x") shouldBe false
+        }
+    }
+
+    "send request interval" should {
+        "be correctly initialized if the default value is used" {
+            val model = ServiceEditModel(service)
+
+            model.sendRequestIntervalMs shouldBe ""
+            model.sendRequestIntervalDefault shouldBe true
+            model.sendRequestIntervalValid shouldBe true
+        }
+
+        "be correctly initialized if a custom value is used" {
+            val testService = service.copy(sendRequestInterval = 100.milliseconds)
+            val model = ServiceEditModel(testService)
+
+            model.sendRequestIntervalMs shouldBe testService.sendRequestInterval!!.inWholeMilliseconds.toString()
+            model.sendRequestIntervalDefault shouldBe false
+            model.sendRequestIntervalValid shouldBe true
+        }
+
+        "be correctly validated" {
+            val model = ServiceEditModel(service)
+
+            model.sendRequestIntervalMs = "not a value in milliseconds"
+            model.sendRequestIntervalDefault = false
+            model.sendRequestIntervalValid shouldBe false
+        }
+
+        "be ignored during validation if the default value is selected" {
+            val model = ServiceEditModel(service)
+
+            model.sendRequestIntervalMs = "not a value in milliseconds"
+            model.sendRequestIntervalValid shouldBe true
+        }
+
+        "not be marked as invalid initially" {
+            val invalidService = service.copy(sendRequestInterval = 0.seconds)
+
+            val model = ServiceEditModel(invalidService)
+
+            model.sendRequestIntervalValid shouldBe true
+        }
+
+        "be handled correctly by validate" {
+            val invalidService = service.copy(sendRequestInterval = 0.seconds)
+
+            val model = ServiceEditModel(invalidService)
+            model.validate() shouldBe false
+
+            model.sendRequestIntervalValid shouldBe false
+        }
+    }
+
     "editedService" should {
         "return a correct service instance" {
             val changedDefinition = ServiceDefinition(
@@ -231,6 +346,32 @@ class ServiceEditModelTest : WordSpec({
                 serviceDefinition = changedDefinition,
                 lookupTimeout = null,
                 sendRequestInterval = null
+            )
+        }
+
+        "handle non-default duration values" {
+            val changedDefinition = ServiceDefinition(
+                name = "ChangedTestServiceWithLookupConfig",
+                multicastAddress = "231.1.1.2",
+                port = 8762,
+                requestCode = "complexLookup?"
+            )
+
+            val model = ServiceEditModel(service)
+            model.serviceName = changedDefinition.name
+            model.multicastAddress = changedDefinition.multicastAddress
+            model.port = changedDefinition.port.toString()
+            model.code = changedDefinition.requestCode
+            model.lookupTimeoutSec = "55"
+            model.lookupTimeoutDefault = false
+            model.sendRequestIntervalMs = "111"
+            model.sendRequestIntervalDefault = false
+            val changedService = model.editedService()
+
+            changedService shouldBe PersistentService(
+                serviceDefinition = changedDefinition,
+                lookupTimeout = 55.seconds,
+                sendRequestInterval = 111.milliseconds
             )
         }
     }

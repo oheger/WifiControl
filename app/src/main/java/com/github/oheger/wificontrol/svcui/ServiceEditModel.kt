@@ -25,6 +25,9 @@ import androidx.compose.runtime.setValue
 import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+
 /**
  * A helper class that stores information about the properties of a service that is currently edited.
  *
@@ -63,7 +66,20 @@ internal class ServiceEditModel(
          * Return a flag whether the given [port] is a valid port number.
          */
         internal fun validatePort(port: String): Boolean =
-            runCatching { port.toInt() in 0..65535 }.getOrDefault(false)
+            validateNumber(port) { it in 0..65535 }
+
+        /**
+         * Return a flag whether the given [duration] in string form is valid.
+         */
+        internal fun validateDuration(duration: String): Boolean =
+            validateNumber(duration) { it > 0 }
+
+        /**
+         * Perform a validation of a [string][s] that should be a number and adhere to constraints expressed by the
+         * given [check] function.
+         */
+        private fun validateNumber(s: String, check: (Int) -> Boolean): Boolean =
+            runCatching { check(s.toInt()) }.getOrDefault(false)
     }
 
     /** Stores the name of the service. */
@@ -154,6 +170,58 @@ internal class ServiceEditModel(
     val codeValid: Boolean
         get() = codeValidationResult || !codeEdited
 
+    /** Stores the lookup timeout in seconds. */
+    private var lookupTimeoutField by mutableStateOf(service.lookupTimeout?.inWholeSeconds?.toString().orEmpty())
+
+    /** Stores the result of the lookup timeout validation. */
+    private var lookupTimeoutValidationResult by mutableStateOf(validateDuration(lookupTimeoutField))
+
+    /** Stores a flag whether the lookup timeout property has already been edited. */
+    private var lookupTimeoutEdited by mutableStateOf(false)
+
+    /** Property for the lookup timeout for service discovery. */
+    var lookupTimeoutSec: String
+        get() = lookupTimeoutField
+        set(value) {
+            lookupTimeoutField = value
+            lookupTimeoutEdited = true
+            lookupTimeoutValidationResult = validateDuration(value)
+        }
+
+    /** Flag that determines whether the default lookup timeout value should be used for this service. */
+    var lookupTimeoutDefault by mutableStateOf(service.lookupTimeout == null)
+
+    /** Flag whether the lookup timeout is considered valid. */
+    val lookupTimeoutValid: Boolean
+        get() = lookupTimeoutValidationResult || lookupTimeoutDefault || !lookupTimeoutEdited
+
+    /** Stores the send request interval in milliseconds. */
+    private var sendRequestIntervalField by mutableStateOf(
+        service.sendRequestInterval?.inWholeMilliseconds?.toString().orEmpty()
+    )
+
+    /** Stores the result of the send request interval validation. */
+    private var sendRequestIntervalValidationResult by mutableStateOf(validateDuration(sendRequestIntervalField))
+
+    /** Stores a flag whether the send request interval property has already been edited. */
+    private var sendRequestIntervalEdited by mutableStateOf(false)
+
+    /** Property for the request interval for service discovery. */
+    var sendRequestIntervalMs: String
+        get() = sendRequestIntervalField
+        set(value) {
+            sendRequestIntervalField = value
+            sendRequestIntervalEdited = true
+            sendRequestIntervalValidationResult = validateDuration(value)
+        }
+
+    /** Flag that determines whether the default send request interval value should be used for this service. */
+    var sendRequestIntervalDefault by mutableStateOf(service.sendRequestInterval == null)
+
+    /** Flag whether the send request interval is considered valid. */
+    val sendRequestIntervalValid: Boolean
+        get() = sendRequestIntervalValidationResult || sendRequestIntervalDefault || !sendRequestIntervalEdited
+
     /**
      * Perform a full validation of all edit fields and return a flag with the result. After calling this function,
      * all fields are marked as edited, so that the _Valid_ properties are correctly initialized. Only if this
@@ -165,9 +233,11 @@ internal class ServiceEditModel(
         multicastAddressEdited = true
         portEdited = true
         codeEdited = true
+        lookupTimeoutEdited = true
+        sendRequestIntervalEdited = true
 
         return serviceNameValidationResult && multicastAddressValidationResult && portValidationResult &&
-                codeValidationResult
+                codeValidationResult && lookupTimeoutValid && sendRequestIntervalValid
     }
 
     /**
@@ -182,7 +252,7 @@ internal class ServiceEditModel(
                 port = port.toInt(),
                 requestCode = code
             ),
-            lookupTimeout = null,
-            sendRequestInterval = null
+            lookupTimeout = if (lookupTimeoutDefault) null else lookupTimeoutSec.toInt().seconds,
+            sendRequestInterval = if (sendRequestIntervalDefault) null else sendRequestIntervalMs.toInt().milliseconds
         )
 }
