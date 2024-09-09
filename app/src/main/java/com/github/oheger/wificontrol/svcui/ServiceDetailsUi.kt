@@ -68,12 +68,15 @@ import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 internal const val TAG_SHOW_NAME = "svcShowName"
 internal const val TAG_SHOW_MULTICAST = "svcShowMulticast"
 internal const val TAG_SHOW_PORT = "svcShowPort"
 internal const val TAG_SHOW_CODE = "svcShowCode"
+internal const val TAG_SHOW_LOOKUP_TIMEOUT = "svcShowLookupTimeout"
+internal const val TAG_SHOW_REQUEST_INTERVAL = "svcShowRequestInterval"
 
 internal const val TAG_EDIT_NAME = "svcEditName"
 internal const val TAG_EDIT_MULTICAST = "svcEditMulticast"
@@ -265,6 +268,20 @@ private fun ViewServiceDetails(service: PersistentService, modifier: Modifier) {
             tag = TAG_SHOW_CODE,
             modifier = modifier
         )
+        ServiceDurationProperty(
+            labelRes = R.string.svc_lab_lookup_timeout,
+            value = service.lookupTimeout?.inWholeSeconds,
+            unitRes = R.string.svc_unit_sec,
+            tag = TAG_SHOW_LOOKUP_TIMEOUT,
+            modifier = modifier
+        )
+        ServiceDurationProperty(
+            labelRes = R.string.svc_lab_request_interval,
+            value = service.sendRequestInterval?.inWholeMilliseconds,
+            unitRes = R.string.svc_unit_ms,
+            tag = TAG_SHOW_REQUEST_INTERVAL,
+            modifier = modifier
+        )
     }
 }
 
@@ -358,9 +375,11 @@ private fun EditServiceDetails(
 private fun EditFormTabTitle(labelRes: Int, invalidTag: String?, modifier: Modifier) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         invalidTag?.let {
-            Icon(Icons.Filled.Warning, contentDescription = null, modifier = modifier
-                .testTag(it)
-                .width(10.dp))
+            Icon(
+                Icons.Filled.Warning, contentDescription = null, modifier = modifier
+                    .testTag(it)
+                    .width(10.dp)
+            )
             Spacer(modifier = modifier.width(3.dp))
         }
         Text(stringResource(labelRes))
@@ -469,6 +488,33 @@ private fun ServiceProperty(labelRes: Int, value: String, tag: String, modifier:
                 .testTag(tag)
                 .padding(start = PROPERTY_INDENT.dp)
         )
+    }
+}
+
+/**
+ * Generate the UI to show an optional service property for a duration with the given [resource ID][labelRes], the
+ * given [value], and the resource ID for the [unit][unitRes]. Assign the given [tag] to the text with the value.
+ */
+@Composable
+private fun ServiceDurationProperty(labelRes: Int, value: Long?, unitRes: Int, tag: String, modifier: Modifier) {
+    value?.let { durationValue ->
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(top = 15.dp)
+        ) {
+            PropertyLabel(labelRes = labelRes, modifier = modifier)
+            Row(modifier = modifier.padding(start = PROPERTY_INDENT.dp)) {
+                Text(
+                    text = durationValue.toString(),
+                    modifier = modifier.testTag(tag)
+                )
+                Text(
+                    text = stringResource(unitRes),
+                    modifier = modifier.padding(start = 4.dp)
+                )
+            }
+        }
     }
 }
 
@@ -598,7 +644,7 @@ fun ViewServiceDetailsPreview() {
             requestCode = "Lookup_audio_service"
         ),
         lookupTimeout = null,
-        sendRequestInterval = null
+        sendRequestInterval = 50.milliseconds
     )
     val serviceData = ServiceData(emptyList())
     val editModel = ServiceEditModel(service)

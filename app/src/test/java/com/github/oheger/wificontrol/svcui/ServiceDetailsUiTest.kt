@@ -156,9 +156,31 @@ class ServiceDetailsUiTest {
         composeTestRule.onNodeWithTag(TAG_SHOW_PORT).assertTextEquals(service.serviceDefinition.port.toString())
         composeTestRule.onNodeWithTag(TAG_SHOW_CODE).assertTextEquals(service.serviceDefinition.requestCode)
 
-        listOf(TAG_EDIT_NAME, TAG_EDIT_MULTICAST, TAG_EDIT_PORT, TAG_EDIT_CODE).forAll {
+        listOf(
+            TAG_EDIT_NAME,
+            TAG_EDIT_MULTICAST,
+            TAG_EDIT_PORT,
+            TAG_EDIT_CODE,
+            TAG_SHOW_LOOKUP_TIMEOUT,
+            TAG_SHOW_REQUEST_INTERVAL
+        ).forAll {
             composeTestRule.onNodeWithTag(it).assertDoesNotExist()
         }
+    }
+
+    @Test
+    fun `Extended service properties are shown if they are defined`() = runTest {
+        val lookupTimeoutSec = 77
+        val requestIntervalMs = 99
+        val testService = service.copy(
+            lookupTimeout = lookupTimeoutSec.seconds,
+            sendRequestInterval = requestIntervalMs.milliseconds
+        )
+        initService(testService)
+
+        composeTestRule.onNodeWithTag(TAG_SVC_TITLE).assertTextEquals(service.serviceDefinition.name)
+        composeTestRule.onNodeWithTag(TAG_SHOW_LOOKUP_TIMEOUT).assertTextEquals(lookupTimeoutSec.toString())
+        composeTestRule.onNodeWithTag(TAG_SHOW_REQUEST_INTERVAL).assertTextEquals(requestIntervalMs.toString())
     }
 
     @Test
