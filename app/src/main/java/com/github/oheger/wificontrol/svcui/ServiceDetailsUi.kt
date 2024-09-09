@@ -21,6 +21,7 @@ package com.github.oheger.wificontrol.svcui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -31,6 +32,9 @@ import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
+import androidx.compose.material.Switch
+import androidx.compose.material.Tab
+import androidx.compose.material.TabRow
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.TopAppBar
@@ -39,6 +43,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -67,6 +75,10 @@ internal const val TAG_EDIT_NAME = "svcEditName"
 internal const val TAG_EDIT_MULTICAST = "svcEditMulticast"
 internal const val TAG_EDIT_PORT = "svcEditPort"
 internal const val TAG_EDIT_CODE = "svcEditCode"
+internal const val TAG_EDIT_LOOKUP_TIMEOUT = "svcEditLookupTimeout"
+internal const val TAG_EDIT_REQUEST_INTERVAL = "svcEditRequestInterval"
+internal const val TAG_TAB_PROPERTIES = "svcEditTabProps"
+internal const val TAG_TAB_EXTENDED = "svcEditTabExtended"
 
 internal const val TAG_BTN_CONTROL_SERVICE = "svcBtnControl"
 internal const val TAG_BTN_EDIT_CANCEL = "svcBtnCancel"
@@ -83,6 +95,12 @@ internal const val PROPERTY_INDENT = 10
  * Generate the tag for an error text associated for the input field with the given [tag].
  */
 internal fun errorTag(tag: String): String = "${tag}Error"
+
+/**
+ * Generate the tag for a switch component that determines whether for a specific property identified by [tag] the
+ * default value should be used. In this case, the user does not have to enter a value for this property.
+ */
+internal fun useDefaultTag(tag: String): String = "${tag}UseDefault"
 
 /**
  * Generate the screen showing the details of a specific service, which also allows editing the service. Use the given
@@ -257,11 +275,66 @@ private fun EditServiceDetails(
     modifier: Modifier
 ) {
     val editModel = editModelFunc()
+    var tabIndex by rememberSaveable { mutableIntStateOf(0) }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(all = 10.dp)
             .verticalScroll(rememberScrollState())
+    ) {
+        TabRow(selectedTabIndex = tabIndex) {
+            Tab(
+                selected = tabIndex == 0,
+                onClick = { tabIndex = 0 },
+                text = { Text(stringResource(R.string.svc_tab_properties)) },
+                modifier = modifier.testTag(TAG_TAB_PROPERTIES)
+            )
+            Tab(
+                selected = tabIndex == 1,
+                onClick = { tabIndex = 1 },
+                text = { Text(stringResource(R.string.svc_tab_extended)) },
+                modifier = modifier.testTag(TAG_TAB_EXTENDED)
+            )
+        }
+
+        when (tabIndex) {
+            0 -> EditBasicProperties(editModel, modifier)
+            1 -> EditExtendedProperties(editModel, modifier)
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.SpaceAround,
+            modifier = modifier
+                .padding(top = 15.dp)
+                .fillMaxWidth()
+        ) {
+            Button(
+                onClick = {
+                    if (editModel.validate()) {
+                        onSaveClick(editModel.editedService())
+                    }
+                },
+                modifier = modifier.testTag(TAG_BTN_EDIT_SAVE)
+            ) {
+                Text(text = stringResource(id = R.string.svc_btn_save))
+            }
+            Button(onClick = onCancelClick, modifier = modifier.testTag(TAG_BTN_EDIT_CANCEL)) {
+                Text(text = stringResource(id = R.string.svc_btn_cancel))
+            }
+        }
+    }
+}
+
+/**
+ * Generate the UI for editing the basic properties of a service based on the given [editModel].
+ */
+@Composable
+private fun EditBasicProperties(editModel: ServiceEditModel, modifier: Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(all = 10.dp)
     ) {
         EditServiceProperty(
             labelRes = R.string.svc_lab_name,
@@ -299,27 +372,41 @@ private fun EditServiceDetails(
             tag = TAG_EDIT_CODE,
             modifier = modifier
         )
+    }
+}
 
-        Row(
-            horizontalArrangement = Arrangement.SpaceAround,
+/**
+ * Generate the UI for editing the extended properties of a service based on the given [editModel].
+ */
+@Composable
+private fun EditExtendedProperties(editModel: ServiceEditModel, modifier: Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(all = 10.dp)
+    ) {
+        EditServicePropertyWithDefault(
+            labelRes = R.string.svc_lab_lookup_timeout,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            useDefault = editModel.lookupTimeoutDefault,
+            updateUseDefault = { editModel.lookupTimeoutDefault = it },
+            value = editModel.lookupTimeoutSec,
+            updateValue = { editModel.lookupTimeoutSec = it },
+            errorRes = R.string.svc_lookup_timeout_invalid.takeUnless { editModel.lookupTimeoutValid },
+            tag = TAG_EDIT_LOOKUP_TIMEOUT,
             modifier = modifier
-                .padding(top = 15.dp)
-                .fillMaxWidth()
-        ) {
-            Button(
-                onClick = {
-                    if (editModel.validate()) {
-                        onSaveClick(editModel.editedService())
-                    }
-                },
-                modifier = modifier.testTag(TAG_BTN_EDIT_SAVE)
-            ) {
-                Text(text = stringResource(id = R.string.svc_btn_save))
-            }
-            Button(onClick = onCancelClick, modifier = modifier.testTag(TAG_BTN_EDIT_CANCEL)) {
-                Text(text = stringResource(id = R.string.svc_btn_cancel))
-            }
-        }
+        )
+        EditServicePropertyWithDefault(
+            labelRes = R.string.svc_lab_request_interval,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            useDefault = editModel.sendRequestIntervalDefault,
+            updateUseDefault = { editModel.sendRequestIntervalDefault = it },
+            value = editModel.sendRequestIntervalMs,
+            updateValue = { editModel.sendRequestIntervalMs = it },
+            errorRes = R.string.svc_request_interval_invalid.takeUnless { editModel.sendRequestIntervalValid },
+            tag = TAG_EDIT_REQUEST_INTERVAL,
+            modifier = modifier
+        )
     }
 }
 
@@ -367,22 +454,79 @@ private fun EditServiceProperty(
             .padding(top = 15.dp)
     ) {
         PropertyLabel(labelRes = labelRes, modifier = modifier)
-        TextField(
-            value = value,
-            onValueChange = updateValue,
-            keyboardOptions = keyboardOptions,
-            modifier = modifier
-                .testTag(tag)
-                .padding(start = PROPERTY_INDENT.dp)
-        )
-        errorRes?.let { id ->
-            Text(
-                text = stringResource(id),
-                color = MaterialTheme.colors.error,
-                modifier = modifier.testTag(errorTag(tag))
-                    .padding(start = PROPERTY_INDENT.dp, top = 8.dp)
+        EditField(keyboardOptions, value, updateValue, errorRes, tag, modifier)
+    }
+}
+
+/**
+ * Generate the UI to edit a service property that supports a default value. This is analogous to
+ * [EditServiceProperty], but there is an additional switch controlled by [useDefault] and [updateUseDefault] that
+ * determines whether the default value is selected or not.
+ */
+@Composable
+private fun EditServicePropertyWithDefault(
+    labelRes: Int,
+    keyboardOptions: KeyboardOptions,
+    useDefault: Boolean,
+    updateUseDefault: (Boolean) -> Unit,
+    value: String,
+    updateValue: (String) -> Unit,
+    errorRes: Int?,
+    tag: String,
+    modifier: Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 15.dp)
+    ) {
+        PropertyLabel(labelRes = labelRes, modifier = modifier)
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.padding(start = PROPERTY_INDENT.dp)) {
+            Text(stringResource(R.string.svc_use_default))
+            Spacer(modifier = modifier.weight(1f))
+            Switch(
+                checked = useDefault,
+                onCheckedChange = updateUseDefault,
+                modifier = modifier.testTag(useDefaultTag(tag))
             )
         }
+
+        if (!useDefault) {
+            EditField(keyboardOptions, value, updateValue, errorRes, tag, modifier)
+        }
+    }
+}
+
+/**
+ * Generate a text field for editing the service property identified by [tag]. Allow configuring [keyboardOptions].
+ * Use the given [value] for the field and the [updateValue] function to report changes. If [errorRes] is not *null*,
+ * render a validation error message.
+ */
+@Composable
+private fun EditField(
+    keyboardOptions: KeyboardOptions,
+    value: String,
+    updateValue: (String) -> Unit,
+    errorRes: Int?,
+    tag: String,
+    modifier: Modifier
+) {
+    TextField(
+        value = value,
+        onValueChange = updateValue,
+        keyboardOptions = keyboardOptions,
+        modifier = modifier
+            .testTag(tag)
+            .padding(start = PROPERTY_INDENT.dp)
+    )
+    errorRes?.let { id ->
+        Text(
+            text = stringResource(id),
+            color = MaterialTheme.colors.error,
+            modifier = modifier
+                .testTag(errorTag(tag))
+                .padding(start = PROPERTY_INDENT.dp, top = 8.dp)
+        )
     }
 }
 
@@ -446,5 +590,23 @@ fun EditServiceDetailsPreview() {
 
     WifiControlTheme {
         ServiceDetailsScreenForState(state = state, { editModel }, {}, {}, {}, {}, {})
+    }
+}
+
+@Preview
+@Composable
+fun EditServicePropertyWithDefaultPreview() {
+    WifiControlTheme {
+        EditServicePropertyWithDefault(
+            labelRes = R.string.svc_lab_lookup_timeout,
+            keyboardOptions = KeyboardOptions.Default,
+            useDefault = false,
+            updateUseDefault = {},
+            value = "55",
+            updateValue = {},
+            errorRes = R.string.svc_lookup_timeout_invalid,
+            tag = TAG_EDIT_LOOKUP_TIMEOUT,
+            modifier = Modifier
+        )
     }
 }

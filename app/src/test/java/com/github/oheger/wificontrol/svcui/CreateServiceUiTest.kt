@@ -19,11 +19,15 @@
 package com.github.oheger.wificontrol.svcui
 
 import android.content.Context
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.navigation.NavController
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -45,6 +49,9 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
 import io.mockk.verify
+
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 import kotlinx.coroutines.flow.flowOf
 
@@ -108,6 +115,23 @@ class CreateServiceUiTest {
             composeTestRule.onNodeWithTag(tag).assertTextEquals("")
         }
         composeTestRule.onNodeWithTag(TAG_EDIT_PORT).assertTextEquals("0")
+
+        composeTestRule.onNodeWithTag(TAG_TAB_PROPERTIES).assertIsSelected()
+        composeTestRule.onNodeWithTag(TAG_TAB_EXTENDED).assertIsNotSelected()
+        listOf(TAG_EDIT_LOOKUP_TIMEOUT, TAG_EDIT_REQUEST_INTERVAL).forAll { tag ->
+            composeTestRule.onNodeWithTag(tag).assertDoesNotExist()
+            composeTestRule.onNodeWithTag(useDefaultTag(tag)).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun `Extended properties use defaults initially`() {
+        composeTestRule.onNodeWithTag(TAG_TAB_EXTENDED).performClick()
+
+        listOf(TAG_EDIT_LOOKUP_TIMEOUT, TAG_EDIT_REQUEST_INTERVAL).forAll { tag ->
+            composeTestRule.onNodeWithTag(tag).assertDoesNotExist()
+            composeTestRule.onNodeWithTag(useDefaultTag(tag)).assertIsOn()
+        }
     }
 
     @Test
@@ -128,6 +152,36 @@ class CreateServiceUiTest {
         val expectedInput = StoreServiceUseCase.Input(
             data = serviceData,
             service = service,
+            serviceIndex = ServiceData.NEW_SERVICE_INDEX
+        )
+        verify {
+            storeUseCase.execute(expectedInput)
+            navController.navigate(Navigation.ServicesRoute.route)
+        }
+    }
+
+    @Test
+    fun `A new service can be created with extended properties`() {
+        every { storeUseCase.execute(any()) } returns flowOf(Result.success(StoreServiceUseCase.Output))
+        expectNavigation()
+
+        val testService = service.copy(lookupTimeout = 70.seconds, sendRequestInterval = 99.milliseconds)
+        composeTestRule.enterServiceProperties(testService, save = false)
+        composeTestRule.onNodeWithTag(TAG_TAB_EXTENDED).performSafeClick()
+        composeTestRule.enterNonDefaultProperty(
+            TAG_EDIT_LOOKUP_TIMEOUT,
+            testService.lookupTimeout!!.inWholeSeconds.toString()
+        )
+        composeTestRule.enterNonDefaultProperty(
+            TAG_EDIT_REQUEST_INTERVAL,
+            testService.sendRequestInterval!!.inWholeMilliseconds.toString()
+        )
+        composeTestRule.saveForm()
+
+        composeTestRule.assertNoValidationErrors()
+        val expectedInput = StoreServiceUseCase.Input(
+            data = serviceData,
+            service = testService,
             serviceIndex = ServiceData.NEW_SERVICE_INDEX
         )
         verify {
@@ -172,6 +226,24 @@ class CreateServiceUiTest {
         composeTestRule.enterServiceProperties(errorService, save = false)
 
         composeTestRule.assertAllValidationErrors()
+    }
+
+    @Test
+    fun `Invalid input for extended properties is detected and reported`() {
+        composeTestRule.onNodeWithTag(TAG_TAB_EXTENDED).performClick()
+        composeTestRule.enterNonDefaultProperty(
+            TAG_EDIT_LOOKUP_TIMEOUT,
+            errorService.lookupTimeout!!.inWholeSeconds.toString()
+        )
+        composeTestRule.enterNonDefaultProperty(
+            TAG_EDIT_REQUEST_INTERVAL,
+            errorService.sendRequestInterval!!.inWholeMilliseconds.toString()
+        )
+        composeTestRule.saveForm()
+
+        listOf(TAG_EDIT_LOOKUP_TIMEOUT, TAG_EDIT_REQUEST_INTERVAL).forAll { tag ->
+            composeTestRule.onNodeWithTag(errorTag(tag)).assertExists()
+        }
     }
 
     @Test

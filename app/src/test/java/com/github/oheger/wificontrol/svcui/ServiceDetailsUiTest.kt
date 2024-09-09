@@ -19,6 +19,7 @@
 package com.github.oheger.wificontrol.svcui
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -50,6 +51,7 @@ import io.mockk.verify
 
 import java.util.concurrent.atomic.AtomicInteger
 
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -182,6 +184,22 @@ class ServiceDetailsUiTest {
         ).forAll {
             composeTestRule.onNodeWithTag(it).assertDoesNotExist()
         }
+    }
+
+    @Test
+    fun `Extended properties with non-default values are correctly initialized in edit mode`() = runTest {
+        val testService = service.copy(lookupTimeout = 88.seconds, sendRequestInterval = 44.milliseconds)
+        initService(testService)
+
+        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SERVICE).performClick()
+        composeTestRule.onNodeWithTag(TAG_TAB_EXTENDED).performClick()
+
+        composeTestRule.onNodeWithTag(useDefaultTag(TAG_EDIT_LOOKUP_TIMEOUT)).assertIsOff()
+        composeTestRule.onNodeWithTag(TAG_EDIT_LOOKUP_TIMEOUT)
+            .assertTextEquals(testService.lookupTimeout!!.inWholeSeconds.toString())
+        composeTestRule.onNodeWithTag(useDefaultTag(TAG_EDIT_REQUEST_INTERVAL)).assertIsOff()
+        composeTestRule.onNodeWithTag(TAG_EDIT_REQUEST_INTERVAL)
+            .assertTextEquals(testService.sendRequestInterval!!.inWholeMilliseconds.toString())
     }
 
     @Test

@@ -28,6 +28,8 @@ import com.github.oheger.wificontrol.setText
 
 import io.kotest.inspectors.forAll
 
+import kotlin.time.Duration.Companion.seconds
+
 /**
  * A list with tags representing the UI elements to display invalid input for the several properties.
  */
@@ -46,6 +48,15 @@ internal fun ComposeTestRule.enterServiceProperties(service: PersistentService, 
     if (save) {
         saveForm()
     }
+}
+
+/**
+ * Populate the edit field for the property identified by the given [tag] that supports a default value with the given
+ * [value].
+ */
+internal fun ComposeTestRule.enterNonDefaultProperty(tag: String, value: String) {
+    onNodeWithTag(useDefaultTag(tag)).performSafeClick()
+    onNodeWithTag(tag).setText(value)
 }
 
 /**
@@ -84,6 +95,6 @@ internal val errorServiceDefinition = ServiceDefinition(
 /** A service that contains only invalid properties. */
 internal val errorService = PersistentService(
     serviceDefinition = errorServiceDefinition,
-    lookupTimeout = null,
-    sendRequestInterval = null
+    lookupTimeout = 0.seconds,
+    sendRequestInterval = 0.seconds
 )
