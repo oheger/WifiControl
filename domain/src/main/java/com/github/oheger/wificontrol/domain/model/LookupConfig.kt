@@ -44,9 +44,9 @@ data class LookupConfig(
 ) {
     companion object {
         /** A default value for the [lookupTimeout] property. */
-        val DEFAULT_LOOKUP_TIMEOUT = 30.seconds
+        val DEFAULT_LOOKUP_TIMEOUT = 15.seconds
 
         /** A default value for the [sendRequestInterval] property. */
-        val DEFAULT_SEND_REQUEST_INTERVAL = 500.milliseconds
+        val DEFAULT_SEND_REQUEST_INTERVAL = 250.milliseconds
     }
 }
