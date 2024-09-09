@@ -35,4 +35,11 @@
     <string name="svc_address_invalid">Dies muss eine gültige IP-Adresse sein, wie z.B. 231.1.120.17.</string>
     <string name="svc_port_invalid">Dies muss eine gültige Port-Nummer im Bereich von 0 bis 65535 sein.</string>
     <string name="svc_code_invalid">Der Request Code muss ein nicht leerer Text ohne führende und schließende Leerzeichen sein.</string>
+    <string name="svc_use_default">Vorgabe verwenden</string>
+    <string name="svc_lab_lookup_timeout">Timeout für Suche des Diensts (sek)</string>
+    <string name="svc_lab_request_interval">Intervall für Suchanfragen (ms)</string>
+    <string name="svc_lookup_timeout_invalid">Geben Sie bitte eine Zahl größer 0 an für den Timeout in Sekunden.</string>
+    <string name="svc_request_interval_invalid">Geben Sie bitter eine Zahl größer 0 an für das Intervall in Millisekunden.</string>
+    <string name="svc_tab_properties">Eigenschaften</string>
+    <string name="svc_tab_extended">Erweitert</string>
 </resources>
