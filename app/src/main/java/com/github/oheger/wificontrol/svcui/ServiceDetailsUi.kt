@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -41,6 +42,7 @@ import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -66,6 +68,8 @@ import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
+import kotlin.time.Duration.Companion.seconds
+
 internal const val TAG_SHOW_NAME = "svcShowName"
 internal const val TAG_SHOW_MULTICAST = "svcShowMulticast"
 internal const val TAG_SHOW_PORT = "svcShowPort"
@@ -78,7 +82,9 @@ internal const val TAG_EDIT_CODE = "svcEditCode"
 internal const val TAG_EDIT_LOOKUP_TIMEOUT = "svcEditLookupTimeout"
 internal const val TAG_EDIT_REQUEST_INTERVAL = "svcEditRequestInterval"
 internal const val TAG_TAB_PROPERTIES = "svcEditTabProps"
+internal const val TAG_TAB_PROPERTIES_INVALID = "svcEditTabPropsInvalid"
 internal const val TAG_TAB_EXTENDED = "svcEditTabExtended"
+internal const val TAG_TAB_EXTENDED_INVALID = "svcEditTabExtendedInvalid"
 
 internal const val TAG_BTN_CONTROL_SERVICE = "svcBtnControl"
 internal const val TAG_BTN_EDIT_CANCEL = "svcBtnCancel"
@@ -287,13 +293,30 @@ private fun EditServiceDetails(
             Tab(
                 selected = tabIndex == 0,
                 onClick = { tabIndex = 0 },
-                text = { Text(stringResource(R.string.svc_tab_properties)) },
+                text = {
+                    EditFormTabTitle(
+                        R.string.svc_tab_properties,
+                        TAG_TAB_PROPERTIES_INVALID.takeIf {
+                            !editModel.serviceNameValid || !editModel.multicastAddressValid ||
+                                    !editModel.portValid || !editModel.codeValid
+                        },
+                        modifier
+                    )
+                },
                 modifier = modifier.testTag(TAG_TAB_PROPERTIES)
             )
             Tab(
                 selected = tabIndex == 1,
                 onClick = { tabIndex = 1 },
-                text = { Text(stringResource(R.string.svc_tab_extended)) },
+                text = {
+                    EditFormTabTitle(
+                        R.string.svc_tab_extended,
+                        TAG_TAB_EXTENDED_INVALID.takeIf {
+                            !editModel.lookupTimeoutValid || !editModel.sendRequestIntervalValid
+                        },
+                        modifier
+                    )
+                },
                 modifier = modifier.testTag(TAG_TAB_EXTENDED)
             )
         }
@@ -323,6 +346,24 @@ private fun EditServiceDetails(
                 Text(text = stringResource(id = R.string.svc_btn_cancel))
             }
         }
+    }
+}
+
+/**
+ * Generate the title for a tab of the form to edit service properties based on the given [labelRes]. If the tab
+ * contains input fields with invalid values, the given [invalidTag] is not *null*. In this case, render a warning
+ * icon in the title.
+ */
+@Composable
+private fun EditFormTabTitle(labelRes: Int, invalidTag: String?, modifier: Modifier) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        invalidTag?.let {
+            Icon(Icons.Filled.Warning, contentDescription = null, modifier = modifier
+                .testTag(it)
+                .width(10.dp))
+            Spacer(modifier = modifier.width(3.dp))
+        }
+        Text(stringResource(labelRes))
     }
 }
 
@@ -579,7 +620,7 @@ fun EditServiceDetailsPreview() {
             requestCode = "Find_Video_Service"
         ),
         lookupTimeout = null,
-        sendRequestInterval = null
+        sendRequestInterval = 0.seconds
     )
     val serviceData = ServiceData(emptyList())
     val editModel = ServiceEditModel(service)
