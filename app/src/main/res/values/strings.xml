@@ -43,4 +43,6 @@
     <string name="svc_request_interval_invalid">Please enter a number greater than 0 for the interval in milliseconds.</string>
     <string name="svc_tab_properties">Properties</string>
     <string name="svc_tab_extended">Extended</string>
+    <string name="svc_unit_sec">sec</string>
+    <string name="svc_unit_ms">ms</string>
 </resources>
