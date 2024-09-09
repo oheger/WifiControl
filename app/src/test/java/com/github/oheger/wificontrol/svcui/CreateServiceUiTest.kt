@@ -19,15 +19,17 @@
 package com.github.oheger.wificontrol.svcui
 
 import android.content.Context
+
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
-
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.navigation.NavController
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -122,6 +124,8 @@ class CreateServiceUiTest {
             composeTestRule.onNodeWithTag(tag).assertDoesNotExist()
             composeTestRule.onNodeWithTag(useDefaultTag(tag)).assertDoesNotExist()
         }
+        composeTestRule.onNodeWithTag(TAG_TAB_PROPERTIES_INVALID).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TAG_TAB_EXTENDED_INVALID).assertDoesNotExist()
     }
 
     @Test
@@ -226,6 +230,8 @@ class CreateServiceUiTest {
         composeTestRule.enterServiceProperties(errorService, save = false)
 
         composeTestRule.assertAllValidationErrors()
+        composeTestRule.onNodeWithTag(TAG_TAB_PROPERTIES).performScrollTo()
+        composeTestRule.onNodeWithTag(TAG_TAB_PROPERTIES_INVALID, useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test
@@ -244,6 +250,8 @@ class CreateServiceUiTest {
         listOf(TAG_EDIT_LOOKUP_TIMEOUT, TAG_EDIT_REQUEST_INTERVAL).forAll { tag ->
             composeTestRule.onNodeWithTag(errorTag(tag)).assertExists()
         }
+        composeTestRule.onNodeWithTag(TAG_TAB_EXTENDED).performScrollTo()
+        composeTestRule.onNodeWithTag(TAG_TAB_EXTENDED_INVALID, useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test
