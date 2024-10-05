@@ -61,8 +61,8 @@ import com.github.oheger.wificontrol.Navigation
 import com.github.oheger.wificontrol.R
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
 
-import com.google.accompanist.web.WebView
-import com.google.accompanist.web.rememberWebViewState
+import com.kevinnzou.web.WebView
+import com.kevinnzou.web.rememberWebViewState
 
 import kotlin.time.Duration.Companion.seconds
 
@@ -431,7 +431,6 @@ private fun LookupFailedScreen(serviceName: String, onRetry: () -> Unit, modifie
 /**
  * Display a screen with a web view to display the UI of the service after its [uri] has been discovered. The web view
  * loads the specified [uri].
- * TODO: Replace the deprecated [WebView] component.
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
