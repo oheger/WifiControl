@@ -28,7 +28,14 @@ class ServiceDefinitionTest : StringSpec({
         val address = "231.10.1.2"
         val expectedInetAddress = InetAddress.getByName("231.10.1.2")
 
-        val serviceDefinition = ServiceDefinition("someName", address, 5000, "code")
+        val serviceDefinition = ServiceDefinition(
+            "someName",
+            ServiceAddressMode.WIFI_DISCOVERY,
+            address,
+            5000,
+            "code",
+            ""
+        )
 
         serviceDefinition.multicastInetAddress shouldBe expectedInetAddress
     }

@@ -30,6 +30,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 
 import com.github.oheger.wificontrol.Navigation
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.domain.model.UndefinedCurrentService
@@ -245,9 +246,11 @@ class ServiceDetailsUiTest {
         val editedService = PersistentService(
             serviceDefinition = ServiceDefinition(
                 name = "EditedTestService",
+                addressMode = ServiceAddressMode.WIFI_DISCOVERY,
                 multicastAddress = "231.0.0.9",
                 port = 9875,
-                requestCode = "AnybodyOutThere?!"
+                requestCode = "AnybodyOutThere?!",
+                serviceUrl = ""
             ),
             lookupTimeout = null,
             sendRequestInterval = null
@@ -333,9 +336,11 @@ private const val SERVICE_INDEX = 11
 private val service = PersistentService(
     serviceDefinition = ServiceDefinition(
         name = "TestService",
+        addressMode = ServiceAddressMode.WIFI_DISCOVERY,
         multicastAddress = "231.0.0.8",
         port = 9876,
-        requestCode = "AnybodyOutThere?"
+        requestCode = "AnybodyOutThere?",
+        serviceUrl = ""
     ),
     lookupTimeout = null,
     sendRequestInterval = null

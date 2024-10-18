@@ -64,6 +64,7 @@ import androidx.navigation.NavController
 import com.github.oheger.wificontrol.Navigation
 import com.github.oheger.wificontrol.R
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
@@ -639,9 +640,11 @@ fun ViewServiceDetailsPreview() {
     val service = PersistentService(
         serviceDefinition = ServiceDefinition(
             name = "Audio Service",
+            addressMode = ServiceAddressMode.WIFI_DISCOVERY,
             multicastAddress = "231.1.2.3",
             port = 7777,
-            requestCode = "Lookup_audio_service"
+            requestCode = "Lookup_audio_service",
+            serviceUrl = ""
         ),
         lookupTimeout = null,
         sendRequestInterval = 50.milliseconds
@@ -661,9 +664,11 @@ fun EditServiceDetailsPreview() {
     val service = PersistentService(
         serviceDefinition = ServiceDefinition(
             name = "Video Service ",
+            addressMode = ServiceAddressMode.WIFI_DISCOVERY,
             multicastAddress = "231.4.3.2.5",
             port = 8888,
-            requestCode = "Find_Video_Service"
+            requestCode = "Find_Video_Service",
+            serviceUrl = ""
         ),
         lookupTimeout = null,
         sendRequestInterval = 0.seconds

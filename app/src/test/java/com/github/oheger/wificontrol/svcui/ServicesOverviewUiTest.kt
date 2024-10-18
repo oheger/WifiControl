@@ -30,6 +30,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 
 import com.github.oheger.wificontrol.domain.model.DefinedCurrentService
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.domain.model.UndefinedCurrentService
@@ -382,9 +383,11 @@ private fun serviceName(index: Int): String = "testService$index"
 private fun createService(index: Int): PersistentService {
     val serviceDefinition = ServiceDefinition(
         name = serviceName(index),
+        addressMode = ServiceAddressMode.WIFI_DISCOVERY,
         multicastAddress = "231.11.0.$index",
         port = 1000 + index,
-        requestCode = "code_$index"
+        requestCode = "code_$index",
+        serviceUrl = ""
     )
     return PersistentService(
         serviceDefinition = serviceDefinition,

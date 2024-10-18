@@ -37,6 +37,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.oheger.wificontrol.Navigation
 import com.github.oheger.wificontrol.R
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.domain.usecase.LoadServiceUseCase
@@ -82,12 +83,19 @@ class CreateServiceUiTest {
     @Before
     fun setUp() {
         val testService = PersistentService(
-            serviceDefinition = ServiceDefinition("test", "1.2.3.4", 10000, "testCode"),
+            serviceDefinition = ServiceDefinition(
+                "test",
+                ServiceAddressMode.WIFI_DISCOVERY,
+                "1.2.3.4",
+                10000,
+                "testCode",
+                ""
+            ),
             lookupTimeout = null,
             sendRequestInterval = null
         )
         val newService = PersistentService(
-            serviceDefinition = ServiceDefinition("", "", 0, ""),
+            serviceDefinition = ServiceDefinition("", ServiceAddressMode.WIFI_DISCOVERY, "", 0, "", ""),
             lookupTimeout = null,
             sendRequestInterval = null
         )
@@ -274,9 +282,11 @@ class CreateServiceUiTest {
 private val service = PersistentService(
     serviceDefinition = ServiceDefinition(
         name = "TheNewService",
+        addressMode = ServiceAddressMode.WIFI_DISCOVERY,
         multicastAddress = "231.1.2.3",
         port = 9007,
-        requestCode = "testCode"
+        requestCode = "testCode",
+        serviceUrl = ""
     ),
     lookupTimeout = null,
     sendRequestInterval = null

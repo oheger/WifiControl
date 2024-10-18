@@ -21,6 +21,7 @@ package com.github.oheger.wificontrol.persistence.source
 import androidx.datastore.core.DataStore
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.repository.ds.ServicesDataSource
@@ -63,9 +64,11 @@ private fun toDomainService(serviceDefinition: PersistentServiceDefinition): Per
         PersistentService(
             serviceDefinition = ServiceDefinition(
                 name = name,
+                addressMode = ServiceAddressMode.WIFI_DISCOVERY,
                 multicastAddress = multicastAddress,
                 port = port,
-                requestCode = requestCode
+                requestCode = requestCode,
+                serviceUrl = ""
             ),
             lookupTimeout = lookupTimeoutMs.takeIf { hasLookupTimeoutMs() }?.milliseconds,
             sendRequestInterval = sendRequestIntervalMs.takeIf { hasSendRequestIntervalMs() }?.milliseconds

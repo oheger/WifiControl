@@ -21,6 +21,7 @@ package com.github.oheger.wificontrol.domain.usecase
 import com.github.oheger.wificontrol.domain.model.LookupConfig
 import com.github.oheger.wificontrol.domain.model.LookupService
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 
@@ -97,9 +98,11 @@ private fun createService(name: String, index: Int): LookupService =
     LookupService(
         service = ServiceDefinition(
             name = name,
+            addressMode = ServiceAddressMode.WIFI_DISCOVERY,
             multicastAddress = "231.10.0.$index",
             port = 8000 + index,
-            requestCode = "code$index"
+            requestCode = "code$index",
+            serviceUrl = "http://192.168.0.$index"
         ),
         lookupConfig = LookupConfig(
             lookupTimeout = LookupConfig.DEFAULT_LOOKUP_TIMEOUT,

@@ -22,6 +22,7 @@ import com.github.oheger.wificontrol.domain.model.LookupConfig
 import com.github.oheger.wificontrol.domain.model.LookupInProgress
 import com.github.oheger.wificontrol.domain.model.LookupService
 import com.github.oheger.wificontrol.domain.model.LookupSucceeded
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.domain.repo.ServiceUriRepository
 
@@ -72,7 +73,14 @@ class GetServiceUriUseCaseTest : StringSpec({
             sendRequestInterval = 10.seconds
         )
         val lookupService = LookupService(
-            service = ServiceDefinition("test", "231.1.1.1", 10000, "code"),
+            service = ServiceDefinition(
+                "test",
+                ServiceAddressMode.WIFI_DISCOVERY,
+                "231.1.1.1",
+                10000,
+                "code",
+                ""
+            ),
             lookupConfig = lookupConfig
         )
         val lookupServiceProvider: suspend () -> LookupService = { lookupService }

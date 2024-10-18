@@ -23,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 
 import kotlin.time.Duration.Companion.milliseconds
@@ -248,9 +249,11 @@ internal class ServiceEditModel(
         PersistentService(
             serviceDefinition = ServiceDefinition(
                 name = serviceName,
+                addressMode = ServiceAddressMode.WIFI_DISCOVERY,
                 multicastAddress = multicastAddress,
                 port = port.toInt(),
-                requestCode = code
+                requestCode = code,
+                serviceUrl = ""
             ),
             lookupTimeout = if (lookupTimeoutDefault) null else lookupTimeoutSec.toInt().seconds,
             sendRequestInterval = if (sendRequestIntervalDefault) null else sendRequestIntervalMs.toInt().milliseconds
