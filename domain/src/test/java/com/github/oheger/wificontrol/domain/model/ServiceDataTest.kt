@@ -148,9 +148,11 @@ class ServiceDataTest : WordSpec({
             val newService = PersistentService(
                 serviceDefinition = ServiceDefinition(
                     name = "testService3",
+                    addressMode = ServiceAddressMode.WIFI_DISCOVERY,
                     multicastAddress = "231.10.3.44",
                     port = 7003,
-                    requestCode = "code3"
+                    requestCode = "code3",
+                    serviceUrl = ""
                 ),
                 lookupTimeout = 11.seconds,
                 sendRequestInterval = 44.milliseconds
@@ -353,17 +355,21 @@ class ServiceDataTest : WordSpec({
 /** A test service definition. */
 private val service1 = ServiceDefinition(
     name = "testService1",
+    addressMode = ServiceAddressMode.WIFI_DISCOVERY,
     multicastAddress = "231.10.1.42",
     port = 7001,
-    requestCode = "code1"
+    requestCode = "code1",
+    serviceUrl = ""
 )
 
 /** Another test service definition. */
 private val service2 = ServiceDefinition(
     name = "testService2",
-    multicastAddress = "231.10.2.43",
-    port = 7002,
-    requestCode = "code2"
+    addressMode = ServiceAddressMode.FIX_URL,
+    serviceUrl = "https://192.168.0.1/test.html",
+    multicastAddress = "",
+    port = 0,
+    requestCode = ""
 )
 
 /** A test persistent service. */

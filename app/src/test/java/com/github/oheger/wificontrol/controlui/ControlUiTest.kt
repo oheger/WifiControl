@@ -38,6 +38,7 @@ import com.github.oheger.wificontrol.domain.model.LookupService
 import com.github.oheger.wificontrol.domain.model.LookupState
 import com.github.oheger.wificontrol.domain.model.LookupSucceeded
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.domain.model.WiFiState
@@ -361,7 +362,14 @@ class ControlUiTest {
     @Test
     fun `The correct LookupService should be passed to the discovery use case`() = runTest {
         val lookupService = LookupService(
-            service = ServiceDefinition(SERVICE_NAME, "231.0.0.1", 4444, "code"),
+            service = ServiceDefinition(
+                SERVICE_NAME,
+                ServiceAddressMode.WIFI_DISCOVERY,
+                "231.0.0.1",
+                4444,
+                "code",
+                ""
+            ),
             lookupConfig = LookupConfig(30.seconds, 1.seconds)
         )
         val persistentService = PersistentService(
@@ -565,7 +573,14 @@ private val dataTags = buildList {
 
 /** The data of the test service. */
 private val currentService = PersistentService(
-    serviceDefinition = ServiceDefinition(SERVICE_NAME, "231.0.0.7", 8765, "code"),
+    serviceDefinition = ServiceDefinition(
+        SERVICE_NAME,
+        ServiceAddressMode.WIFI_DISCOVERY,
+        "231.0.0.7",
+        8765,
+        "code",
+        ""
+    ),
     lookupTimeout = null,
     sendRequestInterval = null
 )

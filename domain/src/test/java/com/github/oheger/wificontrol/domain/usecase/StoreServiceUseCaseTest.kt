@@ -21,6 +21,7 @@ package com.github.oheger.wificontrol.domain.usecase
 import com.github.oheger.wificontrol.domain.model.LookupConfig
 import com.github.oheger.wificontrol.domain.model.LookupService
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 
@@ -49,9 +50,11 @@ class StoreServiceUseCaseTest : StringSpec({
         val originalName = "theOriginalServiceName"
         val testServiceDefinition = ServiceDefinition(
             name = originalName,
+            addressMode = ServiceAddressMode.WIFI_DISCOVERY,
             multicastAddress = "",
             port = 0,
-            requestCode = ""
+            requestCode = "",
+            serviceUrl = ""
         )
         val originalService = mockk<PersistentService> {
             every { serviceDefinition } returns testServiceDefinition
@@ -127,9 +130,11 @@ class StoreServiceUseCaseTest : StringSpec({
         val service = PersistentService(
             serviceDefinition = ServiceDefinition(
                 name = "someService",
+                addressMode = ServiceAddressMode.WIFI_DISCOVERY,
                 multicastAddress = "1.2.3.4",
                 port = 10000,
-                requestCode = "code"
+                requestCode = "code",
+                serviceUrl = ""
             ),
             lookupTimeout = null,
             sendRequestInterval = null
@@ -159,9 +164,11 @@ class StoreServiceUseCaseTest : StringSpec({
         val service = PersistentService(
             serviceDefinition = ServiceDefinition(
                 name = "someService",
-                multicastAddress = "1.2.3.4",
-                port = 10000,
-                requestCode = "code"
+                addressMode = ServiceAddressMode.FIX_URL,
+                multicastAddress = "",
+                port = 0,
+                requestCode = "",
+                serviceUrl = "http://local.example.org/test.html"
             ),
             lookupTimeout = null,
             sendRequestInterval = null

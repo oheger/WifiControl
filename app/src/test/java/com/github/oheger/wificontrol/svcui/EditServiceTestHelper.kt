@@ -22,6 +22,7 @@ import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithTag
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.performSafeClick
 import com.github.oheger.wificontrol.setText
@@ -87,9 +88,11 @@ internal fun ComposeTestRule.assertAllValidationErrors() {
 /** A service definition that contains only invalid properties. This is used to test input validation. */
 internal val errorServiceDefinition = ServiceDefinition(
     name = " ",
+    ServiceAddressMode.WIFI_DISCOVERY,
     multicastAddress = "not an IP address",
     port = 70000,
-    requestCode = " "
+    requestCode = " ",
+    serviceUrl = ""
 )
 
 /** A service that contains only invalid properties. */

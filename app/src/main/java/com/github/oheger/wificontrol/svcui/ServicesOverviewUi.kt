@@ -62,6 +62,7 @@ import androidx.navigation.NavController
 import com.github.oheger.wificontrol.Navigation
 import com.github.oheger.wificontrol.R
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.ui.theme.WifiControlTheme
@@ -374,17 +375,17 @@ private fun ServiceDeleteConfirmation(
 fun ServicesListPreview() {
     val services = listOf(
         PersistentService(
-            serviceDefinition = ServiceDefinition("Audio", "", 0, ""),
+            serviceDefinition = ServiceDefinition("Audio", ServiceAddressMode.WIFI_DISCOVERY, "", 0, "", ""),
             lookupTimeout = null,
             sendRequestInterval = null
         ),
         PersistentService(
-            serviceDefinition = ServiceDefinition("Video", "", 0, ""),
+            serviceDefinition = ServiceDefinition("Video", ServiceAddressMode.WIFI_DISCOVERY, "", 0, "", ""),
             lookupTimeout = null,
             sendRequestInterval = null
         ),
         PersistentService(
-            serviceDefinition = ServiceDefinition("Disco", "", 0, ""),
+            serviceDefinition = ServiceDefinition("Disco", ServiceAddressMode.WIFI_DISCOVERY, "", 0, "", ""),
             lookupTimeout = null,
             sendRequestInterval = null
         )

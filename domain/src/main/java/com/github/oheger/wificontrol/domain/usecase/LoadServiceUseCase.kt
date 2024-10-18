@@ -19,6 +19,7 @@
 package com.github.oheger.wificontrol.domain.usecase
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 
@@ -43,9 +44,11 @@ class LoadServiceUseCase @Inject constructor(
         private val newService = PersistentService(
             serviceDefinition = ServiceDefinition(
                 name = "",
+                addressMode = ServiceAddressMode.WIFI_DISCOVERY,
                 multicastAddress = "",
                 port = 0,
-                requestCode = ""
+                requestCode = "",
+                serviceUrl = ""
             ),
             lookupTimeout = null,
             sendRequestInterval = null

@@ -21,6 +21,7 @@ package com.github.oheger.wificontrol.persistence.source
 import androidx.datastore.core.DataStore
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 
@@ -99,9 +100,11 @@ private val persistentServiceData = PersistentServiceData.newBuilder()
 private val modelService1 = PersistentService(
     serviceDefinition = ServiceDefinition(
         name = "testService1",
+        addressMode = ServiceAddressMode.WIFI_DISCOVERY,
         multicastAddress = "231.10.17.11",
         port = 9999,
-        requestCode = "testRequest1"
+        requestCode = "testRequest1",
+        serviceUrl = ""
     ),
     lookupTimeout = null,
     sendRequestInterval = null
@@ -110,9 +113,11 @@ private val modelService1 = PersistentService(
 private val modelService2 = PersistentService(
     serviceDefinition = ServiceDefinition(
         name = "testService2",
+        addressMode = ServiceAddressMode.WIFI_DISCOVERY,
         multicastAddress = "231.10.18.12",
         port = 11111,
-        requestCode = "testRequest2"
+        requestCode = "testRequest2",
+        serviceUrl = ""
     ),
     lookupTimeout = 10.seconds,
     sendRequestInterval = 250.milliseconds

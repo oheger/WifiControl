@@ -24,6 +24,7 @@ import com.github.oheger.wificontrol.domain.model.LookupInProgress
 import com.github.oheger.wificontrol.domain.model.LookupService
 import com.github.oheger.wificontrol.domain.model.LookupState
 import com.github.oheger.wificontrol.domain.model.LookupSucceeded
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 
 import io.kotest.assertions.nondeterministic.eventually
@@ -328,9 +329,11 @@ private class UdpServer(
     /** The service definition defining where this service can be reached. */
     val serviceDefinition: ServiceDefinition = ServiceDefinition(
         name = "testServiceDefinition",
+        addressMode = ServiceAddressMode.WIFI_DISCOVERY,
         multicastAddress = "231.10.1.2",
         port = multicastSocket.localPort,
-        requestCode = "testServer"
+        requestCode = "testServer",
+        serviceUrl = ""
     )
 
     init {

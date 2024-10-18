@@ -19,6 +19,7 @@
 package com.github.oheger.wificontrol.svcui
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 
 import io.kotest.core.spec.style.WordSpec
@@ -330,9 +331,11 @@ class ServiceEditModelTest : WordSpec({
         "return a correct service instance" {
             val changedDefinition = ServiceDefinition(
                 name = "ChangedTestService",
+                addressMode = ServiceAddressMode.WIFI_DISCOVERY,
                 multicastAddress = "231.1.1.9",
                 port = 8765,
-                requestCode = "StillAnybodyOutThere?"
+                requestCode = "StillAnybodyOutThere?",
+                serviceUrl = ""
             )
 
             val model = ServiceEditModel(service)
@@ -352,9 +355,11 @@ class ServiceEditModelTest : WordSpec({
         "handle non-default duration values" {
             val changedDefinition = ServiceDefinition(
                 name = "ChangedTestServiceWithLookupConfig",
+                addressMode = ServiceAddressMode.WIFI_DISCOVERY,
                 multicastAddress = "231.1.1.2",
                 port = 8762,
-                requestCode = "complexLookup?"
+                requestCode = "complexLookup?",
+                serviceUrl = ""
             )
 
             val model = ServiceEditModel(service)
@@ -380,9 +385,11 @@ class ServiceEditModelTest : WordSpec({
 /** A service definition for a test service. */
 private val serviceDefinition = ServiceDefinition(
     name = "TestService",
+    addressMode = ServiceAddressMode.WIFI_DISCOVERY,
     multicastAddress = "231.0.0.8",
     port = 9876,
-    requestCode = "AnybodyOutThere?"
+    requestCode = "AnybodyOutThere?",
+    ""
 )
 
 /** A test service that should be edited. */

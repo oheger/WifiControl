@@ -19,6 +19,7 @@
 package com.github.oheger.wificontrol.domain.usecase
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 
@@ -68,7 +69,7 @@ class LoadServiceUseCaseTest : StringSpec({
         resultFlow.first().shouldBeSuccess { output ->
             output.serviceData shouldBe serviceData
             output.service shouldBe PersistentService(
-                serviceDefinition = ServiceDefinition("", "", 0, ""),
+                serviceDefinition = ServiceDefinition("", ServiceAddressMode.WIFI_DISCOVERY, "", 0, "", ""),
                 lookupTimeout = null,
                 sendRequestInterval = null
             )
@@ -119,9 +120,11 @@ private fun createService(index: Int): PersistentService =
     PersistentService(
         serviceDefinition = ServiceDefinition(
             name = "service$index",
+            addressMode = ServiceAddressMode.WIFI_DISCOVERY,
             multicastAddress = "231.10.0.$index",
             port = 8000 + index,
-            requestCode = "code$index"
+            requestCode = "code$index",
+            serviceUrl = "http://192.168.0.$index"
         ),
         lookupTimeout = null,
         sendRequestInterval = null
