@@ -21,7 +21,7 @@ package com.github.oheger.wificontrol.persistence.source
 import androidx.datastore.core.DataStore
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
-import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode as ModelServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 import com.github.oheger.wificontrol.repository.ds.ServicesDataSource
@@ -64,15 +64,24 @@ private fun toDomainService(serviceDefinition: PersistentServiceDefinition): Per
         PersistentService(
             serviceDefinition = ServiceDefinition(
                 name = name,
-                addressMode = ServiceAddressMode.WIFI_DISCOVERY,
+                addressMode = toDomainAddressMode(addressMode),
                 multicastAddress = multicastAddress,
                 port = port,
                 requestCode = requestCode,
-                serviceUrl = ""
+                serviceUrl = serviceUrl
             ),
             lookupTimeout = lookupTimeoutMs.takeIf { hasLookupTimeoutMs() }?.milliseconds,
             sendRequestInterval = sendRequestIntervalMs.takeIf { hasSendRequestIntervalMs() }?.milliseconds
         )
+    }
+
+/**
+ * Convert the given [address mode][mode] to its representation in the domain layer.
+ */
+private fun toDomainAddressMode(mode: ServiceAddressMode): ModelServiceAddressMode =
+    when(mode) {
+        ServiceAddressMode.MODE_FIX_URL -> ModelServiceAddressMode.FIX_URL
+        else -> ModelServiceAddressMode.WIFI_DISCOVERY
     }
 
 /**
@@ -85,9 +94,20 @@ private fun toPersistentService(persistentService: PersistentService): Persisten
             .setMulticastAddress(serviceDefinition.multicastAddress)
             .setPort(serviceDefinition.port)
             .setRequestCode(serviceDefinition.requestCode)
+            .setAddressMode(toPersistentAddressMode(serviceDefinition.addressMode))
+            .setServiceUrl(serviceDefinition.serviceUrl)
 
         lookupTimeout?.let { builder.setLookupTimeoutMs(it.inWholeMilliseconds) }
         sendRequestInterval?.let { builder.setSendRequestIntervalMs(it.inWholeMilliseconds) }
 
         builder.build()
+    }
+
+/**
+ * Convert the given [address mode][mode] to its representation in the persistence layer.
+ */
+private fun toPersistentAddressMode(mode: ModelServiceAddressMode): ServiceAddressMode =
+    when(mode) {
+        ModelServiceAddressMode.WIFI_DISCOVERY -> ServiceAddressMode.MODE_WIFI_DISCOVERY
+        ModelServiceAddressMode.FIX_URL -> ServiceAddressMode.MODE_FIX_URL
     }

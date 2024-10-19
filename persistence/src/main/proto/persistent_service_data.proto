@@ -7,6 +7,12 @@ message PersistentServiceData {
   repeated PersistentServiceDefinition service_definitions = 1;
 }
 
+enum ServiceAddressMode {
+  MODE_UNSPECIFIED = 0;
+  MODE_WIFI_DISCOVERY = 1;
+  MODE_FIX_URL = 2;
+}
+
 message PersistentServiceDefinition {
   string name = 1;
   string multicast_address = 2;
@@ -14,4 +20,6 @@ message PersistentServiceDefinition {
   string request_code = 4;
   optional int64 lookup_timeout_ms = 5;
   optional int64 send_request_interval_ms = 6;
+  ServiceAddressMode addressMode = 7;
+  string serviceUrl = 8;
 }
