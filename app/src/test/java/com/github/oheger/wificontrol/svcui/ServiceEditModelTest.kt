@@ -327,15 +327,47 @@ class ServiceEditModelTest : WordSpec({
         }
     }
 
+    "service URL" should {
+        "be correctly initialized" {
+            val model = ServiceEditModel(serviceWithUrl)
+
+            model.serviceUrl shouldBe serviceDefinitionWithUrl.serviceUrl
+            model.serviceUrlValid shouldBe true
+        }
+
+        "be correctly validated" {
+            val model = ServiceEditModel(serviceWithUrl)
+
+            model.serviceUrl = "this is not a valid URL"
+            model.isServiceUrlProvided = false
+            model.serviceUrlValid shouldBe false
+        }
+
+        "not be marked as invalid initially" {
+            val invalidAddressDefinition = serviceDefinitionWithUrl.copy(serviceUrl = "")
+            val invalidService = service.copy(serviceDefinition = invalidAddressDefinition)
+
+            val model = ServiceEditModel(invalidService)
+
+            model.serviceUrlValid shouldBe true
+        }
+
+        "be handled correctly by validate" {
+            val model = ServiceEditModel(service)
+            model.isServiceUrlProvided = true
+
+            model.validate() shouldBe false
+            model.serviceUrlValid shouldBe false
+        }
+    }
+
     "editedService" should {
         "return a correct service instance" {
-            val changedDefinition = ServiceDefinition(
+            val changedDefinition = serviceDefinition.copy(
                 name = "ChangedTestService",
-                addressMode = ServiceAddressMode.WIFI_DISCOVERY,
                 multicastAddress = "231.1.1.9",
                 port = 8765,
                 requestCode = "StillAnybodyOutThere?",
-                serviceUrl = ""
             )
 
             val model = ServiceEditModel(service)
@@ -343,6 +375,24 @@ class ServiceEditModelTest : WordSpec({
             model.multicastAddress = changedDefinition.multicastAddress
             model.port = changedDefinition.port.toString()
             model.code = changedDefinition.requestCode
+            model.validate() shouldBe true
+            val changedService = model.editedService()
+
+            changedService shouldBe PersistentService(
+                serviceDefinition = changedDefinition,
+                lookupTimeout = null,
+                sendRequestInterval = null
+            )
+        }
+
+        "return a correct service instance with a provided URL" {
+            val changedDefinition = serviceDefinitionWithUrl.copy(
+                serviceUrl = "https://192.168.0.17/index.html"
+            )
+
+            val model = ServiceEditModel(serviceWithUrl)
+            model.serviceUrl = changedDefinition.serviceUrl
+            model.validate() shouldBe true
             val changedService = model.editedService()
 
             changedService shouldBe PersistentService(
@@ -392,9 +442,26 @@ private val serviceDefinition = ServiceDefinition(
     ""
 )
 
+/** A service definition for a test service that uses the address mode "fix URL". */
+private val serviceDefinitionWithUrl = ServiceDefinition(
+    name = "UrlTestService",
+    addressMode = ServiceAddressMode.FIX_URL,
+    serviceUrl = "http://192.168.0.1/welcome.html",
+    multicastAddress = "",
+    port = 0,
+    requestCode = ""
+)
+
 /** A test service that should be edited. */
 private val service = PersistentService(
     serviceDefinition = serviceDefinition,
+    lookupTimeout = null,
+    sendRequestInterval = null
+)
+
+/** A test service with a fix URL. */
+private val serviceWithUrl = PersistentService(
+    serviceDefinition = serviceDefinitionWithUrl,
     lookupTimeout = null,
     sendRequestInterval = null
 )

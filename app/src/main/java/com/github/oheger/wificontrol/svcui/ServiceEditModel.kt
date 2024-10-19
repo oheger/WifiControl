@@ -26,6 +26,8 @@ import com.github.oheger.wificontrol.domain.model.PersistentService
 import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 
+import java.net.URI
+
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -37,6 +39,8 @@ import kotlin.time.Duration.Companion.seconds
  * service, the properties are initially invalid (since they are empty). However, the UI should not display lots of
  * errors initially. Therefore, a property is considered invalid only after it has been changed or after a full
  * validation.
+ *
+ * An instance of this class lives in the view model of the UI which controls its life-cycle.
  */
 internal class ServiceEditModel(
     /** The service to be edited using this model. */
@@ -81,6 +85,12 @@ internal class ServiceEditModel(
          */
         private fun validateNumber(s: String, check: (Int) -> Boolean): Boolean =
             runCatching { check(s.toInt()) }.getOrDefault(false)
+
+        /**
+         * Perform a validation of a [string][s] that should be a URL.
+         */
+        private fun validateUrl(s: String): Boolean =
+            validateRequiredString(s) && runCatching { URI.create(s) }.isSuccess
     }
 
     /** Stores the name of the service. */
@@ -224,6 +234,34 @@ internal class ServiceEditModel(
         get() = sendRequestIntervalValidationResult || sendRequestIntervalDefault || !sendRequestIntervalEdited
 
     /**
+     * Flag that determines whether a URL is provided for the current service. Based on this flag, the properties
+     * displayed in the URL are changed, and it impacts also the validation.
+     */
+    var isServiceUrlProvided by mutableStateOf(service.serviceDefinition.addressMode == ServiceAddressMode.FIX_URL)
+
+    /** Stores the (provided) URL of the service. */
+    private var serviceUrlField by mutableStateOf(service.serviceDefinition.serviceUrl)
+
+    /** Stores the result of the validation of the service URL field. */
+    private var serviceUrlValidationResult by mutableStateOf(validateUrl(serviceUrlField))
+
+    /** Stores a flag whether the service URL property has already been edited. */
+    private var serviceUrlEdited by mutableStateOf(false)
+
+    /** Property for the (provided) service URL. */
+    var serviceUrl: String
+        get() = serviceUrlField
+        set(value) {
+            serviceUrlField = value
+            serviceUrlEdited = true
+            serviceUrlValidationResult = validateUrl(value)
+        }
+
+    /** Flag whether the service URL is considered valid. */
+    val serviceUrlValid: Boolean
+        get() = serviceUrlValidationResult || !serviceUrlEdited
+
+    /**
      * Perform a full validation of all edit fields and return a flag with the result. After calling this function,
      * all fields are marked as edited, so that the _Valid_ properties are correctly initialized. Only if this
      * function returns *true*, the edit operation can be successfully completed. If the result is *false*, the UI
@@ -236,9 +274,9 @@ internal class ServiceEditModel(
         codeEdited = true
         lookupTimeoutEdited = true
         sendRequestIntervalEdited = true
+        serviceUrlEdited = true
 
-        return serviceNameValidationResult && multicastAddressValidationResult && portValidationResult &&
-                codeValidationResult && lookupTimeoutValid && sendRequestIntervalValid
+        return serviceNameValidationResult && validateAddress()
     }
 
     /**
@@ -249,13 +287,41 @@ internal class ServiceEditModel(
         PersistentService(
             serviceDefinition = ServiceDefinition(
                 name = serviceName,
-                addressMode = ServiceAddressMode.WIFI_DISCOVERY,
+                addressMode = addressMode(),
                 multicastAddress = multicastAddress,
                 port = port.toInt(),
                 requestCode = code,
-                serviceUrl = ""
+                serviceUrl = serviceUrl
             ),
             lookupTimeout = if (lookupTimeoutDefault) null else lookupTimeoutSec.toInt().seconds,
             sendRequestInterval = if (sendRequestIntervalDefault) null else sendRequestIntervalMs.toInt().milliseconds
         )
+
+    /**
+     * Determine the [ServiceAddressMode] for the edited service based on the flag whether a URL is provided.
+     */
+    private fun addressMode(): ServiceAddressMode =
+        if (isServiceUrlProvided) ServiceAddressMode.FIX_URL
+        else ServiceAddressMode.WIFI_DISCOVERY
+
+    /**
+     * Perform a validation of the properties that define how the service address needs to be obtained. Which
+     * properties are affected is determined by the flag whether a URL is provided.
+     */
+    private fun validateAddress(): Boolean =
+        if (isServiceUrlProvided) validateFixUrl()
+        else validateDiscovery()
+
+    /**
+     * Return a flag whether the properties defining the service discovery are all valid.
+     */
+    private fun validateDiscovery(): Boolean =
+        multicastAddressValidationResult && portValidationResult && codeValidationResult && lookupTimeoutValid &&
+                sendRequestIntervalValid
+
+    /**
+     * Return a flag whether the properties defining the FIX_URL address mode are all valid.
+     */
+    private fun validateFixUrl(): Boolean =
+        serviceUrlValidationResult
 }
