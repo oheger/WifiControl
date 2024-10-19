@@ -21,7 +21,7 @@ package com.github.oheger.wificontrol.persistence.source
 import androidx.datastore.core.DataStore
 
 import com.github.oheger.wificontrol.domain.model.PersistentService
-import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode as ModelServiceAddressMode
 import com.github.oheger.wificontrol.domain.model.ServiceData
 import com.github.oheger.wificontrol.domain.model.ServiceDefinition
 
@@ -68,7 +68,13 @@ class ServicesDataSourceImplTest : WordSpec({
                 dataStore.updateData(capture(slotTransform))
             }
 
-            slotTransform.captured(mockk()) shouldBe persistentServiceData
+            // In persistentServiceData, the address mode is not initialized for all services.
+            val expectedServiceData = persistentServiceData.toBuilder().setServiceDefinitions(
+                0,
+                persistentService1.toBuilder()
+                    .setAddressMode(ServiceAddressMode.MODE_WIFI_DISCOVERY)
+            ).build()
+            slotTransform.captured(mockk()) shouldBe expectedServiceData
         }
     }
 })
@@ -84,6 +90,7 @@ private val persistentService1 = PersistentServiceDefinition.newBuilder()
 /** Another persistent test service. */
 private val persistentService2 = PersistentServiceDefinition.newBuilder()
     .setName("testService2")
+    .setAddressMode(ServiceAddressMode.MODE_WIFI_DISCOVERY)
     .setMulticastAddress("231.10.18.12")
     .setPort(11111)
     .setRequestCode("testRequest2")
@@ -91,16 +98,23 @@ private val persistentService2 = PersistentServiceDefinition.newBuilder()
     .setSendRequestIntervalMs(250)
     .build()
 
+/** One more persistent service that uses a fix URL. */
+private val persistentService3 = PersistentServiceDefinition.newBuilder()
+    .setName("testService3")
+    .setAddressMode(ServiceAddressMode.MODE_FIX_URL)
+    .setServiceUrl("https://192.168.0.1/url-service/index.html")
+    .build()
+
 /** A persistent service data instance used by tests. */
 private val persistentServiceData = PersistentServiceData.newBuilder()
-    .addAllServiceDefinitions(listOf(persistentService1, persistentService2))
+    .addAllServiceDefinitions(listOf(persistentService1, persistentService2, persistentService3))
     .build()
 
 /** A service from the domain layer corresponding to the first persistent test service. */
 private val modelService1 = PersistentService(
     serviceDefinition = ServiceDefinition(
         name = "testService1",
-        addressMode = ServiceAddressMode.WIFI_DISCOVERY,
+        addressMode = ModelServiceAddressMode.WIFI_DISCOVERY,
         multicastAddress = "231.10.17.11",
         port = 9999,
         requestCode = "testRequest1",
@@ -109,11 +123,12 @@ private val modelService1 = PersistentService(
     lookupTimeout = null,
     sendRequestInterval = null
 )
+
 /** A service from the domain layer corresponding to the second persistent test service. */
 private val modelService2 = PersistentService(
     serviceDefinition = ServiceDefinition(
         name = "testService2",
-        addressMode = ServiceAddressMode.WIFI_DISCOVERY,
+        addressMode = ModelServiceAddressMode.WIFI_DISCOVERY,
         multicastAddress = "231.10.18.12",
         port = 11111,
         requestCode = "testRequest2",
@@ -123,7 +138,21 @@ private val modelService2 = PersistentService(
     sendRequestInterval = 250.milliseconds
 )
 
+/** A service from the domain layer corresponding to the third persistent test service. */
+private val modelService3 = PersistentService(
+    serviceDefinition = ServiceDefinition(
+        name = "testService3",
+        addressMode = ModelServiceAddressMode.FIX_URL,
+        multicastAddress = "",
+        port = 0,
+        requestCode = "",
+        serviceUrl = "https://192.168.0.1/url-service/index.html"
+    ),
+    lookupTimeout = null,
+    sendRequestInterval = null
+)
+
 /** A service data instance from the domain layer corresponding to the persistent service data. */
 private val modelServiceData = ServiceData(
-    services = listOf(modelService1, modelService2)
+    services = listOf(modelService1, modelService2, modelService3)
 )
