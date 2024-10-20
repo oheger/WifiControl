@@ -45,4 +45,7 @@
     <string name="svc_tab_extended">Extended</string>
     <string name="svc_unit_sec">sec</string>
     <string name="svc_unit_ms">ms</string>
+    <string name="svc_lab_url_provided">Service URL known</string>
+    <string name="svc_lab_url">Service URL</string>
+    <string name="svc_url_invalid">Please enter a valid URL under which the service can be reached.</string>
 </resources>

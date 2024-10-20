@@ -20,6 +20,7 @@ package com.github.oheger.wificontrol.svcui
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -195,6 +196,7 @@ class ServiceDetailsUiTest {
         composeTestRule.onNodeWithTag(TAG_EDIT_MULTICAST).assertTextEquals(service.serviceDefinition.multicastAddress)
         composeTestRule.onNodeWithTag(TAG_EDIT_PORT).assertTextEquals(service.serviceDefinition.port.toString())
         composeTestRule.onNodeWithTag(TAG_EDIT_CODE).assertTextEquals(service.serviceDefinition.requestCode)
+        composeTestRule.onNodeWithTag(TAG_EDIT_URL_PROVIDED).assertIsOff()
         composeTestRule.assertNoValidationErrors()
 
         listOf(
@@ -203,7 +205,40 @@ class ServiceDetailsUiTest {
             TAG_SHOW_PORT,
             TAG_SHOW_CODE,
             TAG_BTN_EDIT_SERVICE,
-            TAG_BTN_CONTROL_SERVICE
+            TAG_BTN_CONTROL_SERVICE,
+            TAG_EDIT_SERVICE_URL
+        ).forAll {
+            composeTestRule.onNodeWithTag(it).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun `The edit mode of a service with a provided URL can be entered`() = runTest {
+        initService(serviceWithUrl)
+
+        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SERVICE).performClick()
+
+        composeTestRule.onNodeWithTag(TAG_SVC_TITLE).assertTextEquals(serviceWithUrl.serviceDefinition.name)
+        composeTestRule.onNodeWithTag(TAG_EDIT_NAME).assertTextEquals(serviceWithUrl.serviceDefinition.name)
+        composeTestRule.onNodeWithTag(TAG_EDIT_SERVICE_URL)
+            .assertTextEquals(serviceWithUrl.serviceDefinition.serviceUrl)
+        composeTestRule.onNodeWithTag(TAG_EDIT_URL_PROVIDED).assertIsOn()
+        composeTestRule.assertNoValidationErrors()
+
+        listOf(
+            TAG_SHOW_NAME,
+            TAG_SHOW_MULTICAST,
+            TAG_SHOW_PORT,
+            TAG_SHOW_CODE,
+            TAG_BTN_EDIT_SERVICE,
+            TAG_BTN_CONTROL_SERVICE,
+            TAG_EDIT_MULTICAST,
+            TAG_EDIT_PORT,
+            TAG_EDIT_CODE,
+            TAG_EDIT_LOOKUP_TIMEOUT,
+            useDefaultTag(TAG_EDIT_LOOKUP_TIMEOUT),
+            TAG_EDIT_REQUEST_INTERVAL,
+            useDefaultTag(TAG_EDIT_REQUEST_INTERVAL)
         ).forAll {
             composeTestRule.onNodeWithTag(it).assertDoesNotExist()
         }
@@ -215,7 +250,6 @@ class ServiceDetailsUiTest {
         initService(testService)
 
         composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SERVICE).performClick()
-        composeTestRule.onNodeWithTag(TAG_TAB_EXTENDED).performClick()
 
         composeTestRule.onNodeWithTag(useDefaultTag(TAG_EDIT_LOOKUP_TIMEOUT)).assertIsOff()
         composeTestRule.onNodeWithTag(TAG_EDIT_LOOKUP_TIMEOUT)
@@ -251,6 +285,39 @@ class ServiceDetailsUiTest {
                 port = 9875,
                 requestCode = "AnybodyOutThere?!",
                 serviceUrl = ""
+            ),
+            lookupTimeout = null,
+            sendRequestInterval = null
+        )
+
+        composeTestRule.onNodeWithTag(TAG_BTN_EDIT_SERVICE).performClick()
+        composeTestRule.enterServiceProperties(editedService)
+
+        val expectedInput = StoreServiceUseCase.Input(
+            data = loadOutput.serviceData,
+            service = editedService,
+            serviceIndex = SERVICE_INDEX
+        )
+        verify {
+            storeUseCase.execute(expectedInput)
+            navController.navigate(Navigation.ServicesRoute.route)
+        }
+    }
+
+    @Test
+    fun `A service with a provided URL can be edited and saved`() = runTest {
+        every { storeUseCase.execute(any()) } returns flowOf(Result.success(StoreServiceUseCase.Output))
+        val loadOutput = initService(serviceWithUrl)
+        every { navController.navigate(any<String>()) } just runs
+
+        val editedService = PersistentService(
+            serviceDefinition = ServiceDefinition(
+                name = "EditedTestServiceWithURL",
+                addressMode = ServiceAddressMode.FIX_URL,
+                multicastAddress = "",
+                port = 0,
+                requestCode = "",
+                serviceUrl = "https://192.168.17.18/service.html"
             ),
             lookupTimeout = null,
             sendRequestInterval = null
@@ -341,6 +408,20 @@ private val service = PersistentService(
         port = 9876,
         requestCode = "AnybodyOutThere?",
         serviceUrl = ""
+    ),
+    lookupTimeout = null,
+    sendRequestInterval = null
+)
+
+/** A test service that uses a provided URL. */
+private val serviceWithUrl = PersistentService(
+    serviceDefinition = ServiceDefinition(
+        name = "TestService",
+        addressMode = ServiceAddressMode.FIX_URL,
+        multicastAddress = "",
+        port = 0,
+        requestCode = "",
+        serviceUrl = "http://192.168.1.2/test.html"
     ),
     lookupTimeout = null,
     sendRequestInterval = null

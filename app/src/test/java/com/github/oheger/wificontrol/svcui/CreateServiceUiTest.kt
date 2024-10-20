@@ -20,16 +20,12 @@ package com.github.oheger.wificontrol.svcui
 
 import android.content.Context
 
-import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
-import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.navigation.NavController
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -120,29 +116,34 @@ class CreateServiceUiTest {
     }
 
     @Test
-    fun `An empty form is displayed initially`() {
+    fun `An empty form for service discovery is displayed initially`() {
+        composeTestRule.onNodeWithTag(TAG_EDIT_URL_PROVIDED).assertIsOff()
         listOf(TAG_EDIT_NAME, TAG_EDIT_MULTICAST, TAG_EDIT_CODE).forAll { tag ->
             composeTestRule.onNodeWithTag(tag).assertTextEquals("")
         }
         composeTestRule.onNodeWithTag(TAG_EDIT_PORT).assertTextEquals("0")
 
-        composeTestRule.onNodeWithTag(TAG_TAB_PROPERTIES).assertIsSelected()
-        composeTestRule.onNodeWithTag(TAG_TAB_EXTENDED).assertIsNotSelected()
-        listOf(TAG_EDIT_LOOKUP_TIMEOUT, TAG_EDIT_REQUEST_INTERVAL).forAll { tag ->
-            composeTestRule.onNodeWithTag(tag).assertDoesNotExist()
-            composeTestRule.onNodeWithTag(useDefaultTag(tag)).assertDoesNotExist()
-        }
-        composeTestRule.onNodeWithTag(TAG_TAB_PROPERTIES_INVALID).assertDoesNotExist()
-        composeTestRule.onNodeWithTag(TAG_TAB_EXTENDED_INVALID).assertDoesNotExist()
-    }
-
-    @Test
-    fun `Extended properties use defaults initially`() {
-        composeTestRule.onNodeWithTag(TAG_TAB_EXTENDED).performClick()
-
         listOf(TAG_EDIT_LOOKUP_TIMEOUT, TAG_EDIT_REQUEST_INTERVAL).forAll { tag ->
             composeTestRule.onNodeWithTag(tag).assertDoesNotExist()
             composeTestRule.onNodeWithTag(useDefaultTag(tag)).assertIsOn()
+        }
+
+        composeTestRule.onNodeWithTag(TAG_EDIT_SERVICE_URL).assertDoesNotExist()
+    }
+
+    @Test
+    fun `The address mode can be switched to a provided URL`() {
+        composeTestRule.onNodeWithTag(TAG_EDIT_URL_PROVIDED).performSafeClick()
+        composeTestRule.onNodeWithTag(TAG_EDIT_SERVICE_URL).assertTextEquals("")
+
+        listOf(
+            TAG_EDIT_MULTICAST,
+            TAG_EDIT_PORT,
+            TAG_EDIT_CODE,
+            useDefaultTag(TAG_EDIT_LOOKUP_TIMEOUT),
+            useDefaultTag(TAG_EDIT_REQUEST_INTERVAL)
+        ).forAll {
+            composeTestRule.onNodeWithTag(it).assertDoesNotExist()
         }
     }
 
@@ -173,13 +174,12 @@ class CreateServiceUiTest {
     }
 
     @Test
-    fun `A new service can be created with extended properties`() {
+    fun `A new service can be created with extended properties for discovery`() {
         every { storeUseCase.execute(any()) } returns flowOf(Result.success(StoreServiceUseCase.Output))
         expectNavigation()
 
         val testService = service.copy(lookupTimeout = 70.seconds, sendRequestInterval = 99.milliseconds)
         composeTestRule.enterServiceProperties(testService, save = false)
-        composeTestRule.onNodeWithTag(TAG_TAB_EXTENDED).performSafeClick()
         composeTestRule.enterNonDefaultProperty(
             TAG_EDIT_LOOKUP_TIMEOUT,
             testService.lookupTimeout!!.inWholeSeconds.toString()
@@ -194,6 +194,26 @@ class CreateServiceUiTest {
         val expectedInput = StoreServiceUseCase.Input(
             data = serviceData,
             service = testService,
+            serviceIndex = ServiceData.NEW_SERVICE_INDEX
+        )
+        verify {
+            storeUseCase.execute(expectedInput)
+            navController.navigate(Navigation.ServicesRoute.route)
+        }
+    }
+
+    @Test
+    fun `A new service can be created and saved with a provided URL`() {
+        every { storeUseCase.execute(any()) } returns flowOf(Result.success(StoreServiceUseCase.Output))
+        expectNavigation()
+
+        composeTestRule.onNodeWithTag(TAG_EDIT_URL_PROVIDED).performSafeClick()
+        composeTestRule.enterServiceProperties(serviceWithUrl)
+
+        composeTestRule.assertNoValidationErrors()
+        val expectedInput = StoreServiceUseCase.Input(
+            data = serviceData,
+            service = serviceWithUrl,
             serviceIndex = ServiceData.NEW_SERVICE_INDEX
         )
         verify {
@@ -238,13 +258,10 @@ class CreateServiceUiTest {
         composeTestRule.enterServiceProperties(errorService, save = false)
 
         composeTestRule.assertAllValidationErrors()
-        composeTestRule.onNodeWithTag(TAG_TAB_PROPERTIES).performScrollTo()
-        composeTestRule.onNodeWithTag(TAG_TAB_PROPERTIES_INVALID, useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test
     fun `Invalid input for extended properties is detected and reported`() {
-        composeTestRule.onNodeWithTag(TAG_TAB_EXTENDED).performClick()
         composeTestRule.enterNonDefaultProperty(
             TAG_EDIT_LOOKUP_TIMEOUT,
             errorService.lookupTimeout!!.inWholeSeconds.toString()
@@ -258,8 +275,20 @@ class CreateServiceUiTest {
         listOf(TAG_EDIT_LOOKUP_TIMEOUT, TAG_EDIT_REQUEST_INTERVAL).forAll { tag ->
             composeTestRule.onNodeWithTag(errorTag(tag)).assertExists()
         }
-        composeTestRule.onNodeWithTag(TAG_TAB_EXTENDED).performScrollTo()
-        composeTestRule.onNodeWithTag(TAG_TAB_EXTENDED_INVALID, useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `Invalid input for the provided URL properties is detected and reporter`() {
+        val service = serviceWithUrl.copy(
+            serviceDefinition = serviceWithUrl.serviceDefinition.copy(
+                serviceUrl = "an invalid service URL?!"
+            )
+        )
+
+        composeTestRule.onNodeWithTag(TAG_EDIT_URL_PROVIDED).performSafeClick()
+        composeTestRule.enterServiceProperties(service, save = false)
+
+        composeTestRule.onNodeWithTag(errorTag(TAG_EDIT_SERVICE_URL)).assertExists()
     }
 
     @Test
@@ -287,6 +316,20 @@ private val service = PersistentService(
         port = 9007,
         requestCode = "testCode",
         serviceUrl = ""
+    ),
+    lookupTimeout = null,
+    sendRequestInterval = null
+)
+
+/** A new service with a provided URL that is created by test cases. */
+private val serviceWithUrl = PersistentService(
+    serviceDefinition = ServiceDefinition(
+        name = "TheNewServiceWithURL",
+        addressMode = ServiceAddressMode.FIX_URL,
+        multicastAddress = "",
+        port = 0,
+        requestCode = "",
+        serviceUrl = "https://192.168.0.21/new-service/index.html"
     ),
     lookupTimeout = null,
     sendRequestInterval = null
