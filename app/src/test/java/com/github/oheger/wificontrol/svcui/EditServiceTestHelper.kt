@@ -38,14 +38,23 @@ internal val errorTags = listOf(TAG_EDIT_NAME, TAG_EDIT_MULTICAST, TAG_EDIT_PORT
     .map(::errorTag)
 
 /**
- * Populate the edit fields of the form with the properties of the given [service]. If the [save] flag is *true*,
- * also simulate a click on the save button.
+ * Populate the edit fields of the form with the properties of the given [service]. The properties are selected based
+ * on the service's address mode. If the [save] flag is *true*, also simulate a click on the save button.
  */
 internal fun ComposeTestRule.enterServiceProperties(service: PersistentService, save: Boolean = true) {
     onNodeWithTag(TAG_EDIT_NAME).setText(service.serviceDefinition.name)
-    onNodeWithTag(TAG_EDIT_MULTICAST).setText(service.serviceDefinition.multicastAddress)
-    onNodeWithTag(TAG_EDIT_PORT).setText(service.serviceDefinition.port.toString())
-    onNodeWithTag(TAG_EDIT_CODE).setText(service.serviceDefinition.requestCode)
+    when (service.serviceDefinition.addressMode) {
+        ServiceAddressMode.WIFI_DISCOVERY -> {
+            onNodeWithTag(TAG_EDIT_MULTICAST).setText(service.serviceDefinition.multicastAddress)
+            onNodeWithTag(TAG_EDIT_PORT).setText(service.serviceDefinition.port.toString())
+            onNodeWithTag(TAG_EDIT_CODE).setText(service.serviceDefinition.requestCode)
+        }
+
+        ServiceAddressMode.FIX_URL -> {
+            onNodeWithTag(TAG_EDIT_SERVICE_URL).setText(service.serviceDefinition.serviceUrl)
+        }
+    }
+
     if (save) {
         saveForm()
     }

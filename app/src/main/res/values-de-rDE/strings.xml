@@ -44,4 +44,7 @@
     <string name="svc_tab_extended">Erweitert</string>
     <string name="svc_unit_sec">sek</string>
     <string name="svc_unit_ms">ms</string>
+    <string name="svc_lab_url_provided">Dienst-URL bekannt</string>
+    <string name="svc_lab_url">Dienst-URL</string>
+    <string name="svc_url_invalid">Bitte geben Sie eine gültige URL für den Dienst an.</string>
 </resources>

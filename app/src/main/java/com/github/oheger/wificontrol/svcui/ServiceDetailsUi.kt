@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -34,20 +33,14 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Switch
-import androidx.compose.material.Tab
-import androidx.compose.material.TabRow
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -85,10 +78,8 @@ internal const val TAG_EDIT_PORT = "svcEditPort"
 internal const val TAG_EDIT_CODE = "svcEditCode"
 internal const val TAG_EDIT_LOOKUP_TIMEOUT = "svcEditLookupTimeout"
 internal const val TAG_EDIT_REQUEST_INTERVAL = "svcEditRequestInterval"
-internal const val TAG_TAB_PROPERTIES = "svcEditTabProps"
-internal const val TAG_TAB_PROPERTIES_INVALID = "svcEditTabPropsInvalid"
-internal const val TAG_TAB_EXTENDED = "svcEditTabExtended"
-internal const val TAG_TAB_EXTENDED_INVALID = "svcEditTabExtendedInvalid"
+internal const val TAG_EDIT_SERVICE_URL = "svcEditUrl"
+internal const val TAG_EDIT_URL_PROVIDED = "svcEditUrlProvided"
 
 internal const val TAG_BTN_CONTROL_SERVICE = "svcBtnControl"
 internal const val TAG_BTN_EDIT_CANCEL = "svcBtnCancel"
@@ -299,7 +290,6 @@ private fun EditServiceDetails(
     modifier: Modifier
 ) {
     val editModel = editModelFunc()
-    var tabIndex by rememberSaveable { mutableIntStateOf(0) }
 
     Column(
         modifier = modifier
@@ -307,41 +297,29 @@ private fun EditServiceDetails(
             .padding(all = 10.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        TabRow(selectedTabIndex = tabIndex) {
-            Tab(
-                selected = tabIndex == 0,
-                onClick = { tabIndex = 0 },
-                text = {
-                    EditFormTabTitle(
-                        R.string.svc_tab_properties,
-                        TAG_TAB_PROPERTIES_INVALID.takeIf {
-                            !editModel.serviceNameValid || !editModel.multicastAddressValid ||
-                                    !editModel.portValid || !editModel.codeValid
-                        },
-                        modifier
-                    )
-                },
-                modifier = modifier.testTag(TAG_TAB_PROPERTIES)
-            )
-            Tab(
-                selected = tabIndex == 1,
-                onClick = { tabIndex = 1 },
-                text = {
-                    EditFormTabTitle(
-                        R.string.svc_tab_extended,
-                        TAG_TAB_EXTENDED_INVALID.takeIf {
-                            !editModel.lookupTimeoutValid || !editModel.sendRequestIntervalValid
-                        },
-                        modifier
-                    )
-                },
-                modifier = modifier.testTag(TAG_TAB_EXTENDED)
+        EditServiceProperty(
+            labelRes = R.string.svc_lab_name,
+            keyboardOptions = KeyboardOptions.Default,
+            value = editModel.serviceName,
+            updateValue = { editModel.serviceName = it },
+            errorRes = R.string.svc_name_invalid.takeUnless { editModel.serviceNameValid },
+            tag = TAG_EDIT_NAME,
+            modifier = modifier
+        )
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
+            PropertyLabel(R.string.svc_lab_url_provided, modifier)
+            Spacer(modifier = modifier.weight(1f))
+            Switch(
+                checked = editModel.isServiceUrlProvided,
+                onCheckedChange = { it: Boolean -> editModel.isServiceUrlProvided = it },
+                modifier = modifier.testTag(tag = TAG_EDIT_URL_PROVIDED)
             )
         }
 
-        when (tabIndex) {
-            0 -> EditBasicProperties(editModel, modifier)
-            1 -> EditExtendedProperties(editModel, modifier)
+        if (editModel.isServiceUrlProvided) {
+            EditFixUrlProperties(editModel, modifier)
+        } else {
+            EditDiscoveryProperties(editModel, modifier)
         }
 
         Row(
@@ -368,107 +346,75 @@ private fun EditServiceDetails(
 }
 
 /**
- * Generate the title for a tab of the form to edit service properties based on the given [labelRes]. If the tab
- * contains input fields with invalid values, the given [invalidTag] is not *null*. In this case, render a warning
- * icon in the title.
+ * Generate the UI for editing the properties of a service related to service discovery based on the given [editModel].
  */
 @Composable
-private fun EditFormTabTitle(labelRes: Int, invalidTag: String?, modifier: Modifier) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        invalidTag?.let {
-            Icon(
-                Icons.Filled.Warning, contentDescription = null, modifier = modifier
-                    .testTag(it)
-                    .width(10.dp)
-            )
-            Spacer(modifier = modifier.width(3.dp))
-        }
-        Text(stringResource(labelRes))
-    }
+private fun EditDiscoveryProperties(editModel: ServiceEditModel, modifier: Modifier) {
+    EditServiceProperty(
+        labelRes = R.string.svc_lab_multicast,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        value = editModel.multicastAddress,
+        updateValue = { editModel.multicastAddress = it },
+        errorRes = R.string.svc_address_invalid.takeUnless { editModel.multicastAddressValid },
+        tag = TAG_EDIT_MULTICAST,
+        modifier = modifier
+    )
+    EditServiceProperty(
+        labelRes = R.string.svc_lab_port,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        value = editModel.port,
+        updateValue = { editModel.port = it },
+        errorRes = R.string.svc_port_invalid.takeUnless { editModel.portValid },
+        tag = TAG_EDIT_PORT,
+        modifier = modifier
+    )
+    EditServiceProperty(
+        labelRes = R.string.svc_lab_code,
+        keyboardOptions = KeyboardOptions.Default,
+        value = editModel.code,
+        updateValue = { editModel.code = it },
+        errorRes = R.string.svc_code_invalid.takeUnless { editModel.codeValid },
+        tag = TAG_EDIT_CODE,
+        modifier = modifier
+    )
+    EditServicePropertyWithDefault(
+        labelRes = R.string.svc_lab_lookup_timeout,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        useDefault = editModel.lookupTimeoutDefault,
+        updateUseDefault = { editModel.lookupTimeoutDefault = it },
+        value = editModel.lookupTimeoutSec,
+        updateValue = { editModel.lookupTimeoutSec = it },
+        errorRes = R.string.svc_lookup_timeout_invalid.takeUnless { editModel.lookupTimeoutValid },
+        tag = TAG_EDIT_LOOKUP_TIMEOUT,
+        modifier = modifier
+    )
+    EditServicePropertyWithDefault(
+        labelRes = R.string.svc_lab_request_interval,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        useDefault = editModel.sendRequestIntervalDefault,
+        updateUseDefault = { editModel.sendRequestIntervalDefault = it },
+        value = editModel.sendRequestIntervalMs,
+        updateValue = { editModel.sendRequestIntervalMs = it },
+        errorRes = R.string.svc_request_interval_invalid.takeUnless { editModel.sendRequestIntervalValid },
+        tag = TAG_EDIT_REQUEST_INTERVAL,
+        modifier = modifier
+    )
 }
 
 /**
- * Generate the UI for editing the basic properties of a service based on the given [editModel].
+ * Generate the UI for editing the properties of a service related to a fix URL based on the given [editModel].
  */
 @Composable
-private fun EditBasicProperties(editModel: ServiceEditModel, modifier: Modifier) {
-    Column(
+private fun EditFixUrlProperties(editModel: ServiceEditModel, modifier: Modifier) {
+    EditServiceProperty(
+        labelRes = R.string.svc_lab_url,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+        value = editModel.serviceUrl,
+        updateValue = { editModel.serviceUrl = it },
+        errorRes = R.string.svc_url_invalid.takeUnless { editModel.serviceUrlValid },
+        tag = TAG_EDIT_SERVICE_URL,
         modifier = modifier
-            .fillMaxWidth()
-            .padding(all = 10.dp)
-    ) {
-        EditServiceProperty(
-            labelRes = R.string.svc_lab_name,
-            keyboardOptions = KeyboardOptions.Default,
-            value = editModel.serviceName,
-            updateValue = { editModel.serviceName = it },
-            errorRes = R.string.svc_name_invalid.takeUnless { editModel.serviceNameValid },
-            tag = TAG_EDIT_NAME,
-            modifier = modifier
-        )
-        EditServiceProperty(
-            labelRes = R.string.svc_lab_multicast,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            value = editModel.multicastAddress,
-            updateValue = { editModel.multicastAddress = it },
-            errorRes = R.string.svc_address_invalid.takeUnless { editModel.multicastAddressValid },
-            tag = TAG_EDIT_MULTICAST,
-            modifier = modifier
-        )
-        EditServiceProperty(
-            labelRes = R.string.svc_lab_port,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            value = editModel.port,
-            updateValue = { editModel.port = it },
-            errorRes = R.string.svc_port_invalid.takeUnless { editModel.portValid },
-            tag = TAG_EDIT_PORT,
-            modifier = modifier
-        )
-        EditServiceProperty(
-            labelRes = R.string.svc_lab_code,
-            keyboardOptions = KeyboardOptions.Default,
-            value = editModel.code,
-            updateValue = { editModel.code = it },
-            errorRes = R.string.svc_code_invalid.takeUnless { editModel.codeValid },
-            tag = TAG_EDIT_CODE,
-            modifier = modifier
-        )
-    }
-}
-
-/**
- * Generate the UI for editing the extended properties of a service based on the given [editModel].
- */
-@Composable
-private fun EditExtendedProperties(editModel: ServiceEditModel, modifier: Modifier) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(all = 10.dp)
-    ) {
-        EditServicePropertyWithDefault(
-            labelRes = R.string.svc_lab_lookup_timeout,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            useDefault = editModel.lookupTimeoutDefault,
-            updateUseDefault = { editModel.lookupTimeoutDefault = it },
-            value = editModel.lookupTimeoutSec,
-            updateValue = { editModel.lookupTimeoutSec = it },
-            errorRes = R.string.svc_lookup_timeout_invalid.takeUnless { editModel.lookupTimeoutValid },
-            tag = TAG_EDIT_LOOKUP_TIMEOUT,
-            modifier = modifier
-        )
-        EditServicePropertyWithDefault(
-            labelRes = R.string.svc_lab_request_interval,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            useDefault = editModel.sendRequestIntervalDefault,
-            updateUseDefault = { editModel.sendRequestIntervalDefault = it },
-            value = editModel.sendRequestIntervalMs,
-            updateValue = { editModel.sendRequestIntervalMs = it },
-            errorRes = R.string.svc_request_interval_invalid.takeUnless { editModel.sendRequestIntervalValid },
-            tag = TAG_EDIT_REQUEST_INTERVAL,
-            modifier = modifier
-        )
-    }
+    )
 }
 
 /**
@@ -672,6 +618,33 @@ fun EditServiceDetailsPreview() {
         ),
         lookupTimeout = null,
         sendRequestInterval = 0.seconds
+    )
+    val serviceData = ServiceData(emptyList())
+    val editModel = ServiceEditModel(service)
+    editModel.validate()
+    val saveException = IllegalStateException("Could not save service.")
+    val detailsState = ServiceDetailsState(serviceData, 0, service, editMode = true, saveException)
+    val state = ServicesUiStateLoaded(detailsState)
+
+    WifiControlTheme {
+        ServiceDetailsScreenForState(state = state, { editModel }, {}, {}, {}, {}, {})
+    }
+}
+
+@Preview
+@Composable
+fun EditServiceWithUrlPreview() {
+    val service = PersistentService(
+        serviceDefinition = ServiceDefinition(
+            name = "URL Service",
+            addressMode = ServiceAddressMode.FIX_URL,
+            multicastAddress = "",
+            port = 0,
+            requestCode = "",
+            serviceUrl = "https:// not a URL"
+        ),
+        lookupTimeout = null,
+        sendRequestInterval = null
     )
     val serviceData = ServiceData(emptyList())
     val editModel = ServiceEditModel(service)
