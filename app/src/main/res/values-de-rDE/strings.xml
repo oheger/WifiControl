@@ -40,8 +40,6 @@
     <string name="svc_lab_request_interval">Intervall für Suchanfragen (ms)</string>
     <string name="svc_lookup_timeout_invalid">Geben Sie bitte eine Zahl größer 0 an für den Timeout in Sekunden.</string>
     <string name="svc_request_interval_invalid">Geben Sie bitter eine Zahl größer 0 an für das Intervall in Millisekunden.</string>
-    <string name="svc_tab_properties">Eigenschaften</string>
-    <string name="svc_tab_extended">Erweitert</string>
     <string name="svc_unit_sec">sek</string>
     <string name="svc_unit_ms">ms</string>
     <string name="svc_lab_url_provided">Dienst-URL bekannt</string>

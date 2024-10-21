@@ -163,8 +163,35 @@ class ServiceDetailsUiTest {
             TAG_EDIT_MULTICAST,
             TAG_EDIT_PORT,
             TAG_EDIT_CODE,
+            TAG_EDIT_SERVICE_URL,
             TAG_SHOW_LOOKUP_TIMEOUT,
-            TAG_SHOW_REQUEST_INTERVAL
+            TAG_SHOW_REQUEST_INTERVAL,
+            TAG_EDIT_URL_PROVIDED
+        ).forAll {
+            composeTestRule.onNodeWithTag(it).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun `The details of a service with provided URL should be displayed`() = runTest {
+        initService(serviceWithUrl)
+
+        composeTestRule.onNodeWithTag(TAG_SVC_TITLE).assertTextEquals(serviceWithUrl.serviceDefinition.name)
+        composeTestRule.onNodeWithTag(TAG_SHOW_NAME).assertTextEquals(serviceWithUrl.serviceDefinition.name)
+        composeTestRule.onNodeWithTag(TAG_SHOW_URL).assertTextEquals(serviceWithUrl.serviceDefinition.serviceUrl)
+
+        listOf(
+            TAG_EDIT_NAME,
+            TAG_EDIT_MULTICAST,
+            TAG_EDIT_PORT,
+            TAG_EDIT_CODE,
+            TAG_EDIT_SERVICE_URL,
+            TAG_SHOW_MULTICAST,
+            TAG_SHOW_PORT,
+            TAG_SHOW_CODE,
+            TAG_SHOW_LOOKUP_TIMEOUT,
+            TAG_SHOW_REQUEST_INTERVAL,
+            TAG_EDIT_URL_PROVIDED
         ).forAll {
             composeTestRule.onNodeWithTag(it).assertDoesNotExist()
         }
