@@ -69,6 +69,7 @@ internal const val TAG_SHOW_NAME = "svcShowName"
 internal const val TAG_SHOW_MULTICAST = "svcShowMulticast"
 internal const val TAG_SHOW_PORT = "svcShowPort"
 internal const val TAG_SHOW_CODE = "svcShowCode"
+internal const val TAG_SHOW_URL = "svcShowUrl"
 internal const val TAG_SHOW_LOOKUP_TIMEOUT = "svcShowLookupTimeout"
 internal const val TAG_SHOW_REQUEST_INTERVAL = "svcShowRequestInterval"
 
@@ -242,39 +243,64 @@ private fun ViewServiceDetails(service: PersistentService, modifier: Modifier) {
             tag = TAG_SHOW_NAME,
             modifier = modifier
         )
-        ServiceProperty(
-            labelRes = R.string.svc_lab_multicast,
-            value = service.serviceDefinition.multicastAddress,
-            tag = TAG_SHOW_MULTICAST,
-            modifier = modifier
-        )
-        ServiceProperty(
-            labelRes = R.string.svc_lab_port,
-            value = service.serviceDefinition.port.toString(),
-            tag = TAG_SHOW_PORT,
-            modifier = modifier
-        )
-        ServiceProperty(
-            labelRes = R.string.svc_lab_code,
-            value = service.serviceDefinition.requestCode,
-            tag = TAG_SHOW_CODE,
-            modifier = modifier
-        )
-        ServiceDurationProperty(
-            labelRes = R.string.svc_lab_lookup_timeout,
-            value = service.lookupTimeout?.inWholeSeconds,
-            unitRes = R.string.svc_unit_sec,
-            tag = TAG_SHOW_LOOKUP_TIMEOUT,
-            modifier = modifier
-        )
-        ServiceDurationProperty(
-            labelRes = R.string.svc_lab_request_interval,
-            value = service.sendRequestInterval?.inWholeMilliseconds,
-            unitRes = R.string.svc_unit_ms,
-            tag = TAG_SHOW_REQUEST_INTERVAL,
-            modifier = modifier
-        )
+
+        when(service.serviceDefinition.addressMode) {
+            ServiceAddressMode.WIFI_DISCOVERY -> ViewDiscoveryDetails(service, modifier)
+            ServiceAddressMode.FIX_URL -> ViewFixUrlProperties(service, modifier)
+        }
     }
+}
+
+/**
+ * Generate the UI with the service details related to discovery for the given [service].
+ */
+@Composable
+private fun ViewDiscoveryDetails(service: PersistentService, modifier: Modifier) {
+    ServiceProperty(
+        labelRes = R.string.svc_lab_multicast,
+        value = service.serviceDefinition.multicastAddress,
+        tag = TAG_SHOW_MULTICAST,
+        modifier = modifier
+    )
+    ServiceProperty(
+        labelRes = R.string.svc_lab_port,
+        value = service.serviceDefinition.port.toString(),
+        tag = TAG_SHOW_PORT,
+        modifier = modifier
+    )
+    ServiceProperty(
+        labelRes = R.string.svc_lab_code,
+        value = service.serviceDefinition.requestCode,
+        tag = TAG_SHOW_CODE,
+        modifier = modifier
+    )
+    ServiceDurationProperty(
+        labelRes = R.string.svc_lab_lookup_timeout,
+        value = service.lookupTimeout?.inWholeSeconds,
+        unitRes = R.string.svc_unit_sec,
+        tag = TAG_SHOW_LOOKUP_TIMEOUT,
+        modifier = modifier
+    )
+    ServiceDurationProperty(
+        labelRes = R.string.svc_lab_request_interval,
+        value = service.sendRequestInterval?.inWholeMilliseconds,
+        unitRes = R.string.svc_unit_ms,
+        tag = TAG_SHOW_REQUEST_INTERVAL,
+        modifier = modifier
+    )
+}
+
+/**
+ * Generate the UI with the service details related to the provided URL for the given [service].
+ */
+@Composable
+private fun ViewFixUrlProperties(service: PersistentService, modifier: Modifier) {
+    ServiceProperty(
+        labelRes = R.string.svc_lab_url,
+        value = service.serviceDefinition.serviceUrl,
+        tag = TAG_SHOW_URL,
+        modifier = modifier
+    )
 }
 
 /**
@@ -594,6 +620,30 @@ fun ViewServiceDetailsPreview() {
         ),
         lookupTimeout = null,
         sendRequestInterval = 50.milliseconds
+    )
+    val serviceData = ServiceData(emptyList())
+    val editModel = ServiceEditModel(service)
+    val state = ServicesUiStateLoaded(ServiceDetailsState(serviceData, 0, service, editMode = false))
+
+    WifiControlTheme {
+        ServiceDetailsScreenForState(state = state, { editModel }, {}, {}, {}, {}, {})
+    }
+}
+
+@Preview
+@Composable
+fun ViewServiceWithUrlDetailsPreview() {
+    val service = PersistentService(
+        serviceDefinition = ServiceDefinition(
+            name = "URL Service",
+            addressMode = ServiceAddressMode.FIX_URL,
+            multicastAddress = "",
+            port = 0,
+            requestCode = "",
+            serviceUrl = "https://192.168.21.22/test/index.htm"
+        ),
+        lookupTimeout = null,
+        sendRequestInterval = null
     )
     val serviceData = ServiceData(emptyList())
     val editModel = ServiceEditModel(service)
