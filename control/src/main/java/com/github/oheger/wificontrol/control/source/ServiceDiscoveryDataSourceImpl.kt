@@ -26,6 +26,7 @@ import com.github.oheger.wificontrol.domain.model.LookupInProgress
 import com.github.oheger.wificontrol.domain.model.LookupService
 import com.github.oheger.wificontrol.domain.model.LookupState
 import com.github.oheger.wificontrol.domain.model.LookupSucceeded
+import com.github.oheger.wificontrol.domain.model.ServiceAddressMode
 import com.github.oheger.wificontrol.repository.ds.ServiceDiscoveryDataSource
 
 import java.net.DatagramPacket
@@ -124,28 +125,9 @@ class ServiceDiscoveryDataSourceImpl @Inject constructor(
                 val lookupService = lookupServiceProvider()
                 Log.i(TAG, "Starting service discovery for '$serviceName'.")
 
-                // Use a temporary flow to receive notifications from UDP communication. These notifications are
-                // propagated to the actual lookupFlow, until a success state is received. Further events (that may
-                // be caused by ongoing UDP send operations) are then ignored.
-                val udpFlow = MutableSharedFlow<LookupState>(replay = 1)
-
-                val lookupResult = DatagramSocket().use { sendSocket ->
-                    DatagramSocket().use { receiveSocket ->
-                        launch {
-                            udpFlow.transformWhile { state ->
-                                emit(state)
-                                lookupFlow.emit(state)
-                                state is LookupInProgress
-                            }.collect {}
-                        }
-                        val udpJob = launch { udpCommunication(lookupService, sendSocket, receiveSocket, udpFlow) }
-
-                        withTimeoutOrNull(lookupService.lookupConfig.lookupTimeout) {
-                            lookupFlow.first { it is LookupSucceeded }
-                        }.also {
-                            udpJob.cancel()
-                        }
-                    }
+                val lookupResult = when (lookupService.service.addressMode) {
+                    ServiceAddressMode.WIFI_DISCOVERY -> discoverServiceAddressViaUdp(lookupFlow, lookupService)
+                    ServiceAddressMode.FIX_URL -> discoverServiceAddressFromFixUrl(lookupFlow, lookupService)
                 }
 
                 if (lookupResult != null) {
@@ -166,6 +148,42 @@ class ServiceDiscoveryDataSourceImpl @Inject constructor(
         }
 
         return DiscoveryState(discoveryJob, lookupFlow)
+    }
+
+    /**
+     * Try to discover the address of the given [lookupService] by sending a UDP multicast request. Use the given
+     * [lookupFlow] to send update notifications about the current lookup state. Return the final [LookupState] or
+     * *null* if a timeout is reached.
+     */
+    private suspend fun discoverServiceAddressViaUdp(
+        lookupFlow: MutableSharedFlow<LookupState>,
+        lookupService: LookupService
+    ): LookupState? {
+        // Use a temporary flow to receive notifications from UDP communication. These notifications are
+        // propagated to the actual lookupFlow, until a success state is received. Further events (that may
+        // be caused by ongoing UDP send operations) are then ignored.
+        val udpFlow = MutableSharedFlow<LookupState>(replay = 1)
+
+        return withContext(Dispatchers.IO) {
+            DatagramSocket().use { sendSocket ->
+                DatagramSocket().use { receiveSocket ->
+                    scope.launch {
+                        udpFlow.transformWhile { state ->
+                            this.emit(state)
+                            lookupFlow.emit(state)
+                            state is LookupInProgress
+                        }.collect {}
+                    }
+                    val udpJob = scope.launch { udpCommunication(lookupService, sendSocket, receiveSocket, udpFlow) }
+
+                    withTimeoutOrNull(lookupService.lookupConfig.lookupTimeout) {
+                        lookupFlow.first { it is LookupSucceeded }
+                    }.also {
+                        udpJob.cancel()
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -219,6 +237,20 @@ class ServiceDiscoveryDataSourceImpl @Inject constructor(
             }
         }
     }
+
+    /**
+     * Handle a trivial lookup operation for the given [lookupService] that uses a provided URL. Send the result via
+     * the given [lookupFlow].
+     */
+    private suspend fun discoverServiceAddressFromFixUrl(
+        lookupFlow: MutableSharedFlow<LookupState>,
+        lookupService: LookupService
+    ): LookupState? =
+        lookupService.service.serviceUrl.takeIf(::isValidUri)?.let { serviceUrl ->
+            LookupSucceeded(serviceUrl).also {
+                lookupFlow.emit(it)
+            }
+        }
 }
 
 /**

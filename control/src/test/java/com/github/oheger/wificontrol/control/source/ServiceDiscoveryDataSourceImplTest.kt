@@ -36,6 +36,8 @@ import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.ints.shouldBeLessThan
 import io.kotest.matchers.shouldBe
 
+import io.mockk.mockk
+
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.MulticastSocket
@@ -211,6 +213,42 @@ class ServiceDiscoveryDataSourceImplTest : WordSpec() {
                 }
 
                 cachedFlow.first() shouldBe LookupSucceeded(SERVER_URI)
+            }
+
+            "handle a service with a provided URL" {
+                val serviceDefinition = ServiceDefinition(
+                    name = SERVICE_NAME,
+                    addressMode = ServiceAddressMode.FIX_URL,
+                    multicastAddress = "",
+                    port = 0,
+                    requestCode = "",
+                    serviceUrl = SERVER_URI
+                )
+                val source = createSource()
+
+                val stateFlow = source.discoverService(SERVICE_NAME) {
+                    LookupService(serviceDefinition, mockk())
+                }
+
+                stateFlow.first() shouldBe LookupSucceeded(SERVER_URI)
+            }
+
+            "handle a service with a provided URL that is invalid" {
+                val serviceDefinition = ServiceDefinition(
+                    name = SERVICE_NAME,
+                    addressMode = ServiceAddressMode.FIX_URL,
+                    multicastAddress = "",
+                    port = 0,
+                    requestCode = "",
+                    serviceUrl = "?!This is not a valid URL!?"
+                )
+                val source = createSource()
+
+                val stateFlow = source.discoverService(SERVICE_NAME) {
+                    LookupService(serviceDefinition, mockk())
+                }
+
+                stateFlow.first() shouldBe LookupFailed
             }
         }
 
