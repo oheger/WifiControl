@@ -186,14 +186,14 @@ private fun NavigationActions(
     if (uiState is ShowService) {
         NavigationAction(
             serviceName = uiState.previousServiceName,
-            vector = Icons.Filled.KeyboardArrowDown,
+            vector = Icons.Filled.KeyboardArrowUp,
             onClick = onNavigationClick,
             tag = TAG_BTN_NAV_PREVIOUS,
             modifier = modifier
         )
         NavigationAction(
             serviceName = uiState.nextServiceName,
-            vector = Icons.Filled.KeyboardArrowUp,
+            vector = Icons.Filled.KeyboardArrowDown,
             onClick = onNavigationClick,
             tag = TAG_BTN_NAV_NEXT,
             modifier = modifier
