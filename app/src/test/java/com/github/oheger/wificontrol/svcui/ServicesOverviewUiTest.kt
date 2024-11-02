@@ -21,6 +21,7 @@ package com.github.oheger.wificontrol.svcui
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -184,61 +185,65 @@ class ServicesOverviewUiTest {
     @Test
     fun `An action to move down a service is available`() = runTest {
         val data = initServiceData(createServiceData(2))
+        val serviceName = data.services.first().serviceDefinition.name
 
-        composeTestRule.onNodeWithTag(serviceTag(data.services.first().serviceDefinition.name, TAG_ACTION_DOWN))
-            .performClick()
+        composeTestRule.triggerAction(serviceName, TAG_ACTION_DOWN)
         val savedData = expectStoredData()
 
         savedData.services shouldContainExactly listOf(data.services[1], data.services[0])
+        composeTestRule.assertNoActionMenu(serviceName, TAG_ACTION_DOWN)
     }
 
     @Test
     fun `An action to move down a service is not displayed for the last element`() = runTest {
         val data = initServiceData(createServiceData(1))
+        val serviceName = data.services.first().serviceDefinition.name
 
-        composeTestRule.onNodeWithTag(serviceTag(data.services.first().serviceDefinition.name, TAG_ACTION_DOWN))
-            .assertDoesNotExist()
+        composeTestRule.actionMenu(serviceName)
+        composeTestRule.onNodeWithTag(serviceTag(serviceName, TAG_ACTION_DOWN)).assertDoesNotExist()
     }
 
     @Test
     fun `An action to move up a service is available`() = runTest {
         val data = initServiceData(createServiceData(2))
+        val serviceName = data.services[1].serviceDefinition.name
 
-        composeTestRule.onNodeWithTag(serviceTag(data.services[1].serviceDefinition.name, TAG_ACTION_UP))
-            .performClick()
+        composeTestRule.triggerAction(serviceName, TAG_ACTION_UP)
         val savedData = expectStoredData()
 
         savedData.services shouldContainExactly listOf(data.services[1], data.services[0])
+        composeTestRule.assertNoActionMenu(serviceName, TAG_ACTION_UP)
     }
 
     @Test
     fun `An action to move up a service is not displayed for the first element`() = runTest {
         val data = initServiceData(createServiceData(2))
+        val serviceName = data.services.first().serviceDefinition.name
 
-        composeTestRule.onNodeWithTag(serviceTag(data.services.first().serviceDefinition.name, TAG_ACTION_UP))
-            .assertDoesNotExist()
+        composeTestRule.actionMenu(serviceName)
+        composeTestRule.onNodeWithTag(serviceTag(serviceName, TAG_ACTION_UP)).assertDoesNotExist()
     }
 
     @Test
     fun `An action to delete a service is available with a confirmation dialog`() = runTest {
         val data = initServiceData(createServiceData(3))
+        val serviceName = data.services[0].serviceDefinition.name
 
-        composeTestRule.onNodeWithTag(serviceTag(data.services[0].serviceDefinition.name, TAG_ACTION_REMOVE))
-            .performClick()
+        composeTestRule.triggerAction(serviceName, TAG_ACTION_REMOVE)
         composeTestRule.onNodeWithTag(TAG_BTN_DELETE_CONFIRM).performClick()
 
         val savedData = expectStoredData()
         savedData.services shouldContainExactly listOf(data.services[1], data.services[2])
 
         composeTestRule.onNodeWithTag(TAG_BTN_DELETE_CONFIRM).assertDoesNotExist()
+        composeTestRule.assertNoActionMenu(serviceName, TAG_ACTION_REMOVE)
     }
 
     @Test
     fun `The action to delete a service can be canceled in the confirmation dialog`() = runTest {
         val data = initServiceData(createServiceData(3))
 
-        composeTestRule.onNodeWithTag(serviceTag(data.services[0].serviceDefinition.name, TAG_ACTION_REMOVE))
-            .performClick()
+        composeTestRule.triggerAction(data.services[0].serviceDefinition.name, TAG_ACTION_REMOVE)
         composeTestRule.onNodeWithTag(TAG_BTN_DELETE_CANCEL).performClick()
 
         composeTestRule.onNodeWithTag(TAG_BTN_DELETE_CANCEL).assertDoesNotExist()
@@ -249,16 +254,16 @@ class ServicesOverviewUiTest {
 
     @Test
     fun `An action to go to service details is available`() = runTest {
-        val serviceIndex = 3
         val data = initServiceData(createServiceData(5))
+        val serviceIndex = 3
+        val serviceName = data.services[serviceIndex].serviceDefinition.name
 
-        composeTestRule
-            .onNodeWithTag(serviceTag(data.services[serviceIndex].serviceDefinition.name, TAG_ACTION_DETAILS))
-            .performClick()
+        composeTestRule.triggerAction(serviceName, TAG_ACTION_DETAILS)
 
         verify {
             navController.navigate("services/$serviceIndex")
         }
+        composeTestRule.assertNoActionMenu(serviceName, TAG_ACTION_DETAILS)
     }
 
     @Test
@@ -290,8 +295,7 @@ class ServicesOverviewUiTest {
         every { storeDataUseCase.execute(any()) } returns flowOf(Result.failure(exception))
         val data = initServiceData(createServiceData(4))
 
-        composeTestRule.onNodeWithTag(serviceTag(data.services[0].serviceDefinition.name, TAG_ACTION_REMOVE))
-            .performClick()
+        composeTestRule.triggerAction(data.services[0].serviceDefinition.name, TAG_ACTION_REMOVE)
         composeTestRule.onNodeWithTag(TAG_BTN_DELETE_CONFIRM).performClick()
         expectStoredData()
 
@@ -402,4 +406,27 @@ private fun createService(index: Int): PersistentService {
 private fun createServiceData(serviceCount: Int): ServiceData {
     val services = (1..serviceCount).map(::createService)
     return ServiceData(services)
+}
+
+/**
+ * Open the context menu to show the actions for the service with the given [serviceName].
+ */
+private fun ComposeTestRule.actionMenu(serviceName: String) {
+    onNodeWithTag(serviceTag(serviceName, TAG_ACTION_MENU)).performClick()
+}
+
+/**
+ * Trigger the action with the given [actionTag] from the context menu of the service with the given [serviceName].
+ */
+private fun ComposeTestRule.triggerAction(serviceName: String, actionTag: String) {
+    actionMenu(serviceName)
+    onNodeWithTag(serviceTag(serviceName, actionTag), useUnmergedTree = true).performClick()
+}
+
+/**
+ * Check whether there is no context menu entry displayed for the service with the given [serviceName] and the action
+ * with the given [actionTag].
+ */
+private fun ComposeTestRule.assertNoActionMenu(serviceName: String, actionTag: String) {
+    onNodeWithTag(serviceTag(serviceName, actionTag), useUnmergedTree = true).assertDoesNotExist()
 }

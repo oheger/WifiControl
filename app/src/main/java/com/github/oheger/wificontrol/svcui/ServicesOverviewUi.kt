@@ -21,6 +21,7 @@ package com.github.oheger.wificontrol.svcui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,9 +29,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.AlertDialog
+import androidx.compose.material.DropdownMenu
+import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
@@ -43,12 +47,14 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -72,6 +78,7 @@ internal const val TAG_SERVICE_NAME = "svcName"
 internal const val TAG_ACTION_CREATE = "actCreate"
 internal const val TAG_ACTION_DETAILS = "actDetails"
 internal const val TAG_ACTION_DOWN = "actDown"
+internal const val TAG_ACTION_MENU = "actMenu"
 internal const val TAG_ACTION_REMOVE = "actRemove"
 internal const val TAG_ACTION_UP = "actUp"
 internal const val TAG_BTN_DELETE_CONFIRM = "svcBtnDeleteConfirm"
@@ -211,6 +218,8 @@ fun ServicesList(
 ) {
     val confirmDeleteService = remember { mutableStateOf<String?>(null) }
     val deleteServiceName = confirmDeleteService.value
+    val serviceContextMenu = remember { mutableStateOf<String?>(null) }
+
     if (deleteServiceName != null) {
         ServiceDeleteConfirmation(
             deleteServiceName,
@@ -256,6 +265,8 @@ fun ServicesList(
                         onMoveUpClick,
                         onMoveDownClick,
                         onRemoveClick = { confirmDeleteService.value = it },
+                        serviceMenu = serviceContextMenu.value,
+                        updateServiceMenu = { serviceContextMenu.value = it },
                         modifier
                     )
                 }
@@ -272,8 +283,10 @@ fun ServicesList(
 
 /**
  * Generate the actions for the service with the given [serviceName] and [index] in the list of services, taking the
- * position of this service into account as given by [isFirst], and [isLast]. The actions are represented by
- * clickable icons. Clicks on these icons are propagated via callback functions.
+ * position of this service into account as given by [isFirst], and [isLast]. The actions are contained in a context
+ * menu for this service. The given [serviceMenu] defines the service for which the menu is currently open (if any).
+ * Via the given [updateServiceMenu] function, this can be changed (typically to hide the menu again). When an action
+ * is triggered, this is propagated via callback functions.
  */
 @Composable
 fun ServiceActions(
@@ -285,56 +298,92 @@ fun ServiceActions(
     onMoveUpClick: (String) -> Unit,
     onMoveDownClick: (String) -> Unit,
     onRemoveClick: (String) -> Unit,
+    serviceMenu: String?,
+    updateServiceMenu: (String?) -> Unit,
     modifier: Modifier
 ) {
+    fun <T> actionClick(value: T, handler: (T) -> Unit): () -> Unit = {
+        updateServiceMenu(null)
+        handler(value)
+    }
+
     Row(
         horizontalArrangement = Arrangement.SpaceAround
     ) {
-        if (!isFirst) {
-            ServiceAction(
-                image = Icons.Filled.KeyboardArrowUp,
-                onClick = { onMoveUpClick(serviceName) },
-                tag = serviceTag(serviceName, TAG_ACTION_UP),
-                modifier = modifier
-            )
-        }
-        if (!isLast) {
-            ServiceAction(
-                image = Icons.Filled.KeyboardArrowDown,
-                onClick = { onMoveDownClick(serviceName) },
-                tag = serviceTag(serviceName, TAG_ACTION_DOWN),
-                modifier = modifier
-            )
-        }
-        ServiceAction(
-            image = Icons.Filled.Search,
-            onClick = { onDetailsClick(index) },
-            tag = serviceTag(serviceName, TAG_ACTION_DETAILS),
+        Box(
             modifier = modifier
-        )
-        ServiceAction(
-            image = Icons.Filled.Delete,
-            onClick = { onRemoveClick(serviceName) },
-            tag = serviceTag(serviceName, TAG_ACTION_REMOVE),
-            modifier = modifier
-        )
+                .fillMaxWidth()
+                .wrapContentSize(align = Alignment.TopEnd)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.MoreVert,
+                contentDescription = null,
+                modifier = modifier
+                    .testTag(serviceTag(serviceName, TAG_ACTION_MENU))
+                    .size(34.dp)
+                    .clickable(onClick = { updateServiceMenu(serviceName) })
+            )
+
+            DropdownMenu(
+                expanded = serviceMenu == serviceName,
+                onDismissRequest = { updateServiceMenu(null) }
+            ) {
+                if (!isFirst) {
+                    ServiceAction(
+                        image = Icons.Filled.KeyboardArrowUp,
+                        textRes = R.string.svc_act_move_up,
+                        onClick = actionClick(serviceName, onMoveUpClick),
+                        tag = serviceTag(serviceName, TAG_ACTION_UP),
+                        modifier = modifier
+                    )
+                }
+                if (!isLast) {
+                    ServiceAction(
+                        image = Icons.Filled.KeyboardArrowDown,
+                        textRes = R.string.svc_act_move_down,
+                        onClick = actionClick(serviceName, onMoveDownClick),
+                        tag = serviceTag(serviceName, TAG_ACTION_DOWN),
+                        modifier = modifier
+                    )
+                }
+                ServiceAction(
+                    image = Icons.Filled.Search,
+                    textRes = R.string.svc_act_details,
+                    onClick = actionClick(index, onDetailsClick),
+                    tag = serviceTag(serviceName, TAG_ACTION_DETAILS),
+                    modifier = modifier
+                )
+                ServiceAction(
+                    image = Icons.Filled.Delete,
+                    textRes = R.string.svc_act_delete,
+                    onClick = actionClick(serviceName, onRemoveClick),
+                    tag = serviceTag(serviceName, TAG_ACTION_REMOVE),
+                    modifier = modifier
+                )
+            }
+        }
     }
 }
 
 /**
- * Generate an icon with the given [image] to represent an action to modify a service. Use the given [onClick]
- * function to report clicks and set the given [tag] to support testing.
+ * Generate a component to represent an action for a service with the given [image] and [textRes]. Use the given
+ * [onClick] function to report clicks and set the given [tag] to support testing.
  */
 @Composable
-private fun ServiceAction(image: ImageVector, onClick: () -> Unit, tag: String, modifier: Modifier) {
-    Icon(
-        image,
-        contentDescription = null,
+private fun ServiceAction(image: ImageVector, textRes: Int, onClick: () -> Unit, tag: String, modifier: Modifier) {
+    DropdownMenuItem(
+        onClick = onClick,
         modifier = modifier
-            .testTag(tag)
-            .size(34.dp)
-            .clickable(onClick = onClick)
-    )
+    ) {
+        Row {
+            Icon(
+                image,
+                contentDescription = null,
+                modifier = modifier.testTag(tag)
+            )
+            Text(text = stringResource(textRes), modifier = modifier)
+        }
+    }
 }
 
 /**

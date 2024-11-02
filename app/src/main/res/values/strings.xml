@@ -46,4 +46,8 @@
     <string name="svc_lab_url_provided">Service URL known</string>
     <string name="svc_lab_url">Service URL</string>
     <string name="svc_url_invalid">Please enter a valid URL under which the service can be reached.</string>
+    <string name="svc_act_move_up">Move up</string>
+    <string name="svc_act_move_down">Move down</string>
+    <string name="svc_act_details">Details…</string>
+    <string name="svc_act_delete">Delete</string>
 </resources>
