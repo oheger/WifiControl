@@ -18,7 +18,6 @@
  */
 package com.github.oheger.wificontrol.svcui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,6 +32,7 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.AlertDialog
+import androidx.compose.material.Divider
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.FloatingActionButton
@@ -242,15 +242,14 @@ fun ServicesList(
 
         LazyColumn(modifier = modifier.fillMaxWidth()) {
             items(services.withIndex().toList()) { (index, service) ->
-                val color = if (index % 2 == 0) MaterialTheme.colors.surface else MaterialTheme.colors.secondary
+                val lastItem = index >= services.size - 1
                 Row(
                     modifier = modifier
-                        .background(color)
                         .padding(top = 8.dp, bottom = 8.dp)
                 ) {
                     Text(
                         text = service.serviceDefinition.name,
-                        fontSize = 24.sp,
+                        fontSize = 28.sp,
                         modifier = Modifier
                             .clickable { onServiceClick(service.serviceDefinition.name) }
                             .testTag(serviceTag(service.serviceDefinition.name, TAG_SERVICE_NAME))
@@ -260,7 +259,7 @@ fun ServicesList(
                         service.serviceDefinition.name,
                         index,
                         index == 0,
-                        index >= services.size - 1,
+                        lastItem,
                         onDetailsClick,
                         onMoveUpClick,
                         onMoveDownClick,
@@ -268,6 +267,14 @@ fun ServicesList(
                         serviceMenu = serviceContextMenu.value,
                         updateServiceMenu = { serviceContextMenu.value = it },
                         modifier
+                    )
+                }
+
+                if (!lastItem) {
+                    Divider(
+                        color = MaterialTheme.colors.primary,
+                        thickness = 0.5.dp,
+                        modifier = modifier.padding(top = 5.dp, bottom = 5.dp)
                     )
                 }
             }
