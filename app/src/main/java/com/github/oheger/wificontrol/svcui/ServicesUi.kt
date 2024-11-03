@@ -24,11 +24,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
@@ -88,7 +88,7 @@ fun ServicesError(exception: Throwable, modifier: Modifier) {
     ) {
         Text(
             text = stringResource(id = R.string.svc_load_error_title),
-            color = Color.Red,
+            color = MaterialTheme.colors.error,
             fontSize = 30.sp,
             modifier = modifier
                 .testTag(TAG_ERROR_HEADER)
@@ -97,12 +97,12 @@ fun ServicesError(exception: Throwable, modifier: Modifier) {
         )
         Text(
             text = stringResource(id = R.string.svc_load_error_details),
-            color = Color.Red,
+            color = MaterialTheme.colors.error,
             modifier = modifier.padding(bottom = 16.dp)
         )
         Text(
             text = exception.toString(),
-            color = Color.Red,
+            color = MaterialTheme.colors.error,
             fontStyle = FontStyle.Italic,
             modifier = modifier.testTag(TAG_ERROR_MSG)
         )
@@ -132,12 +132,12 @@ fun ServicesScreenWithSaveError(
              Spacer(modifier = modifier.weight(1.0f, fill = true))
             Text(
                 text = stringResource(id = errorHintRes),
-                color = Color.Red,
+                color = MaterialTheme.colors.error,
                 modifier = modifier.testTag(TAG_SAVE_ERROR)
             )
             Text(
                 text = error.toString(),
-                color = Color.Red,
+                color = MaterialTheme.colors.error,
                 fontStyle = FontStyle.Italic,
                 modifier = modifier.testTag(TAG_SAVE_ERROR_MSG)
             )
