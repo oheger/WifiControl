@@ -1,3 +1,21 @@
+/*
+ * Copyright 2023-2024 Oliver Heger.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License")
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ * License-Filename: LICENSE
+ */
 package com.github.oheger.wificontrol.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -6,27 +24,23 @@ import androidx.compose.material.darkColors
 import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
 
+/** Color palette if dark mode is enabled. */
 private val DarkColorPalette = darkColors(
-        primary = Purple200,
-        primaryVariant = Purple700,
-        secondary = Teal200
+    primary = LightBlue,
+    background = VeryDarkGray,
+    surface = DarkerGray,
+    onBackground = LighterBlue,
+    onSurface = Blue200
 )
 
+/** Color palette in light mode. */
 private val LightColorPalette = lightColors(
-        primary = Purple500,
-        primaryVariant = Purple700,
-        secondary = Teal200
-
-        /* Other default colors to override
-    background = Color.White,
-    surface = Color.White,
-    onPrimary = Color.White,
-    onSecondary = Color.Black,
-    onBackground = Color.Black,
-    onSurface = Color.Black,
-    */
+    primary = Indigo900
 )
 
+/**
+ * Apply the application theme to [content], based on the given [darkTheme] flag.
+ */
 @Composable
 fun WifiControlTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     val colors = if (darkTheme) {
@@ -36,9 +50,7 @@ fun WifiControlTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Compo
     }
 
     MaterialTheme(
-            colors = colors,
-            typography = Typography,
-            shapes = Shapes,
-            content = content
+        colors = colors,
+        content = content
     )
 }
