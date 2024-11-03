@@ -37,8 +37,8 @@
     <string name="svc_port_invalid">This must be a valid port number in the range of 0 to 65535.</string>
     <string name="svc_code_invalid">The request code must be a non-empty string without leading or trailing whitespace.</string>
     <string name="svc_use_default">Use default</string>
-    <string name="svc_lab_lookup_timeout">Service discovery timeout (s)</string>
-    <string name="svc_lab_request_interval">Interval for search requests (ms)</string>
+    <string name="svc_lab_lookup_timeout">Service discovery timeout</string>
+    <string name="svc_lab_request_interval">Interval for search requests</string>
     <string name="svc_lookup_timeout_invalid">Please enter a number greater than 0 for the timeout in seconds.</string>
     <string name="svc_request_interval_invalid">Please enter a number greater than 0 for the interval in milliseconds.</string>
     <string name="svc_unit_sec">sec</string>
@@ -50,4 +50,11 @@
     <string name="svc_act_move_down">Move down</string>
     <string name="svc_act_details">Details…</string>
     <string name="svc_act_delete">Delete</string>
+    <string name="svc_help_multicast">The multicast UDP address under which the service listens for discovery requests.</string>
+    <string name="svc_help_port">The port number on which the service listens for discovery requests.</string>
+    <string name="svc_help_code">The code expected by the service in discovery requests.</string>
+    <string name="svc_help_timeout">A timeout (in seconds) for discovery operations. If no response is received from the service within this time, the discovery operation is considered as failed.</string>
+    <string name="svc_help_request_interval">The interval in which discovery requests are sent to the service. This is repeated until an answer from the service is received or the timeout is reached.</string>
+    <string name="svc_help_url">The URL under which the service\'s control UI can be accessed.</string>
+    <string name="svc_help_address_mode">Defines whether the service URL is known beforehand or needs to be discovered on each restart.</string>
 </resources>

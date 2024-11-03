@@ -36,8 +36,8 @@
     <string name="svc_port_invalid">Dies muss eine gültige Port-Nummer im Bereich von 0 bis 65535 sein.</string>
     <string name="svc_code_invalid">Der Request Code muss ein nicht leerer Text ohne führende und schließende Leerzeichen sein.</string>
     <string name="svc_use_default">Vorgabe verwenden</string>
-    <string name="svc_lab_lookup_timeout">Timeout für Suche des Diensts (sek)</string>
-    <string name="svc_lab_request_interval">Intervall für Suchanfragen (ms)</string>
+    <string name="svc_lab_lookup_timeout">Timeout für Suche des Diensts</string>
+    <string name="svc_lab_request_interval">Intervall für Suchanfragen</string>
     <string name="svc_lookup_timeout_invalid">Geben Sie bitte eine Zahl größer 0 an für den Timeout in Sekunden.</string>
     <string name="svc_request_interval_invalid">Geben Sie bitter eine Zahl größer 0 an für das Intervall in Millisekunden.</string>
     <string name="svc_unit_sec">sek</string>
@@ -49,4 +49,11 @@
     <string name="svc_act_move_down">Nach unten</string>
     <string name="svc_act_details">Details…</string>
     <string name="svc_act_delete">Löschen</string>
+    <string name="svc_help_multicast">Die Multicast Addresse, an der der Dienst für Suchanfragen lauscht.</string>
+    <string name="svc_help_port">Die Port-Nummer, an der der Dienst für Suchanfragen lauscht.</string>
+    <string name="svc_help_code">Der Code, den der Dienst in Suchanfragen erwartet.</string>
+    <string name="svc_help_timeout">Eine Zeitüberschreitung für Suchanfragen (in Sekunden). Wenn der Dienst innerhalb dieser Zeit keine Antwort sendet, schlägt die Suchoperation fehl.</string>
+    <string name="svc_help_request_interval">Das Intervall, in dem Suchanfragen an den Dienst geschickt werden. Das passiert solange, bis der Dienst antwortet oder die Zeitüberschreitung erreicht wird.</string>
+    <string name="svc_help_url">Die URL unter der die Oberfläche zur Steuerung des Dienstes zu erreichen ist.</string>
+    <string name="svc_help_address_mode">Legt fest, ob die URL des Dienstes bereits bekannt ist oder nach jedem Neustart über eine Suchoperation ermittelt werden muss.</string>
 </resources>

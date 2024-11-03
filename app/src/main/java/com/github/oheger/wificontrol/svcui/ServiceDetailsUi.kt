@@ -332,7 +332,7 @@ private fun EditServiceDetails(
             tag = TAG_EDIT_NAME,
             modifier = modifier
         )
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.padding(top = 15.dp)) {
             PropertyLabel(R.string.svc_lab_url_provided, modifier)
             Spacer(modifier = modifier.weight(1f))
             Switch(
@@ -341,6 +341,7 @@ private fun EditServiceDetails(
                 modifier = modifier.testTag(tag = TAG_EDIT_URL_PROVIDED)
             )
         }
+        HelpText(R.string.svc_help_address_mode, modifier)
 
         if (editModel.isServiceUrlProvided) {
             EditFixUrlProperties(editModel, modifier)
@@ -383,6 +384,7 @@ private fun EditDiscoveryProperties(editModel: ServiceEditModel, modifier: Modif
         updateValue = { editModel.multicastAddress = it },
         errorRes = R.string.svc_address_invalid.takeUnless { editModel.multicastAddressValid },
         tag = TAG_EDIT_MULTICAST,
+        helpRes = R.string.svc_help_multicast,
         modifier = modifier
     )
     EditServiceProperty(
@@ -392,6 +394,7 @@ private fun EditDiscoveryProperties(editModel: ServiceEditModel, modifier: Modif
         updateValue = { editModel.port = it },
         errorRes = R.string.svc_port_invalid.takeUnless { editModel.portValid },
         tag = TAG_EDIT_PORT,
+        helpRes = R.string.svc_help_port,
         modifier = modifier
     )
     EditServiceProperty(
@@ -401,6 +404,7 @@ private fun EditDiscoveryProperties(editModel: ServiceEditModel, modifier: Modif
         updateValue = { editModel.code = it },
         errorRes = R.string.svc_code_invalid.takeUnless { editModel.codeValid },
         tag = TAG_EDIT_CODE,
+        helpRes = R.string.svc_help_code,
         modifier = modifier
     )
     EditServicePropertyWithDefault(
@@ -412,6 +416,7 @@ private fun EditDiscoveryProperties(editModel: ServiceEditModel, modifier: Modif
         updateValue = { editModel.lookupTimeoutSec = it },
         errorRes = R.string.svc_lookup_timeout_invalid.takeUnless { editModel.lookupTimeoutValid },
         tag = TAG_EDIT_LOOKUP_TIMEOUT,
+        helpRes = R.string.svc_help_timeout,
         modifier = modifier
     )
     EditServicePropertyWithDefault(
@@ -423,6 +428,7 @@ private fun EditDiscoveryProperties(editModel: ServiceEditModel, modifier: Modif
         updateValue = { editModel.sendRequestIntervalMs = it },
         errorRes = R.string.svc_request_interval_invalid.takeUnless { editModel.sendRequestIntervalValid },
         tag = TAG_EDIT_REQUEST_INTERVAL,
+        helpRes = R.string.svc_help_request_interval,
         modifier = modifier
     )
 }
@@ -496,7 +502,7 @@ private fun ServiceDurationProperty(labelRes: Int, value: Long?, unitRes: Int, t
  * [resource ID][labelRes], and a text field displaying the given [value] and using the [updateValue] function to
  * propagate changes. The input can be edited with a keyboard corresponding to the provided [keyboardOptions]. If the
  * user input is invalid, a resource ID with a corresponding error message is provided in [errorRes]; then display this
- * message. Assign the given [tag] to the edit text field.
+ * message. Assign the given [tag] to the edit text field. Display an optional help text as defined by [helpRes].
  */
 @Composable
 private fun EditServiceProperty(
@@ -506,6 +512,7 @@ private fun EditServiceProperty(
     updateValue: (String) -> Unit,
     errorRes: Int?,
     tag: String,
+    helpRes: Int? = null,
     modifier: Modifier
 ) {
     Column(
@@ -514,7 +521,8 @@ private fun EditServiceProperty(
             .padding(top = 15.dp)
     ) {
         PropertyLabel(labelRes = labelRes, modifier = modifier)
-        EditField(keyboardOptions, value, updateValue, errorRes, tag, modifier)
+        HelpText(helpRes, modifier)
+        EditField(keyboardOptions, value, updateValue, errorRes, tag, modifier.padding(top = 5.dp))
     }
 }
 
@@ -533,6 +541,7 @@ private fun EditServicePropertyWithDefault(
     updateValue: (String) -> Unit,
     errorRes: Int?,
     tag: String,
+    helpRes: Int?,
     modifier: Modifier
 ) {
     Column(
@@ -541,6 +550,7 @@ private fun EditServicePropertyWithDefault(
             .padding(top = 15.dp)
     ) {
         PropertyLabel(labelRes = labelRes, modifier = modifier)
+        HelpText(helpRes, modifier)
         Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.padding(start = PROPERTY_INDENT.dp)) {
             Text(stringResource(R.string.svc_use_default))
             Spacer(modifier = modifier.weight(1f))
@@ -554,6 +564,21 @@ private fun EditServicePropertyWithDefault(
         if (!useDefault) {
             EditField(keyboardOptions, value, updateValue, errorRes, tag, modifier)
         }
+    }
+}
+
+/**
+ * Generate an optional help text based on the given [string resource][helpRes].
+ */
+@Composable
+private fun HelpText(helpRes: Int?, modifier: Modifier) {
+    helpRes?.let {
+        Text(
+            text = stringResource(it),
+            fontSize = 12.sp,
+            lineHeight = 15.sp,
+            modifier = modifier.padding(start = PROPERTY_INDENT.dp)
+        )
     }
 }
 
@@ -721,6 +746,7 @@ fun EditServicePropertyWithDefaultPreview() {
             updateValue = {},
             errorRes = R.string.svc_lookup_timeout_invalid,
             tag = TAG_EDIT_LOOKUP_TIMEOUT,
+            helpRes = R.string.svc_help_timeout,
             modifier = Modifier
         )
     }
