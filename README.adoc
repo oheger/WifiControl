@@ -10,7 +10,7 @@ toc::[]
 == Synopsis
 Wi-Fi Control targets hobbyists and SmartHome enthusiasts who run services (such as IoT applications or media servers) in their home network. A _service_ in this context is an application running on a computer reachable via the Wi-Fi. For interaction, the application exposes a control UI on a defined URL. Wi-Fi Control can be used to manage such services by creating corresponding service definitions in the app. It then accesses the services via their URLs and opens their control UIs in a Web view control. That way, users can interact with these services via their smartphone; it is not necessary that the computers running the services are connected to input or output devices like a keyboard or a monitor.
 
-The URL of a service can either be fix; in this case it can be hard-coded in the service definition. Alternatively, an auto-discovery mechanism is available. Wi-Fi Control then tries to discover the service URL automatically using a proprietary protocol based on https://en.wikipedia.org/wiki/User_Datagram_Protocol[UDP] requests. This is especially useful if https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol[DHCP] is used, and IP addresses or URLs can change dynamically.
+The URL of a service can either be fix; in this case it can be hard-coded in the service definition. Alternatively, an link:docs/Discovery.adoc[auto-discovery mechanism] is available. Wi-Fi Control then tries to discover the service URL automatically using a proprietary protocol based on https://en.wikipedia.org/wiki/User_Datagram_Protocol[UDP] requests. This is especially useful if https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol[DHCP] is used, and IP addresses or URLs can change dynamically.
 
 The original use case for this app was an audio player application running on a https://www.raspberrypi.com/[Raspberry Pi]. The tiny computer should be placed somewhere in the background where no space was available for a screen or a keyboard. So, how could users interact with the player software? The solution was to expose the player functionality via a Web UI which could be used from a smartphone.
 
@@ -50,7 +50,7 @@ Each service must have a unique name; this name is displayed in the <<use_case_l
 The remaining input fields determine how the control UI of this service needs to be accessed. There are two options:
 
 * If the service URL is fix, the `Service URL known` checkbox should be enabled. It is then possible to enter the URL directly in a corresponding field.
-* If the service URL needs to be discovered dynamically, the user has to enter the parameters of the discovery operation. These are the following (refer to the documentation of the discovery protocol for further details):
+* If the service URL needs to be discovered dynamically, the user has to enter the parameters of the discovery operation. These are the following (refer to the documentation of the link:docs/Discovery.adoc[discovery protocol] for further details):
 ** `Multicast address` defines the UDP multicast address of the service's discovery endpoint.
 ** `Port` is the port number on which the service's discovery endpoint is listening.
 ** `Request code` specifies a code expected by the service; only if the correct code is provided, the service will answer the request.

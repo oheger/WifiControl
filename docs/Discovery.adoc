@@ -1,0 +1,63 @@
+:toc:
+:toc-placement!:
+:toclevels: 3
+= Service Discovery Protocol
+
+This document describes the discovery protocol used by Wi-Fi Control in order to obtain the URL to a service's control UI dynamically.
+
+toc::[]
+
+== Overview
+The straight-forward way to open the UI for interacting with a service is to specify its URL in the service definition in Wi-Fi Control. This is, however, not always possible, since URLs may change dynamically and may not be known beforehand. For instance, devices hosting services may obtain their IP addresses in the local network via https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol[DHCP]; then URLs based on these addresses could change for each restart of a device.
+
+To deal with such dynamics, Wi-Fi Control defines a (rather simple) discovery protocol to be implemented by services that allows them to publish their current address/URL to requesting clients. The protocol is based on UDP multicasting. Basically, Wi-Fi Control sends a specific request via UDP that can be received by services in the local Wi-Fi. A service can then reply with the dynamic URL to its control UI.
+
+An introduction to UDP multicasting can be found for instance in https://www.baeldung.com/java-broadcast-multicast#multicasting[this article].
+
+== Protocol Details
+This section describes the parameters for discovery operations and the messages exchanged in detail.
+
+=== Parameters
+A discovery operation is defined by a number of parameters. Based on these parameters, a specific service can be uniquely identified, and it is ensured that multiple services can coexist in the local network without interfering with each other. Table <<tab_protocol_parameters>> lists the supported parameters. They correspond to the properties of a service definition in Wi-Fi Control that are related to discovery.
+
+[#tab_protocol_parameters]
+.Discovery protocol parameters
+[cols="1,3",options="header"]
+|====
+|Parameter
+|Description
+
+|Multicast address
+|This is the address of the multicast group the service subscribes to. Valid addresses must be in the range between 224.0.0.0 and 239.255.255.255. A service can choose an address out of this range (or allow the user to configure one).
+
+|Port
+|The port number under which the service is listening for incoming discovery requests. Together with the multicast address, it defines a unique endpoint in the local network for discovery requests.
+
+|Code
+|This is an arbitrary string defined by the service. Discovery requests must contain this string, and the service should only reply if the code matches. This parameter allows an endpoint implementation to figure out whether a received request is actually a discovery request for this service. Also, it is possible for a single endpoint to support multiple codes and therefore handle the discovery for multiple services.
+|====
+
+=== Messages
+During the discovery operation, the Wi-Fi Control app sends a message to the configured multicast address and port and waits for a response. Since UPD communication is not reliable, and packages may get lost, it repeats the message in a configured interval until either a response arrives or the time limit configured for discovery exceeds.
+
+UDP messages are just binary packages. For the discovery protocol, they consist of strings encoded in UTF-8. The request message sent by the app has the following format:
+
+ <code>[:<reply port>]
+
+where `<code>` is the code declared in the service definition, and `<reply port>` is an optional port number on which the app listens for the response. The expected behavior of the service is as follows:
+
+* The service checks whether the incoming message contains a colon ':' character. If so, the message is split at the last colon character. The first part is considered the code, the second part is interpreted as reply port. If there is no colon in the message, the whole message string is interpreted as code.
+* The service checks whether it understands the code. If so, it prepares sending the response message; otherwise, it just ignores the message.
+* The response message for a valid code consists solely of the URL of the service's control UI. Wi-Fi Control will open this URL in its Web view.
+* From the received message, the service can determine the sender's IP address and port number. It sends the response to this IP address. If a reply port was specified in the message, this port is used; otherwise, the response is sent to the original port from the sender.
+
+NOTE: An optional reply port that is different from the port used for sending is used by Wi-Fi Control to avoid potential race conditions during message exchange: If only a single `DatagramSocket` (on one port) was used for the communication, it could happen that the response from the service already arrives before the socket is ready for listening. Therefore, the app first opens a socket for listening in a separate coroutine; then it sends the request via a second socket.
+
+On receiving a response message from the service, Wi-Fi Control checks whether the content of the message is actually a valid URL. If this is the case, the discovery operation succeeds, and the URL is assigned to the service.
+
+=== Security-related Considerations
+The goal of Wi-Fi Control is to interact with services via the user's local Wi-Fi network. The discovery protocol deliberately does not contain any aspects related to authentication or authorization. The assumption is that access to the Wi-Fi on the device running the app is sufficient to prove that the user has proper access rights.
+
+For the services themselves, the situation may be different. It may well be the case that the control UI of a service displayed within the app requires an explicit login or uses a different authentication mechanism. After all, there is no special relationship between a service and Wi-Fi Control; the app does not influence the service's authentication scheme.
+
+CAUTION: Because there is no built-in authentication mechanism in the discovery protocol, Wi-Fi Control should not be used in a public network. Here, you cannot be sure whether the service you connect to is actually the expected one.
