@@ -1,0 +1,38 @@
+:toc:
+:toc-placement!:
+:toclevels: 3
+= Wi-Fi Control Data Privacy Statement
+
+This document describes the way how Wi-Fi Control stores and processes data.
+
+toc::[]
+
+== Overview
+The goal of Wi-Fi Control is to manage _services_ (i.e. applications reachable via the user's Wi-Fi) and to provide easy access to them. The data stored by the app is strictly limited to this purpose; it stores data about the single services and how to connect to them. This does not include any personal data.
+
+It is, however, important to note that with regard to services, Wi-Fi Control only acts as a mediator. It displays the UI of a service in a way that is equivalent as if the user would directly open the service's URL in a Web browser. The further interaction with the service happens outside the control of the app, and then the data privacy police of the specific service applies.
+
+The remainder of this document discusses details about the data handled by the Wi-Fi Control app.
+
+== What data does the app collect?
+The data model of Wi-Fi Control consists of a list of _service definitions_. Each service definition describes a single service with its name and the means to access this service - which can either be a direct URL or the properties of the link:Discovery.adoc[discovery mechanism].
+
+Since Wi-Fi Control is OpenSource, the source code of the data model is publicly available. The list of service definitions is represented by the following model classes:
+
+* link:../domain/src/main/java/com/github/oheger/wificontrol/domain/model/ServiceData.kt[ServiceData]
+* link:../domain/src/main/java/com/github/oheger/wificontrol/domain/model/ServiceDefinition.kt[ServiceDefinition]
+* link:../domain/src/main/java/com/github/oheger/wificontrol/domain/model/PersistentService.kt[PersistentService]
+
+In addition, the app stores the name of the service that is currently opened by the user (if any), so that it can be directly opened again when the app is relaunched.
+
+== How does the app collect the data?
+All the data managed by the app is entered in the corresponding forms to create or edit services.
+
+== How does the app use the data?
+The data is solely used to access the managed services and to display their UIs in the integrated Web view.
+
+== How does the app store the data?
+Data is exclusively stored on the device on which the app is running using Android's https://developer.android.com/topic/libraries/architecture/datastore[DataStore] library. No data is sent over the network to external servers.
+
+== Which control do users have over their data?
+Since all data is stored locally, users have full control over it. They can change or delete it at any time. Especially, when clearing the app's storage or uninstalling the app, all data is completely deleted.
