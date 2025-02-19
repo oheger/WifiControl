@@ -40,8 +40,8 @@ android {
         applicationId = "com.github.oheger.wificontrol"
         minSdk = defaultMinSdk.toInt()
         targetSdk = defaultTargetSdk.toInt()
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.0-RC1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
