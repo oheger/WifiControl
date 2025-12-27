@@ -44,6 +44,7 @@ import java.net.MulticastSocket
 import java.net.ServerSocket
 import java.util.concurrent.atomic.AtomicInteger
 
+import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.nanoseconds
@@ -67,7 +68,6 @@ import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
 
 @OptIn(DelicateCoroutinesApi::class, ExperimentalCoroutinesApi::class)
 class ServiceDiscoveryDataSourceImplTest : WordSpec() {

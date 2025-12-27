@@ -60,7 +60,10 @@ android {
         target {
             compilerOptions {
                 jvmTarget = JvmTarget.fromTarget(defaultJvmTarget)
-                freeCompilerArgs = listOf("-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi")
+                freeCompilerArgs = listOf(
+                    "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+                    "-opt-in=kotlin.time.ExperimentalTime"
+                )
             }
         }
     }

@@ -18,7 +18,7 @@
  */
 package com.github.oheger.wificontrol.domain.model
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 /**
  * The root interface of a hierarchy that defines the possible states when looking up a service in the network.

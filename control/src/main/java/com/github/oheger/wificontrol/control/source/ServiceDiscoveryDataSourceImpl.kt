@@ -35,6 +35,8 @@ import java.net.URI
 
 import javax.inject.Inject
 
+import kotlin.time.Clock
+
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -49,7 +51,6 @@ import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.datetime.Clock
 
 /**
  * An implementation of the [ServiceDiscoveryDataSource] interface.
