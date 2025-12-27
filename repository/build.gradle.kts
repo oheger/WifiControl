@@ -16,6 +16,11 @@
  * SPDX-License-Identifier: Apache-2.0
  * License-Filename: LICENSE
  */
+@file:OptIn(ExperimentalKotlinGradlePluginApi::class)
+
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     kotlin("kapt")
 
@@ -51,9 +56,13 @@ android {
         sourceCompatibility = JavaVersion.toVersion(javaCompileVersion)
         targetCompatibility = JavaVersion.toVersion(javaCompileVersion)
     }
-    kotlinOptions {
-        jvmTarget = defaultJvmTarget
-        freeCompilerArgs += "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
+    kotlin {
+        target {
+            compilerOptions {
+                jvmTarget = JvmTarget.fromTarget(defaultJvmTarget)
+                freeCompilerArgs = listOf("-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi")
+            }
+        }
     }
     testOptions {
         unitTests.all {
