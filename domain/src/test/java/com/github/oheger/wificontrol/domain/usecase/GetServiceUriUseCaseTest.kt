@@ -35,13 +35,13 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
-import kotlinx.datetime.Clock
 
 class GetServiceUriUseCaseTest : StringSpec({
     "The flow from the repository should be returned" {

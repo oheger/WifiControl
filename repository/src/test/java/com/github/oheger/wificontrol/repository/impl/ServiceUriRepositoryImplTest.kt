@@ -34,11 +34,12 @@ import io.mockk.mockk
 import io.mockk.runs
 import io.mockk.verify
 
+import kotlin.time.Clock
+
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
-import kotlinx.datetime.Clock
 
 class ServiceUriRepositoryImplTest : WordSpec({
     "lookupService" should {

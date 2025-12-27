@@ -73,6 +73,7 @@ android {
         target {
             compilerOptions {
                 jvmTarget = JvmTarget.fromTarget(defaultJvmTarget)
+                freeCompilerArgs = listOf("-opt-in=kotlin.time.ExperimentalTime")
             }
         }
     }

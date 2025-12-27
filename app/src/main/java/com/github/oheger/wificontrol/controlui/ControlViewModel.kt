@@ -43,6 +43,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 
 import javax.inject.Inject
 
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 
 import kotlinx.coroutines.CoroutineScope
@@ -53,7 +54,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 
 /**
  * The [ViewModel] for the UI to control a specific service.
