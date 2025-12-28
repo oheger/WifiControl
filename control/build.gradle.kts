@@ -91,6 +91,7 @@ dependencies {
 
     kapt(libs.hilt.compiler)
 
+    testImplementation(libs.coroutines.test)
     testImplementation(libs.kotest.assertions)
     testImplementation(libs.kotest.runner.junit)
     testImplementation(libs.mockk)
