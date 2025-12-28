@@ -45,7 +45,7 @@ android {
         applicationId = "com.github.oheger.wificontrol"
         minSdk = defaultMinSdk.toInt()
         targetSdk = defaultTargetSdk.toInt()
-        versionCode = 2
+        versionCode = 3
         versionName = "1.0-RC1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -75,6 +75,11 @@ android {
                 jvmTarget = JvmTarget.fromTarget(defaultJvmTarget)
                 freeCompilerArgs = listOf("-opt-in=kotlin.time.ExperimentalTime")
             }
+        }
+    }
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(jvmToolChainVersion)
         }
     }
     buildFeatures {
@@ -143,13 +148,6 @@ kotlin {
     // 'compileReleaseJavaWithJavac' and 'kaptGenerateStubsReleaseKotlin' tasks; the latter uses as target the
     // local JDK used to execute the Gradle build.
     jvmToolchain(jvmToolChainVersion.toInt())
-}
-
-// Java 17 is required for Robolectric tests.
-tasks.withType<Test>().configureEach {
-    javaLauncher = javaToolchains.launcherFor {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
 }
 
 tasks.whenTaskAdded {
